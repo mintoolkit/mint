@@ -7,14 +7,14 @@ import (
 	dockerapi "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
-	"github.com/slimtoolkit/slim/pkg/app/master/version"
-	cmd "github.com/slimtoolkit/slim/pkg/command"
-	"github.com/slimtoolkit/slim/pkg/docker/linter"
-	"github.com/slimtoolkit/slim/pkg/docker/linter/check"
-	"github.com/slimtoolkit/slim/pkg/report"
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/version"
+	cmd "github.com/mintoolkit/mint/pkg/command"
+	"github.com/mintoolkit/mint/pkg/docker/linter"
+	"github.com/mintoolkit/mint/pkg/docker/linter/check"
+	"github.com/mintoolkit/mint/pkg/report"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
 )
 
 const appName = command.AppName

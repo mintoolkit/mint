@@ -3,9 +3,9 @@ package appbom
 import (
 	//log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
-	"github.com/slimtoolkit/slim/pkg/appbom"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/appbom"
 )
 
 const appName = command.AppName

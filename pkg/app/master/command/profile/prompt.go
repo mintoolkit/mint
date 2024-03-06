@@ -3,7 +3,7 @@ package profile
 import (
 	"github.com/c-bata/go-prompt"
 
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
 )
 
 var CommandSuggestion = prompt.Suggest{

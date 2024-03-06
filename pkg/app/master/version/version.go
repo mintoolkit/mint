@@ -11,11 +11,11 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	//"github.com/slimtoolkit/slim/pkg/app/master/commands"
-	"github.com/slimtoolkit/slim/pkg/system"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	v "github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/app"
+	//"github.com/mintoolkit/mint/pkg/app/master/commands"
+	"github.com/mintoolkit/mint/pkg/system"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	v "github.com/mintoolkit/mint/pkg/version"
 )
 
 const (

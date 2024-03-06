@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
 
 	"github.com/compose-spec/compose-go/loader"
 	"github.com/compose-spec/compose-go/types"

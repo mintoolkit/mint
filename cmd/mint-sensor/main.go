@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/slimtoolkit/slim/pkg/app/sensor"
+	"github.com/mintoolkit/mint/pkg/app/sensor"
 )
 
 func main() {

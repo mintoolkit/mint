@@ -17,13 +17,13 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerclient"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerutil"
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	"github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/version"
 )
 
 type InteractiveApp struct {
@@ -45,10 +45,10 @@ func NewInteractiveApp(app *cli.App, gparams *GenericParams) *InteractiveApp {
 	if err == dockerclient.ErrNoDockerInfo {
 		exitMsg := "missing Docker connection info"
 		if gparams.InContainer && gparams.IsDSImage {
-			exitMsg = "make sure to pass the Docker connect parameters to the slim app container"
+			exitMsg = "make sure to pass the Docker connect parameters to the mint app container"
 		}
-		fmt.Printf("slim: info=docker.connect.error message='%s'\n", exitMsg)
-		fmt.Printf("slim: state=exited version=%s location='%s'\n", version.Current(), fsutil.ExeDir())
+		fmt.Printf("mint: info=docker.connect.error message='%s'\n", exitMsg)
+		fmt.Printf("mint: state=exited version=%s location='%s'\n", version.Current(), fsutil.ExeDir())
 		os.Exit(-777)
 	}
 	errutil.FailOn(err)

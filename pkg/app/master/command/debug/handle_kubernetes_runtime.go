@@ -22,8 +22,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
 )
 
 // HandleKubernetesRuntime implements support for the k8s runtime

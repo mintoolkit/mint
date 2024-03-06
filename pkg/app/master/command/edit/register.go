@@ -1,7 +1,7 @@
 package edit
 
 import (
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
 )
 
 func RegisterCommand() {

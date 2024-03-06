@@ -4,9 +4,9 @@
 package pevent
 
 import (
-	"github.com/slimtoolkit/slim/pkg/pdiscover"
-	"github.com/slimtoolkit/slim/pkg/report"
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/pdiscover"
+	"github.com/mintoolkit/mint/pkg/report"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
 
 	log "github.com/sirupsen/logrus"
 )

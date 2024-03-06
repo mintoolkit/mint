@@ -18,14 +18,14 @@ import (
 	"github.com/google/shlex"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
-	"github.com/slimtoolkit/slim/pkg/report"
-	"github.com/slimtoolkit/slim/pkg/sysenv"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/report"
+	"github.com/mintoolkit/mint/pkg/sysenv"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
 )
 
 const (
-	DefaultStateArchiveVolumeName = "slim-state"
+	DefaultStateArchiveVolumeName = "mint-state"
 )
 
 func IsInContainer(flag bool) (bool, bool) {

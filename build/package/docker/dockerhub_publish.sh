@@ -13,7 +13,7 @@ if hash git 2>/dev/null && [ -e $BDIR/.git ]; then
 fi
 popd
 
-docker tag slim dslim/slim:$TAG
-docker tag slim dslim/slim
-docker push dslim/slim:$TAG
-docker push dslim/slim
+docker tag mint mintoolkit/mint:$TAG
+docker tag mint mintoolkit/mint
+docker push mintoolkit/mint:$TAG
+docker push mintoolkit/mint

@@ -10,9 +10,9 @@ import (
 	"github.com/fatih/color"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/consts"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	v "github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/consts"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	v "github.com/mintoolkit/mint/pkg/version"
 )
 
 const (
@@ -392,11 +392,6 @@ func ShowCommunityInfo(outputFormat string) {
 			App:     consts.AppName,
 			Message: "Join the Discord server to ask questions or to share your feedback",
 			Info:    consts.CommunityDiscord,
-		},
-		{
-			App:     consts.AppName,
-			Message: "Join the Gitter channel to ask questions or to share your feedback",
-			Info:    consts.CommunityGitter,
 		},
 	}
 

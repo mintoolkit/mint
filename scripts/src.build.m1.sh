@@ -18,25 +18,26 @@ if hash git 2>/dev/null && [ -e $BDIR/.git ]; then
   REVISION="$(git rev-parse HEAD)"
 fi
 
-LD_FLAGS="-s -w -X github.com/slimtoolkit/slim/pkg/version.appVersionTag=${TAG} -X github.com/slimtoolkit/slim/pkg/version.appVersionRev=${REVISION} -X github.com/slimtoolkit/slim/pkg/version.appVersionTime=${BUILD_TIME}"
+LD_FLAGS="-s -w -X github.com/mintoolkit/mint/pkg/version.appVersionTag=${TAG} -X github.com/mintoolkit/mint/pkg/version.appVersionRev=${REVISION} -X github.com/mintoolkit/mint/pkg/version.appVersionTime=${BUILD_TIME}"
 
-go generate github.com/slimtoolkit/slim/pkg/appbom
+go generate github.com/mintoolkit/mint/pkg/appbom
 
-pushd ${BDIR}/cmd/slim
-GOOS=darwin GOARCH=arm64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'netgo osusergo' -o "${BDIR}/bin/mac_m1/slim"
+pushd ${BDIR}/cmd/mint
+GOOS=darwin GOARCH=arm64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'netgo osusergo' -o "${BDIR}/bin/mac_m1/mint"
 popd
 
-pushd ${BDIR}/cmd/slim-sensor
-GOOS=linux GOARCH=arm64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'netgo osusergo' -o "$BDIR/bin/linux_arm64/slim-sensor"
-chmod a+x "$BDIR/bin/linux_arm64/slim-sensor"
+pushd ${BDIR}/cmd/mint-sensor
+GOOS=linux GOARCH=arm64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'netgo osusergo' -o "$BDIR/bin/linux_arm64/mint-sensor"
+chmod a+x "$BDIR/bin/linux_arm64/mint-sensor"
 popd
 
 rm -rfv ${BDIR}/dist_mac_m1
 mkdir ${BDIR}/dist_mac_m1
-cp ${BDIR}/bin/mac_m1/slim ${BDIR}/dist_mac_m1/slim
-cp ${BDIR}/bin/linux_arm64/slim-sensor ${BDIR}/dist_mac_m1/slim-sensor
+cp ${BDIR}/bin/mac_m1/mint ${BDIR}/dist_mac_m1/mint
+cp ${BDIR}/bin/linux_arm64/mint-sensor ${BDIR}/dist_mac_m1/mint-sensor
 pushd ${BDIR}/dist_mac_m1
-ln -s slim docker-slim
+ln -s mint docker-slim
+ln -s mint slim
 popd
 pushd ${BDIR}
 

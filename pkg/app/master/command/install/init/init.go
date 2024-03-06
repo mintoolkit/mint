@@ -1,7 +1,7 @@
 package init
 
 import (
-	"github.com/slimtoolkit/slim/pkg/app/master/command/install"
+	"github.com/mintoolkit/mint/pkg/app/master/command/install"
 )
 
 func init() {

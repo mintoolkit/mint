@@ -16,7 +16,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/slimtoolkit/slim/pkg/docker/instruction"
+	"github.com/mintoolkit/mint/pkg/docker/instruction"
 )
 
 type NameValError struct {

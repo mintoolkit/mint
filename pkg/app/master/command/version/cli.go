@@ -3,13 +3,13 @@ package version
 import (
 	"github.com/urfave/cli/v2"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
 )
 
 const (
 	Name  = "version"
-	Usage = "Shows slim and docker version information"
+	Usage = "Shows mint and docker version information"
 	Alias = "v"
 )
 

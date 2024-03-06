@@ -8,7 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	stubmonitor "github.com/slimtoolkit/slim/pkg/test/stub/sensor/monitor"
+	stubmonitor "github.com/mintoolkit/mint/pkg/test/stub/sensor/monitor"
 )
 
 func init() {

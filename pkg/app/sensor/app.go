@@ -16,21 +16,21 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/artifact"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/controlled"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/execution"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/monitor"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/standalone"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/standalone/control"
-	"github.com/slimtoolkit/slim/pkg/appbom"
-	"github.com/slimtoolkit/slim/pkg/ipc/event"
-	"github.com/slimtoolkit/slim/pkg/mondel"
-	"github.com/slimtoolkit/slim/pkg/report"
-	"github.com/slimtoolkit/slim/pkg/sysenv"
-	"github.com/slimtoolkit/slim/pkg/system"
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
-	"github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/sensor/artifact"
+	"github.com/mintoolkit/mint/pkg/app/sensor/controlled"
+	"github.com/mintoolkit/mint/pkg/app/sensor/execution"
+	"github.com/mintoolkit/mint/pkg/app/sensor/monitor"
+	"github.com/mintoolkit/mint/pkg/app/sensor/standalone"
+	"github.com/mintoolkit/mint/pkg/app/sensor/standalone/control"
+	"github.com/mintoolkit/mint/pkg/appbom"
+	"github.com/mintoolkit/mint/pkg/ipc/event"
+	"github.com/mintoolkit/mint/pkg/mondel"
+	"github.com/mintoolkit/mint/pkg/report"
+	"github.com/mintoolkit/mint/pkg/sysenv"
+	"github.com/mintoolkit/mint/pkg/system"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/version"
 )
 
 const (
@@ -55,11 +55,11 @@ const (
 	logFileFlagUsage   = "enable logging redirection to a file (allowing to keep sensor's output separate from the target app's output)"
 	logFileFlagDefault = ""
 
-	sensorModeFlagUsage   = "set the sensor execution mode ('controlled' when sensor expect the driver 'slim' app to manipulate its lifecycle; or 'standalone' when sensor depends on nothing but the target app"
+	sensorModeFlagUsage   = "set the sensor execution mode ('controlled' when sensor expect the driver 'mint' app to manipulate its lifecycle; or 'standalone' when sensor depends on nothing but the target app"
 	sensorModeFlagDefault = sensorModeControlled
 
 	commandsFileFlagUsage   = "provide a JSONL-encoded file with one ore more sensor commands (standalone mode only)"
-	commandsFileFlagDefault = "/opt/_slim/commands.json"
+	commandsFileFlagDefault = "/opt/_mint/commands.json"
 
 	lifecycleHookCommandFlagUsage   = "set path to an executable that'll be invoked at various sensor lifecycle events (post-start, pre-shutdown, etc)"
 	lifecycleHookCommandFlagDefault = ""

@@ -8,10 +8,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
-	"github.com/slimtoolkit/slim/pkg/artifact"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/artifact"
 )
 
 const (

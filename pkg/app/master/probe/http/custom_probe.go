@@ -15,10 +15,10 @@ import (
 	dockerapi "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
-	"github.com/slimtoolkit/slim/pkg/app/master/inspectors/container"
-	"github.com/slimtoolkit/slim/pkg/app/master/inspectors/pod"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/app/master/inspectors/container"
+	"github.com/mintoolkit/mint/pkg/app/master/inspectors/pod"
 )
 
 const (

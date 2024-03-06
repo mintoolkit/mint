@@ -14,11 +14,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 
-	"github.com/slimtoolkit/slim/pkg/errors"
-	"github.com/slimtoolkit/slim/pkg/launcher"
-	"github.com/slimtoolkit/slim/pkg/mondel"
-	"github.com/slimtoolkit/slim/pkg/report"
-	"github.com/slimtoolkit/slim/pkg/system"
+	"github.com/mintoolkit/mint/pkg/errors"
+	"github.com/mintoolkit/mint/pkg/launcher"
+	"github.com/mintoolkit/mint/pkg/mondel"
+	"github.com/mintoolkit/mint/pkg/report"
+	"github.com/mintoolkit/mint/pkg/system"
 )
 
 type syscallEvent struct {

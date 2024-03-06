@@ -11,13 +11,13 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 
-	"github.com/slimtoolkit/slim/pkg/app/sensor/artifact"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/execution"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/monitor"
-	"github.com/slimtoolkit/slim/pkg/ipc/command"
-	"github.com/slimtoolkit/slim/pkg/ipc/event"
-	"github.com/slimtoolkit/slim/pkg/mondel"
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/app/sensor/artifact"
+	"github.com/mintoolkit/mint/pkg/app/sensor/execution"
+	"github.com/mintoolkit/mint/pkg/app/sensor/monitor"
+	"github.com/mintoolkit/mint/pkg/ipc/command"
+	"github.com/mintoolkit/mint/pkg/ipc/event"
+	"github.com/mintoolkit/mint/pkg/mondel"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
 )
 
 type Sensor struct {

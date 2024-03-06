@@ -8,16 +8,16 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
-	"github.com/slimtoolkit/slim/pkg/app/master/version"
-	cmd "github.com/slimtoolkit/slim/pkg/command"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerclient"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerutil"
-	"github.com/slimtoolkit/slim/pkg/report"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	"github.com/slimtoolkit/slim/pkg/util/jsonutil"
-	v "github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/version"
+	cmd "github.com/mintoolkit/mint/pkg/command"
+	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/report"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/util/jsonutil"
+	v "github.com/mintoolkit/mint/pkg/version"
 )
 
 const appName = command.AppName

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/slimtoolkit/slim/pkg/ipc/command"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/ipc/command"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
 )
 
 func ExecuteStopTargetAppCommand(ctx context.Context, commandsFile string) error {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/slimtoolkit/slim/pkg/consts"
+	"github.com/mintoolkit/mint/pkg/consts"
 )
 
 var (

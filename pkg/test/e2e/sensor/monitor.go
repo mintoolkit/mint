@@ -1,8 +1,8 @@
 package sensor
 
 import (
-	mastercommand "github.com/slimtoolkit/slim/pkg/app/master/command"
-	"github.com/slimtoolkit/slim/pkg/ipc/command"
+	mastercommand "github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/ipc/command"
 )
 
 type StartMonitorOpt func(*command.StartMonitor)

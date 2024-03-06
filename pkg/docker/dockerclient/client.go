@@ -9,10 +9,10 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	"github.com/slimtoolkit/slim/pkg/util/jsonutil"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/util/jsonutil"
 )
 
 const (

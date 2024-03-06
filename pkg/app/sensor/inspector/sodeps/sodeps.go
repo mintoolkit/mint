@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/slimtoolkit/slim/pkg/app/sensor/detector/binfile"
+	"github.com/mintoolkit/mint/pkg/app/sensor/detector/binfile"
 
 	log "github.com/sirupsen/logrus"
 )

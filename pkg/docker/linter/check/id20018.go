@@ -8,7 +8,7 @@ import (
 	"github.com/google/shlex"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/docker/instruction"
+	"github.com/mintoolkit/mint/pkg/docker/instruction"
 )
 
 func init() {

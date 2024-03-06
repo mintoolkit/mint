@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/acounter"
+	"github.com/mintoolkit/mint/pkg/acounter"
 )
 
 const (

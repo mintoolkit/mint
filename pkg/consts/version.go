@@ -2,6 +2,6 @@ package consts
 
 // App version constants
 const (
-	AppName        = "slim"
+	AppName        = "mint"
 	AppVersionName = "Transformer"
 )

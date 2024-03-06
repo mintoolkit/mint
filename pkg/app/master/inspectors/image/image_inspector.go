@@ -10,14 +10,14 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/consts"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerfile/reverse"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerutil"
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/consts"
+	"github.com/mintoolkit/mint/pkg/docker/dockerfile/reverse"
+	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
 )
 
 const (
-	slimImageRepo          = "slim"
+	slimImageRepo          = "mint"
 	appArmorProfileName    = "apparmor-profile"
 	seccompProfileName     = "seccomp-profile"
 	appArmorProfileNamePat = "%s-apparmor-profile"
@@ -333,8 +333,8 @@ func (i *Inspector) ProcessCollectedData() error {
 // ShowFatImageDockerInstructions prints the original target image Dockerfile instructions
 func (i *Inspector) ShowFatImageDockerInstructions() {
 	if i.DockerfileInfo != nil && i.DockerfileInfo.Lines != nil {
-		fmt.Println("slim: Fat image - Dockerfile instructures: start ====")
+		fmt.Println("mint: Fat image - Dockerfile instructures: start ====")
 		fmt.Println(strings.Join(i.DockerfileInfo.Lines, "\n"))
-		fmt.Println("slim: Fat image - Dockerfile instructures: end ======")
+		fmt.Println("mint: Fat image - Dockerfile instructures: end ======")
 	}
 }

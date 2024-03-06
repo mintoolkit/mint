@@ -8,15 +8,15 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/slimtoolkit/go-update"
 
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	vinfo "github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	vinfo "github.com/mintoolkit/mint/pkg/version"
 )
 
 const (
 	dockerCLIPluginDirSuffx = "/.docker/cli-plugins"
-	masterAppName           = "slim"
-	sensorAppName           = "slim-sensor"
+	masterAppName           = "mint"
+	sensorAppName           = "mint-sensor"
 	binDirName              = "/usr/local/bin"
 )
 
@@ -29,7 +29,7 @@ func OnCommand(
 	isDSImage bool,
 	binDir bool,
 	dockerCLIPlugin bool) {
-	logger := log.WithFields(log.Fields{"app": "slim", "cmd": "install"})
+	logger := log.WithFields(log.Fields{"app": "mint", "cmd": "install"})
 
 	appPath, err := os.Executable()
 	errutil.FailOn(err)
@@ -38,12 +38,12 @@ func OnCommand(
 	if binDir {
 		err := installToBinDir(logger, statePath, inContainer, isDSImage, appDirPath)
 		if err != nil {
-			fmt.Printf("slim[install]: info=status message='error installing to bin dir'\n")
-			fmt.Printf("slim[install]: state=exited version=%s\n", vinfo.Current())
+			fmt.Printf("mint[install]: info=status message='error installing to bin dir'\n")
+			fmt.Printf("mint[install]: state=exited version=%s\n", vinfo.Current())
 			return
 		}
 
-		fmt.Printf("slim[install]: state=bin.dir.installed\n")
+		fmt.Printf("mint[install]: state=bin.dir.installed\n")
 
 		//use the path from the bin dir, so installing docker CLI plugin symlinks to the right binaries
 		appDirPath = binDirName
@@ -53,12 +53,12 @@ func OnCommand(
 		//create a symlink
 		err := installDockerCLIPlugin(logger, statePath, inContainer, isDSImage, appDirPath)
 		if err != nil {
-			fmt.Printf("slim[install]: info=status message='error installing as Docker CLI plugin'\n")
-			fmt.Printf("slim[install]: state=exited version=%s\n", vinfo.Current())
+			fmt.Printf("mint[install]: info=status message='error installing as Docker CLI plugin'\n")
+			fmt.Printf("mint[install]: state=exited version=%s\n", vinfo.Current())
 			return
 		}
 
-		fmt.Printf("slim[install]: state=docker.cli.plugin.installed\n")
+		fmt.Printf("mint[install]: state=docker.cli.plugin.installed\n")
 	}
 }
 

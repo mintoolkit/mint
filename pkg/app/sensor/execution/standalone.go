@@ -12,10 +12,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app/sensor/standalone/control"
-	"github.com/slimtoolkit/slim/pkg/ipc/command"
-	"github.com/slimtoolkit/slim/pkg/ipc/event"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/app/sensor/standalone/control"
+	"github.com/mintoolkit/mint/pkg/ipc/command"
+	"github.com/mintoolkit/mint/pkg/ipc/event"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
 )
 
 type standaloneExe struct {

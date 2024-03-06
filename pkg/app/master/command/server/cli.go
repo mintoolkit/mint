@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
 
 	"github.com/urfave/cli/v2"
 )

@@ -11,21 +11,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
-	"github.com/slimtoolkit/slim/pkg/app/master/inspectors/image"
-	"github.com/slimtoolkit/slim/pkg/app/master/inspectors/ipc"
-	"github.com/slimtoolkit/slim/pkg/app/master/inspectors/sensor"
-	"github.com/slimtoolkit/slim/pkg/app/master/kubernetes"
-	"github.com/slimtoolkit/slim/pkg/app/master/security/apparmor"
-	"github.com/slimtoolkit/slim/pkg/app/master/security/seccomp"
-	"github.com/slimtoolkit/slim/pkg/ipc/channel"
-	"github.com/slimtoolkit/slim/pkg/ipc/command"
-	"github.com/slimtoolkit/slim/pkg/ipc/event"
-	"github.com/slimtoolkit/slim/pkg/report"
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	v "github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
+	"github.com/mintoolkit/mint/pkg/app/master/inspectors/ipc"
+	"github.com/mintoolkit/mint/pkg/app/master/inspectors/sensor"
+	"github.com/mintoolkit/mint/pkg/app/master/kubernetes"
+	"github.com/mintoolkit/mint/pkg/app/master/security/apparmor"
+	"github.com/mintoolkit/mint/pkg/app/master/security/seccomp"
+	"github.com/mintoolkit/mint/pkg/ipc/channel"
+	"github.com/mintoolkit/mint/pkg/ipc/command"
+	"github.com/mintoolkit/mint/pkg/ipc/event"
+	"github.com/mintoolkit/mint/pkg/report"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	v "github.com/mintoolkit/mint/pkg/version"
 
 	dockerapi "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
@@ -38,15 +38,15 @@ type ovars = app.OutVars
 
 // TODO: unify with similar constants in container_inspector.go
 const (
-	sensorVolumeName      = "slim-sensor"
-	sensorVolumeMountPath = "/opt/_slim/bin"
+	sensorVolumeName      = "mint-sensor"
+	sensorVolumeMountPath = "/opt/_mint/bin"
 	sensorBinFileAbs      = sensorVolumeMountPath + "/" + sensor.LocalBinFile
-	sensorLoaderContainer = "slim-sensor-loader"
+	sensorLoaderContainer = "mint-sensor-loader"
 
-	artifactsVolumeName = "slim-artifacts"
+	artifactsVolumeName = "mint-artifacts"
 
 	targetPodLabelName = "dockersl.im/target-pod"
-	targetPodLabelPat  = "slimk_%v_%v"
+	targetPodLabelPat  = "mintk_%v_%v"
 )
 
 type portInfo struct {
@@ -253,9 +253,9 @@ func (i *Inspector) FinishMonitoring() {
 
 func (i *Inspector) ShowPodLogs() {
 	// TODO: Implement me!
-	fmt.Println("slim: pod stdout:")
-	fmt.Println("slim: pod stderr:")
-	fmt.Println("slim: end of pod logs =============")
+	fmt.Println("mint: pod stdout:")
+	fmt.Println("mint: pod stderr:")
+	fmt.Println("mint: end of pod logs =============")
 }
 
 func (i *Inspector) ShutdownPod(resetChanges bool) {
@@ -632,7 +632,7 @@ func (i *Inspector) sensorCommandStart() error {
 						"status": "receive.timeout",
 					})
 
-				i.logger.Debug("timeout waiting for the slim container to start...")
+				i.logger.Debug("timeout waiting for the mint container to start...")
 				continue
 			}
 
@@ -640,7 +640,7 @@ func (i *Inspector) sensorCommandStart() error {
 		}
 
 		if evt == nil || evt.Name == "" {
-			i.logger.Debug("empty event waiting for the slim container to start (trying again)...")
+			i.logger.Debug("empty event waiting for the mint container to start (trying again)...")
 			continue
 		}
 

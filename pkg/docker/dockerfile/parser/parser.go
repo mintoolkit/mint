@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/slimtoolkit/slim/pkg/docker/dockerfile/ast"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerfile/spec"
-	"github.com/slimtoolkit/slim/pkg/docker/instruction"
+	"github.com/mintoolkit/mint/pkg/docker/dockerfile/ast"
+	"github.com/mintoolkit/mint/pkg/docker/dockerfile/spec"
+	"github.com/mintoolkit/mint/pkg/docker/instruction"
 )
 
 var (

@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
 )
 
 const (

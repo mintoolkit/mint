@@ -17,8 +17,8 @@ import (
 	"github.com/moby/term"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
 )
 
 //Custom I/O for terminal later

@@ -55,7 +55,7 @@ const (
 	FlagHostUsage          = "Docker host address or socket (prefix with 'tcp://' or 'unix://')"
 	FlagStatePathUsage     = "app state base path"
 	FlagInContainerUsage   = "app is running in a container"
-	FlagArchiveStateUsage  = "archive app state to the selected Docker volume (default volume - slim-state). By default, enabled when app is running in a container (disabled otherwise). Set it to \"off\" to disable explicitly."
+	FlagArchiveStateUsage  = "archive app state to the selected Docker volume (default volume - mint-state). By default, enabled when app is running in a container (disabled otherwise). Set it to \"off\" to disable explicitly."
 	FlagNoColorUsage       = "disable color output"
 )
 
@@ -374,7 +374,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringFlag{
 			Name:  FlagArchiveState,
 			Value: "",
-			Usage: "archive app state to the selected Docker volume (default volume - slim-state). By default, enabled when app is running in a container (disabled otherwise). Set it to \"off\" to disable explicitly.",
+			Usage: "archive app state to the selected Docker volume (default volume - mint-state). By default, enabled when app is running in a container (disabled otherwise). Set it to \"off\" to disable explicitly.",
 		},
 		&cli.BoolFlag{
 			Name:  FlagNoColor,

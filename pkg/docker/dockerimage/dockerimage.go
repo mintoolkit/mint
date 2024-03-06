@@ -23,12 +23,12 @@ import (
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/certdiscover"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerutil"
-	"github.com/slimtoolkit/slim/pkg/sysidentity"
-	"github.com/slimtoolkit/slim/pkg/system"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	"github.com/slimtoolkit/slim/pkg/util/jsonutil"
+	"github.com/mintoolkit/mint/pkg/certdiscover"
+	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/sysidentity"
+	"github.com/mintoolkit/mint/pkg/system"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/util/jsonutil"
 )
 
 const (

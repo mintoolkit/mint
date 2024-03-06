@@ -1,6 +1,6 @@
 package app
 
 const (
-	DefaultArtifactsDirPath = "/opt/_slim/artifacts"
+	DefaultArtifactsDirPath = "/opt/_mint/artifacts"
 	ArtifactFilesDirName    = "files"
 )

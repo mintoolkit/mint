@@ -7,8 +7,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/consts"
-	"github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/consts"
+	"github.com/mintoolkit/mint/pkg/version"
 )
 
 // FailOnWithInfo logs the error information with additional context info (terminates the application)
@@ -89,7 +89,6 @@ func showCommunityInfo() {
 	fmt.Printf("slim: message='Github discussions' info='%s'\n", consts.CommunityDiscussions)
 	fmt.Printf("slim: message='CNCF Slack' info='%s'\n", consts.CommunityCNCFSlack)
 	fmt.Printf("slim: message='join the Discord server to get help with this failure' info='%s'\n", consts.CommunityDiscord)
-	fmt.Printf("slim: message='join the Gitter channel to get help with this failure' info='%s'\n", consts.CommunityGitter)
 }
 
 // exec.Command().Run() and its derivatives sometimes return

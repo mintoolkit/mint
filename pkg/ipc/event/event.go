@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	goerr "errors"
 
-	"github.com/slimtoolkit/slim/pkg/errors"
+	"github.com/mintoolkit/mint/pkg/errors"
 )
 
 // Event errors

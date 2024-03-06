@@ -1,8 +1,8 @@
 package ptrace
 
 import (
-	"github.com/slimtoolkit/slim/pkg/monitor/ptrace"
-	"github.com/slimtoolkit/slim/pkg/report"
+	"github.com/mintoolkit/mint/pkg/monitor/ptrace"
+	"github.com/mintoolkit/mint/pkg/report"
 )
 
 type AppRunOpt = ptrace.AppRunOpt

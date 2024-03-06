@@ -10,7 +10,7 @@ import (
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/kubernetes/scheme"
 
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
 )
 
 const (

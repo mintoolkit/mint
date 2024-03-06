@@ -16,14 +16,14 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
-	"github.com/slimtoolkit/slim/pkg/app/master/version"
-	cmd "github.com/slimtoolkit/slim/pkg/command"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerclient"
-	"github.com/slimtoolkit/slim/pkg/report"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	v "github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/version"
+	cmd "github.com/mintoolkit/mint/pkg/command"
+	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/report"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	v "github.com/mintoolkit/mint/pkg/version"
 )
 
 // OnImageIndexCreateCommand implements the 'registry image-index-create' command

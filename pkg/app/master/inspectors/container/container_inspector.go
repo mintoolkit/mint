@@ -12,24 +12,24 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/slimtoolkit/slim/pkg/aflag"
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
-	"github.com/slimtoolkit/slim/pkg/app/master/docker/dockerhost"
-	"github.com/slimtoolkit/slim/pkg/app/master/inspectors/image"
-	"github.com/slimtoolkit/slim/pkg/app/master/inspectors/ipc"
-	"github.com/slimtoolkit/slim/pkg/app/master/inspectors/sensor"
-	"github.com/slimtoolkit/slim/pkg/app/master/security/apparmor"
-	"github.com/slimtoolkit/slim/pkg/app/master/security/seccomp"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerutil"
-	"github.com/slimtoolkit/slim/pkg/ipc/channel"
-	"github.com/slimtoolkit/slim/pkg/ipc/command"
-	"github.com/slimtoolkit/slim/pkg/ipc/event"
-	"github.com/slimtoolkit/slim/pkg/report"
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	"github.com/slimtoolkit/slim/pkg/util/jsonutil"
-	v "github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/aflag"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/app/master/docker/dockerhost"
+	"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
+	"github.com/mintoolkit/mint/pkg/app/master/inspectors/ipc"
+	"github.com/mintoolkit/mint/pkg/app/master/inspectors/sensor"
+	"github.com/mintoolkit/mint/pkg/app/master/security/apparmor"
+	"github.com/mintoolkit/mint/pkg/app/master/security/seccomp"
+	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/ipc/channel"
+	"github.com/mintoolkit/mint/pkg/ipc/command"
+	"github.com/mintoolkit/mint/pkg/ipc/event"
+	"github.com/mintoolkit/mint/pkg/report"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/util/jsonutil"
+	v "github.com/mintoolkit/mint/pkg/version"
 
 	containertypes "github.com/docker/docker/api/types/container"
 	dockerapi "github.com/fsouza/go-dockerclient"
@@ -40,16 +40,16 @@ import (
 const (
 	SensorIPCModeDirect = "direct"
 	SensorIPCModeProxy  = "proxy"
-	SensorBinPath       = "/opt/_slim/bin/slim-sensor"
-	ContainerNamePat    = "slimk_%v_%v"
+	SensorBinPath       = "/opt/_mint/bin/mint-sensor"
+	ContainerNamePat    = "mintk_%v_%v"
 	ArtifactsDir        = "artifacts"
 	ReportArtifactTar   = "creport.tar"
 	fileArtifactsTar    = "files.tar"
 	FileArtifactsOutTar = "files_out.tar"
 	// FileArtifactsArchiveTar = "files_archive.tar"
-	SensorMountPat       = "%s:/opt/_slim/bin/slim-sensor:ro"
-	VolumeSensorMountPat = "%s:/opt/_slim/bin:ro"
-	LabelName            = "_slim"
+	SensorMountPat       = "%s:/opt/_mint/bin/mint-sensor:ro"
+	VolumeSensorMountPat = "%s:/opt/_mint/bin:ro"
+	LabelName            = "_mint"
 	MondelArtifactTar    = "mondel.tar"
 )
 
@@ -65,7 +65,7 @@ var (
 var ErrStartMonitorTimeout = errors.New("start monitor timeout")
 
 const (
-	sensorVolumeBaseName = "slim-sensor"
+	sensorVolumeBaseName = "mint-sensor"
 )
 
 type NetNameInfo struct {
@@ -432,7 +432,7 @@ func (i *Inspector) RunContainer() error {
 
 	//var artifactsMountInfo string
 	if i.DoUseLocalMounts {
-		//"%s:/opt/_slim/artifacts"
+		//"%s:/opt/_mint/artifacts"
 		//artifactsMountInfo = fmt.Sprintf(ArtifactsMountPat, artifactsPath)
 		//volumeBinds = append(volumeBinds, artifactsMountInfo)
 		vm := dockerapi.HostMount{
@@ -472,7 +472,7 @@ func (i *Inspector) RunContainer() error {
 		vm := dockerapi.HostMount{
 			Type:     "volume",
 			Source:   volumeName,
-			Target:   "/opt/_slim/bin",
+			Target:   "/opt/_mint/bin",
 			ReadOnly: true,
 		}
 
@@ -744,7 +744,7 @@ func (i *Inspector) RunContainer() error {
 	}
 
 	if i.ContainerInfo.NetworkSettings == nil {
-		return fmt.Errorf("slim: error => no network info")
+		return fmt.Errorf("mint: error => no network info")
 	}
 
 	if hCfg := i.ContainerInfo.HostConfig; hCfg != nil && !i.isHostNetworked() {
@@ -752,7 +752,7 @@ func (i *Inspector) RunContainer() error {
 			hCfg.NetworkMode, len(i.ContainerInfo.NetworkSettings.Ports))
 
 		if len(i.ContainerInfo.NetworkSettings.Ports) < len(commsExposedPorts) {
-			return fmt.Errorf("slim: error => missing comms ports")
+			return fmt.Errorf("mint: error => missing comms ports")
 		}
 	}
 
@@ -881,7 +881,7 @@ func (i *Inspector) RunContainer() error {
 						})
 				}
 
-				logger.Debug("timeout waiting for the slim container to start...")
+				logger.Debug("timeout waiting for the mint container to start...")
 				continue
 			}
 
@@ -889,7 +889,7 @@ func (i *Inspector) RunContainer() error {
 		}
 
 		if evt == nil || evt.Name == "" {
-			logger.Warn("empty event waiting for the slim container to start (trying again)...")
+			logger.Warn("empty event waiting for the mint container to start (trying again)...")
 			continue
 		}
 
@@ -1150,11 +1150,11 @@ func (i *Inspector) ShowContainerLogs() {
 	} else {
 		outw.Flush()
 		errw.Flush()
-		fmt.Println("slim: container stdout:")
+		fmt.Println("mint: container stdout:")
 		_, _ = outData.WriteTo(os.Stdout)
-		fmt.Println("slim: container stderr:")
+		fmt.Println("mint: container stderr:")
 		_, _ = errData.WriteTo(os.Stdout)
-		fmt.Println("slim: end of container logs =============")
+		fmt.Println("mint: end of container logs =============")
 	}
 }
 
@@ -1182,7 +1182,7 @@ func (i *Inspector) ShutdownContainer(terminateOnly bool) error {
 		err := i.APIClient.StopContainer(i.ContainerID, 9)
 
 		if _, ok := err.(*dockerapi.ContainerNotRunning); ok {
-			logger.Info("can't stop the slim container (container is not running)...")
+			logger.Info("can't stop the mint container (container is not running)...")
 		} else {
 			errutil.WarnOn(err)
 		}
@@ -1325,7 +1325,7 @@ func (i *Inspector) initContainerChannels() error {
 	ipAddr := i.ContainerInfo.NetworkSettings.IPAddress
 	if cn != "" {
 		network, found := i.ContainerInfo.NetworkSettings.Networks[cn]
-		errutil.FailWhen(!found, fmt.Sprintf("slim: error => expected NetworkSettings.Networks to contain %s: %v",
+		errutil.FailWhen(!found, fmt.Sprintf("mint: error => expected NetworkSettings.Networks to contain %s: %v",
 			cn, i.ContainerInfo.NetworkSettings.Networks))
 
 		ipAddr = network.IPAddress

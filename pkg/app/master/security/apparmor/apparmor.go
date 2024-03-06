@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/slimtoolkit/slim/pkg/report"
+	"github.com/mintoolkit/mint/pkg/report"
 )
 
 const appArmorTemplate = `

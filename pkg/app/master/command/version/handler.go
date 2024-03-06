@@ -3,15 +3,15 @@ package version
 import (
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	//"github.com/slimtoolkit/slim/pkg/app/master/commands"
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
-	"github.com/slimtoolkit/slim/pkg/app/master/version"
-	cmd "github.com/slimtoolkit/slim/pkg/command"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerclient"
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	v "github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/app"
+	//"github.com/mintoolkit/mint/pkg/app/master/commands"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/app/master/version"
+	cmd "github.com/mintoolkit/mint/pkg/command"
+	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	v "github.com/mintoolkit/mint/pkg/version"
 )
 
 type ovars = app.OutVars
@@ -21,7 +21,7 @@ func OnCommand(
 	xc *app.ExecutionContext,
 	doDebug, inContainer, isDSImage bool,
 	clientConfig *config.DockerClient) {
-	logger := log.WithFields(log.Fields{"app": "slim", "cmd": cmd.Version})
+	logger := log.WithFields(log.Fields{"app": "mint", "cmd": cmd.Version})
 
 	client, err := dockerclient.New(clientConfig)
 	if err == dockerclient.ErrNoDockerInfo {

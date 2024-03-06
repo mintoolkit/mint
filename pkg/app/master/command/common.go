@@ -16,10 +16,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerutil"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
 )
 
 const (
@@ -96,8 +96,8 @@ const (
 )
 
 const (
-	AppName = "slim"
-	appName = "slim"
+	AppName = "mint"
+	appName = "mint"
 )
 
 //Common command handler code

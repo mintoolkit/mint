@@ -18,8 +18,8 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/imagebuilder"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/imagebuilder"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
 )
 
 const (
@@ -133,7 +133,7 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 	}
 
 	if imgConfig.Author == "" {
-		imgConfig.Author = "slimtoolkit"
+		imgConfig.Author = "mintoolkit"
 	}
 
 	if !options.ImageConfig.Created.IsZero() {

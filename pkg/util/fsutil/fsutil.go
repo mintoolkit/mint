@@ -15,8 +15,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/slimtoolkit/slim/pkg/pdiscover"
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/pdiscover"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
 
 	"github.com/bmatcuk/doublestar"
 	log "github.com/sirupsen/logrus"
@@ -133,7 +133,7 @@ func FileModeIsSetuid(mode os.FileMode) bool {
 }
 
 const (
-	rootStateKey           = ".slim-state"
+	rootStateKey           = ".mint-state"
 	releasesStateKey       = "releases"
 	imageStateBaseKey      = "images"
 	imageStateArtifactsKey = "artifacts"
@@ -152,8 +152,8 @@ var badInstallPaths = [...]string{
 
 const (
 	tmpPath        = "/tmp"
-	stateTmpPath   = "/tmp/slim-state"
-	sensorFileName = "slim-sensor"
+	stateTmpPath   = "/tmp/mint-state"
+	sensorFileName = "mint-sensor"
 )
 
 // AccessInfo provides the file object access properties

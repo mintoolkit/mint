@@ -6,7 +6,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/version"
 )
 
 const (

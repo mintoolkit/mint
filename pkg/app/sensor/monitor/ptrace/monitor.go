@@ -10,10 +10,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/errors"
-	"github.com/slimtoolkit/slim/pkg/mondel"
-	"github.com/slimtoolkit/slim/pkg/monitor/ptrace"
-	"github.com/slimtoolkit/slim/pkg/report"
+	"github.com/mintoolkit/mint/pkg/errors"
+	"github.com/mintoolkit/mint/pkg/mondel"
+	"github.com/mintoolkit/mint/pkg/monitor/ptrace"
+	"github.com/mintoolkit/mint/pkg/report"
 )
 
 type status struct {

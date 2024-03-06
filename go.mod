@@ -1,4 +1,4 @@
-module github.com/slimtoolkit/slim
+module github.com/mintoolkit/mint
 
 go 1.21
 

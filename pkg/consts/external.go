@@ -2,10 +2,10 @@ package consts
 
 // Labels added to optimized container images
 const (
-	DSLabelVersion           = "slimtoolkit.version"
-	DSLabelSourceImage       = "slimtoolkit.source.image"
-	DSLabelSourceImageID     = "slimtoolkit.source.image.id"
-	DSLabelSourceImageDigest = "slimtoolkit.source.image.digest"
+	DSLabelVersion           = "mintoolkit.version"
+	DSLabelSourceImage       = "mintoolkit.source.image"
+	DSLabelSourceImageID     = "mintoolkit.source.image.id"
+	DSLabelSourceImageDigest = "mintoolkit.source.image.digest"
 )
 
 // Other constants that external users/consumers will see

@@ -11,19 +11,19 @@ import (
 	"github.com/dustin/go-humanize"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
-	"github.com/slimtoolkit/slim/pkg/app/master/inspectors/image"
-	"github.com/slimtoolkit/slim/pkg/app/master/version"
-	cmd "github.com/slimtoolkit/slim/pkg/command"
-	"github.com/slimtoolkit/slim/pkg/docker/buildpackinfo"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerclient"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerimage"
-	"github.com/slimtoolkit/slim/pkg/docker/dockerutil"
-	"github.com/slimtoolkit/slim/pkg/report"
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	v "github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
+	"github.com/mintoolkit/mint/pkg/app/master/version"
+	cmd "github.com/mintoolkit/mint/pkg/command"
+	"github.com/mintoolkit/mint/pkg/docker/buildpackinfo"
+	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/docker/dockerimage"
+	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/report"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	v "github.com/mintoolkit/mint/pkg/version"
 )
 
 const appName = command.AppName
@@ -161,7 +161,7 @@ func OnCommand(
 	if err == dockerclient.ErrNoDockerInfo {
 		exitMsg := "missing Docker connection info"
 		if gparams.InContainer && gparams.IsDSImage {
-			exitMsg = "make sure to pass the Docker connect parameters to the docker-slim container"
+			exitMsg = "make sure to pass the Docker connect parameters to the mint container"
 		}
 
 		xc.Out.Error("docker.connect.error", exitMsg)

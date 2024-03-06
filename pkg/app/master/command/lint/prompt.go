@@ -3,8 +3,8 @@ package lint
 import (
 	"github.com/c-bata/go-prompt"
 
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
-	"github.com/slimtoolkit/slim/pkg/docker/linter/check"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/docker/linter/check"
 )
 
 var CommandSuggestion = prompt.Suggest{

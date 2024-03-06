@@ -13,11 +13,11 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app/sensor/standalone/control"
-	"github.com/slimtoolkit/slim/pkg/ipc/event"
-	"github.com/slimtoolkit/slim/pkg/report"
-	testsensor "github.com/slimtoolkit/slim/pkg/test/e2e/sensor"
-	testutil "github.com/slimtoolkit/slim/pkg/test/util"
+	"github.com/mintoolkit/mint/pkg/app/sensor/standalone/control"
+	"github.com/mintoolkit/mint/pkg/ipc/event"
+	"github.com/mintoolkit/mint/pkg/report"
+	testsensor "github.com/mintoolkit/mint/pkg/test/e2e/sensor"
+	testutil "github.com/mintoolkit/mint/pkg/test/util"
 )
 
 const (

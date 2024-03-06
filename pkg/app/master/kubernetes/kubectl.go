@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
 )
 
 type Kubectl interface {

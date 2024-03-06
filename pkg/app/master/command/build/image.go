@@ -11,19 +11,19 @@ import (
 	dockerapi "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/master/builder"
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
-	"github.com/slimtoolkit/slim/pkg/app/master/inspectors/image"
-	cmd "github.com/slimtoolkit/slim/pkg/command"
-	"github.com/slimtoolkit/slim/pkg/consts"
-	"github.com/slimtoolkit/slim/pkg/imagebuilder"
-	"github.com/slimtoolkit/slim/pkg/imagebuilder/internalbuilder"
-	"github.com/slimtoolkit/slim/pkg/report"
-	"github.com/slimtoolkit/slim/pkg/util/errutil"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	v "github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/builder"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
+	cmd "github.com/mintoolkit/mint/pkg/command"
+	"github.com/mintoolkit/mint/pkg/consts"
+	"github.com/mintoolkit/mint/pkg/imagebuilder"
+	"github.com/mintoolkit/mint/pkg/imagebuilder/internalbuilder"
+	"github.com/mintoolkit/mint/pkg/report"
+	"github.com/mintoolkit/mint/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	v "github.com/mintoolkit/mint/pkg/version"
 )
 
 func inspectFatImage(
@@ -219,7 +219,7 @@ func buildFatImage(
 			xc.Exit(exitCode)
 		}
 	} else {
-		fatImageRepoNameTag = fmt.Sprintf("slim-tmp-fat-image.%v.%v",
+		fatImageRepoNameTag = fmt.Sprintf("mint-tmp-fat-image.%v.%v",
 			os.Getpid(), time.Now().UTC().Format("20060102150405"))
 	}
 

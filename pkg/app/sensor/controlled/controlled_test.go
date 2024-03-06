@@ -6,16 +6,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/slimtoolkit/slim/pkg/app/sensor/artifact"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/controlled"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/monitor"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/monitor/fanotify"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/monitor/ptrace"
-	"github.com/slimtoolkit/slim/pkg/ipc/command"
-	"github.com/slimtoolkit/slim/pkg/mondel"
-	"github.com/slimtoolkit/slim/pkg/report"
-	"github.com/slimtoolkit/slim/pkg/test/stub/sensor/execution"
-	stubmonitor "github.com/slimtoolkit/slim/pkg/test/stub/sensor/monitor"
+	"github.com/mintoolkit/mint/pkg/app/sensor/artifact"
+	"github.com/mintoolkit/mint/pkg/app/sensor/controlled"
+	"github.com/mintoolkit/mint/pkg/app/sensor/monitor"
+	"github.com/mintoolkit/mint/pkg/app/sensor/monitor/fanotify"
+	"github.com/mintoolkit/mint/pkg/app/sensor/monitor/ptrace"
+	"github.com/mintoolkit/mint/pkg/ipc/command"
+	"github.com/mintoolkit/mint/pkg/mondel"
+	"github.com/mintoolkit/mint/pkg/report"
+	"github.com/mintoolkit/mint/pkg/test/stub/sensor/execution"
+	stubmonitor "github.com/mintoolkit/mint/pkg/test/stub/sensor/monitor"
 )
 
 // Stubs

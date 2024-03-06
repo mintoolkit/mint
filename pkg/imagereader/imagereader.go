@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/daemon"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/imagebuilder"
+	"github.com/mintoolkit/mint/pkg/imagebuilder"
 )
 
 type Instance struct {

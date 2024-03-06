@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/slimtoolkit/slim/pkg/ipc/event"
+	"github.com/mintoolkit/mint/pkg/ipc/event"
 )
 
 func ExecuteWaitEvenCommand(

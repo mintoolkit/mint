@@ -247,7 +247,7 @@ If the directory where you extracted the binaries is not in your PATH then you'l
 You can also use this script to install the current release of **Mint** on Linux (x86 and ARM) and macOS (x86 and Apple Silicon)
 
 ```bash
-curl -sL https://raw.githubusercontent.com/mintoolkit/mint/master/scripts/install-slim.sh | sudo -E bash -
+curl -sL https://raw.githubusercontent.com/mintoolkit/mint/master/scripts/install-mint.sh | sudo -E bash -
 ```
 
 ### Homebrew

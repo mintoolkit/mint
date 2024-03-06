@@ -9,7 +9,7 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
 )
 
 // AppOptionsFilename is the default name for the app configs

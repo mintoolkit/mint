@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/slimtoolkit/slim/pkg/app/master/command"
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"

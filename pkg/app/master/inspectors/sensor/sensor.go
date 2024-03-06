@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
-	v "github.com/slimtoolkit/slim/pkg/version"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	v "github.com/mintoolkit/mint/pkg/version"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -15,7 +15,7 @@ import (
 type ovars = app.OutVars
 
 const (
-	LocalBinFile       = "slim-sensor"
+	LocalBinFile       = "mint-sensor"
 	DefaultConnectWait = 60
 )
 

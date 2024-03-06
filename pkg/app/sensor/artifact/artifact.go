@@ -21,16 +21,16 @@ import (
 	"github.com/bmatcuk/doublestar/v3"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/slimtoolkit/slim/pkg/app"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/detector/binfile"
-	"github.com/slimtoolkit/slim/pkg/app/sensor/inspector/sodeps"
-	"github.com/slimtoolkit/slim/pkg/artifact"
-	"github.com/slimtoolkit/slim/pkg/certdiscover"
-	"github.com/slimtoolkit/slim/pkg/ipc/command"
-	"github.com/slimtoolkit/slim/pkg/report"
-	"github.com/slimtoolkit/slim/pkg/sysidentity"
-	"github.com/slimtoolkit/slim/pkg/system"
-	"github.com/slimtoolkit/slim/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/sensor/detector/binfile"
+	"github.com/mintoolkit/mint/pkg/app/sensor/inspector/sodeps"
+	"github.com/mintoolkit/mint/pkg/artifact"
+	"github.com/mintoolkit/mint/pkg/certdiscover"
+	"github.com/mintoolkit/mint/pkg/ipc/command"
+	"github.com/mintoolkit/mint/pkg/report"
+	"github.com/mintoolkit/mint/pkg/sysidentity"
+	"github.com/mintoolkit/mint/pkg/system"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
 )
 
 const (
@@ -473,7 +473,7 @@ func (a *processor) Archive() error {
 		return err
 	}
 
-	// We archive everything in the /opt/_slim/artifacts folder
+	// We archive everything in the /opt/_mint/artifacts folder
 	// except (potentially large data) `files` and `files.tar` entries.
 	// and the monitor data event log
 	// (which is used for local debugging or it should be streamed out of band)
@@ -1686,8 +1686,8 @@ func (p *store) saveArtifacts() {
 	syscall.Umask(0)
 
 	excludePatterns := p.cmd.Excludes
-	excludePatterns = append(excludePatterns, "/opt/_slim")
-	excludePatterns = append(excludePatterns, "/opt/_slim/**")
+	excludePatterns = append(excludePatterns, "/opt/_mint")
+	excludePatterns = append(excludePatterns, "/opt/_mint/**")
 	if p.cmd.ExcludeVarLockFiles {
 		excludePatterns = append(excludePatterns, "/var/lock/**")
 		excludePatterns = append(excludePatterns, "/run/lock/**")
@@ -2689,7 +2689,7 @@ func (p *store) enumerateArtifacts() {
 
 		// Leaf element - empty dir.
 		if len(entries) == 0 {
-			// Trim /opt/_slim/artifacts/files prefix from the dirpath.
+			// Trim /opt/_mint/artifacts/files prefix from the dirpath.
 			curpath = strings.TrimPrefix(curpath, artifactFilesDir)
 
 			if knownFiles[curpath] {
@@ -2715,7 +2715,7 @@ func (p *store) enumerateArtifacts() {
 				continue
 			}
 
-			// Trim /opt/_slim/artifacts/files prefix from the filepath.
+			// Trim /opt/_mint/artifacts/files prefix from the filepath.
 			childpath = strings.TrimPrefix(childpath, artifactFilesDir)
 
 			// Leaf element - regular file or symlink.

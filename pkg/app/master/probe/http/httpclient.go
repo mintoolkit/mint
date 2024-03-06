@@ -9,8 +9,8 @@ import (
 
 	"golang.org/x/net/http2"
 
-	"github.com/slimtoolkit/slim/pkg/app/master/config"
-	"github.com/slimtoolkit/slim/pkg/app/master/probe/http/internal"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/app/master/probe/http/internal"
 )
 
 func getHTTP1Client() *http.Client {
