@@ -15,14 +15,15 @@ import (
 )
 
 const (
-	Name  = "build"
-	Usage = "Analyzes, profiles and optimizes your container image auto-generating Seccomp and AppArmor security profiles"
-	Alias = "b"
+	Name   = "slim"
+	Usage  = "Creates a slim version of your container image auto-generating Seccomp and AppArmor security profiles"
+	AliasA = "build"
+	AliasB = "b"
 )
 
 var CLI = &cli.Command{
 	Name:    Name,
-	Aliases: []string{Alias},
+	Aliases: []string{AliasA, AliasB},
 	Usage:   Usage,
 	Flags: append([]cli.Flag{
 		command.Cflag(command.FlagCommandParamsFile),

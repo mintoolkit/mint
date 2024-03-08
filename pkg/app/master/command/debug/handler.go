@@ -93,6 +93,12 @@ func OnCommand(
 		}
 
 		HandleKubernetesRuntime(logger, xc, gparams, commandParams, sid, debugContainerName)
+	case ContainerdRuntime:
+		if gparams.Debug {
+			version.Print(xc, Name, logger, nil, false, gparams.InContainer, gparams.IsDSImage)
+		}
+
+		HandleContainerdRuntime(logger, xc, gparams, commandParams, sid, debugContainerName)
 	default:
 		xc.Out.Error("runtime", "unsupported runtime")
 		xc.Out.State("exited",

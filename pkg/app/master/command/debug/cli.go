@@ -1,6 +1,7 @@
 package debug
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/urfave/cli/v2"
@@ -20,6 +21,7 @@ const (
 const (
 	DockerRuntime     = "docker"
 	KubernetesRuntime = "k8s"
+	ContainerdRuntime = "containerd"
 	KubeconfigDefault = "${HOME}/.kube/config"
 	NamespaceDefault  = "default"
 )
@@ -152,24 +154,28 @@ var CLI = &cli.Command{
 			ActionConnectSession:           ctx.Bool(FlagConnectSession),
 		}
 
-		if commandParams.Runtime != KubernetesRuntime &&
-			(commandParams.ActionListNamespaces ||
-				commandParams.ActionListPods) {
-			var actionName string
-			if commandParams.ActionListNamespaces {
-				actionName = FlagListNamespaces
-			}
+		if commandParams.ActionListNamespaces &&
+			commandParams.Runtime == DockerRuntime {
+			xc.Out.Error("param", "unsupported runtime flag")
+			xc.Out.State("exited",
+				ovars{
+					"runtime.provided": commandParams.Runtime,
+					"runtime.required": fmt.Sprintf("%s|%s", KubernetesRuntime, ContainerdRuntime),
+					"action":           commandParams.ActionListNamespaces,
+					"exit.code":        -1,
+				})
 
-			if commandParams.ActionListPods {
-				actionName = FlagListPods
-			}
+			xc.Exit(-1)
+		}
 
+		if commandParams.ActionListPods &&
+			commandParams.Runtime != KubernetesRuntime {
 			xc.Out.Error("param", "unsupported runtime flag")
 			xc.Out.State("exited",
 				ovars{
 					"runtime.provided": commandParams.Runtime,
 					"runtime.required": KubernetesRuntime,
-					"action":           actionName,
+					"action":           commandParams.ActionListPods,
 					"exit.code":        -1,
 				})
 

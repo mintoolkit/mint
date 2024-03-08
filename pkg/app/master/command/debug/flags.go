@@ -14,7 +14,7 @@ const (
 	FlagTargetUsage = "Target container (name or ID)"
 
 	FlagNamespace      = "namespace"
-	FlagNamespaceUsage = "Namespace to target (k8s runtime)"
+	FlagNamespaceUsage = "Namespace to target (k8s or containerd runtime)"
 
 	FlagPod      = "pod"
 	FlagPodUsage = "Pod to target (k8s runtime)"
