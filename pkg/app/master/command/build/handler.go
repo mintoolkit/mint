@@ -159,7 +159,7 @@ func OnCommand(
 
 	viChan := version.CheckAsync(gparams.CheckVersion, gparams.InContainer, gparams.IsDSImage)
 
-	cmdReport := report.NewBuildCommand(gparams.ReportLocation, gparams.InContainer)
+	cmdReport := report.NewSlimCommand(gparams.ReportLocation, gparams.InContainer)
 	cmdReport.State = cmd.StateStarted
 	cmdReport.TargetReference = targetRef
 
@@ -1271,7 +1271,7 @@ func monitorContainer(
 	containerProbeComposeSvc string,
 	containerInspector *container.Inspector,
 	client *dockerapi.Client,
-	cmdReport *report.BuildCommand,
+	cmdReport *report.SlimCommand,
 	printState bool,
 ) {
 	if hasContinueAfterMode(continueAfter.Mode, config.CAMProbe) {
@@ -1505,7 +1505,7 @@ func finishCommand(
 	imageInspector *image.Inspector,
 	client *dockerapi.Client,
 	logger *log.Entry,
-	cmdReport *report.BuildCommand,
+	cmdReport *report.SlimCommand,
 	imageBuildEngine string,
 ) {
 	newImageInspector, err := image.NewInspector(client, minifiedImageName)

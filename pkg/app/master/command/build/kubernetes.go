@@ -29,7 +29,7 @@ import (
 type kubeHandler struct {
 	*app.ExecutionContext
 	ctx    context.Context
-	report *report.BuildCommand
+	report *report.SlimCommand
 	logger *log.Entry
 
 	dockerClient *dockerapi.Client
@@ -42,7 +42,7 @@ type kubeHandler struct {
 func newKubeHandler(
 	xc *app.ExecutionContext,
 	ctx context.Context,
-	cmdReport *report.BuildCommand,
+	cmdReport *report.SlimCommand,
 	logger *log.Entry,
 	dockerClient *dockerapi.Client,
 	kubeClient *kubernetes.Client,

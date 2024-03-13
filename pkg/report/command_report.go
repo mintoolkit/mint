@@ -18,14 +18,18 @@ import (
 	"github.com/mintoolkit/mint/pkg/version"
 )
 
-// DefaultFilename is the default name for the command report
-const DefaultFilename = "slim.report.json"
+const (
+	CommandReportDT = "doc.report.command"
+	// DefaultFilename is the default name for the command report
+	DefaultFilename = "slim.report.json"
+)
 
 const tmpPath = "/tmp"
 
 // Command is the common command report data
 type Command struct {
 	reportLocation string
+	Document       string     `json:"document"`
 	Version        string     `json:"version"`
 	Engine         string     `json:"engine"`
 	Containerized  bool       `json:"containerized"`
@@ -105,11 +109,11 @@ type SystemMetadata struct {
 	Distro  DistroInfo `json:"distro"`
 }
 
-// Output Version for 'build'
-const OVBuildCommand = "1.1"
+// Output Version for 'slim' (aka 'build')
+const OVSlimCommand = "cmd/ov/slim/1.1"
 
-// BuildCommand is the 'build' command report data
-type BuildCommand struct {
+// SlimCommand is the 'build' command report data
+type SlimCommand struct {
 	Command
 	TargetReference        string               `json:"target_reference"`
 	System                 SystemMetadata       `json:"system"`
@@ -131,7 +135,7 @@ type BuildCommand struct {
 }
 
 // Output Version for 'profile'
-const OVProfileCommand = "1.0"
+const OVProfileCommand = "cmd/ov/profile/1.0"
 
 // ProfileCommand is the 'profile' command report data
 type ProfileCommand struct {
@@ -151,7 +155,7 @@ type ProfileCommand struct {
 }
 
 // Output Version for 'xray'
-const OVXrayCommand = "1.2.3"
+const OVXrayCommand = "cmd/ov/xray/1.2.3"
 
 // XrayCommand is the 'xray' command report data
 type XrayCommand struct {
@@ -168,7 +172,7 @@ type XrayCommand struct {
 }
 
 // Output Version for 'lint'
-const OVLintCommand = "1.0"
+const OVLintCommand = "cmd/ov/lint/1.0"
 
 // LintCommand is the 'lint' command report data
 type LintCommand struct {
@@ -184,7 +188,7 @@ type LintCommand struct {
 }
 
 // Output Version for 'images'
-const OVImagesCommand = "1.0"
+const OVImagesCommand = "cmd/ov/images/1.0"
 
 // ImagesCommand is the 'images' command report data
 type ImagesCommand struct {
@@ -192,7 +196,7 @@ type ImagesCommand struct {
 }
 
 // Output Version for 'containerize'
-const OVContainerizeCommand = "1.0"
+const OVContainerizeCommand = "cmd/ov/containerize/1.0"
 
 // ContainerizeCommand is the 'containerize' command report data
 type ContainerizeCommand struct {
@@ -200,7 +204,7 @@ type ContainerizeCommand struct {
 }
 
 // Output Version for 'convert'
-const OVConvertCommand = "1.0"
+const OVConvertCommand = "cmd/ov/convert/1.0"
 
 // ConvertCommand is the 'convert' command report data
 type ConvertCommand struct {
@@ -208,7 +212,7 @@ type ConvertCommand struct {
 }
 
 // Output Version for 'merge'
-const OVMergeCommand = "1.0"
+const OVMergeCommand = "cmd/ov/merge/1.0"
 
 // MergeCommand is the 'merge' command report data
 type MergeCommand struct {
@@ -219,7 +223,7 @@ type MergeCommand struct {
 }
 
 // Output Version for 'edit'
-const OVEditCommand = "1.0"
+const OVEditCommand = "cmd/ov/edit/1.0"
 
 // EditCommand is the 'edit' command report data
 type EditCommand struct {
@@ -227,7 +231,7 @@ type EditCommand struct {
 }
 
 // Output Version for 'debug'
-const OVDebugCommand = "1.0"
+const OVDebugCommand = "cmd/ov/debug/1.0"
 
 // DebugCommand is the 'debug' command report data
 type DebugCommand struct {
@@ -235,7 +239,7 @@ type DebugCommand struct {
 }
 
 // Output Version for 'probe'
-const OVProbeCommand = "1.0"
+const OVProbeCommand = "cmd/ov/probe/1.0"
 
 // ProbeCommand is the 'probe' command report data
 type ProbeCommand struct {
@@ -243,7 +247,7 @@ type ProbeCommand struct {
 }
 
 // Output Version for 'server'
-const OVServerCommand = "1.0"
+const OVServerCommand = "cmd/ov/server/1.0"
 
 // ServerCommand is the 'server' command report data
 type ServerCommand struct {
@@ -251,7 +255,7 @@ type ServerCommand struct {
 }
 
 // Output Version for 'run'
-const OVRunCommand = "1.0"
+const OVRunCommand = "cmd/ov/run/1.0"
 
 // RunCommand is the 'run' command report data
 type RunCommand struct {
@@ -260,7 +264,7 @@ type RunCommand struct {
 }
 
 // Output Version for 'registry'
-const OVRegistryCommand = "1.0"
+const OVRegistryCommand = "cmd/ov/registry/1.0"
 
 // RegistryCommand is the 'registry' command report data
 type RegistryCommand struct {
@@ -269,7 +273,7 @@ type RegistryCommand struct {
 }
 
 // Output Version for 'vulnerability'
-const OVVulnerabilityCommand = "1.0"
+const OVVulnerabilityCommand = "cmd/ov/vulnerability/1.0"
 
 // VulnerabilityCommand is the 'vulnerability' command report data
 type VulnerabilityCommand struct {
@@ -289,13 +293,14 @@ func (cmd *Command) init(containerized bool) {
 	}
 }
 
-// NewBuildCommand creates a new 'build' command report
-func NewBuildCommand(reportLocation string, containerized bool) *BuildCommand {
-	cmd := &BuildCommand{
+// NewSlimCommand creates a new 'slim' (aka 'build') command report
+func NewSlimCommand(reportLocation string, containerized bool) *SlimCommand {
+	cmd := &SlimCommand{
 		Command: Command{
 			reportLocation: reportLocation,
-			Version:        OVBuildCommand, //build command 'results' version (report and artifacts)
-			Type:           command.Build,
+			Document:       CommandReportDT,
+			Version:        OVSlimCommand, //'slim' command 'results' version (report and artifacts)
+			Type:           command.Slim,
 			State:          command.StateUnknown,
 		},
 	}
@@ -309,6 +314,7 @@ func NewProfileCommand(reportLocation string, containerized bool) *ProfileComman
 	cmd := &ProfileCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVProfileCommand, //profile command 'results' version (report and artifacts)
 			Type:           command.Profile,
 			State:          command.StateUnknown,
@@ -324,6 +330,7 @@ func NewXrayCommand(reportLocation string, containerized bool) *XrayCommand {
 	cmd := &XrayCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVXrayCommand, //xray command 'results' version (report and artifacts)
 			Type:           command.Xray,
 			State:          command.StateUnknown,
@@ -339,6 +346,7 @@ func NewLintCommand(reportLocation string, containerized bool) *LintCommand {
 	cmd := &LintCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVLintCommand, //lint command 'results' version (report and artifacts)
 			Type:           command.Lint,
 			State:          command.StateUnknown,
@@ -354,6 +362,7 @@ func NewImagesCommand(reportLocation string, containerized bool) *ImagesCommand 
 	cmd := &ImagesCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVImagesCommand, //images command 'results' version (report and artifacts)
 			Type:           command.Images,
 			State:          command.StateUnknown,
@@ -369,6 +378,7 @@ func NewContainerizeCommand(reportLocation string, containerized bool) *Containe
 	cmd := &ContainerizeCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVContainerizeCommand, //containerize command 'results' version (report and artifacts)
 			Type:           command.Containerize,
 			State:          command.StateUnknown,
@@ -384,6 +394,7 @@ func NewConvertCommand(reportLocation string, containerized bool) *ConvertComman
 	cmd := &ConvertCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVConvertCommand, //convert command 'results' version (report and artifacts)
 			Type:           command.Convert,
 			State:          command.StateUnknown,
@@ -399,6 +410,7 @@ func NewMergeCommand(reportLocation string, containerized bool) *MergeCommand {
 	cmd := &MergeCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVMergeCommand, //edit command 'results' version (report and artifacts)
 			Type:           command.Merge,
 			State:          command.StateUnknown,
@@ -414,6 +426,7 @@ func NewEditCommand(reportLocation string, containerized bool) *EditCommand {
 	cmd := &EditCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVEditCommand, //edit command 'results' version (report and artifacts)
 			Type:           command.Edit,
 			State:          command.StateUnknown,
@@ -429,6 +442,7 @@ func NewDebugCommand(reportLocation string, containerized bool) *DebugCommand {
 	cmd := &DebugCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVDebugCommand, //debug command 'results' version (report and artifacts)
 			Type:           command.Debug,
 			State:          command.StateUnknown,
@@ -444,6 +458,7 @@ func NewProbeCommand(reportLocation string, containerized bool) *ProbeCommand {
 	cmd := &ProbeCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVProbeCommand, //probe command 'results' version (report and artifacts)
 			Type:           command.Probe,
 			State:          command.StateUnknown,
@@ -459,6 +474,7 @@ func NewServerCommand(reportLocation string, containerized bool) *ServerCommand 
 	cmd := &ServerCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVServerCommand, //server command 'results' version (report and artifacts)
 			Type:           command.Server,
 			State:          command.StateUnknown,
@@ -474,6 +490,7 @@ func NewRunCommand(reportLocation string, containerized bool) *RunCommand {
 	cmd := &RunCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVRunCommand, //run command 'results' version (report and artifacts)
 			Type:           command.Run,
 			State:          command.StateUnknown,
@@ -489,6 +506,7 @@ func NewRegistryCommand(reportLocation string, containerized bool) *RegistryComm
 	cmd := &RegistryCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVRegistryCommand, //registry command 'results' version (report and artifacts)
 			Type:           command.Registry,
 			State:          command.StateUnknown,
@@ -504,6 +522,7 @@ func NewVulnerabilityCommand(reportLocation string, containerized bool) *Vulnera
 	cmd := &VulnerabilityCommand{
 		Command: Command{
 			reportLocation: reportLocation,
+			Document:       CommandReportDT,
 			Version:        OVVulnerabilityCommand,
 			Type:           command.Vulnerability,
 			State:          command.StateUnknown,
@@ -569,7 +588,7 @@ func (p *Command) Save() bool {
 }
 
 // Save saves the Build command report data to the configured location
-func (p *BuildCommand) Save() bool {
+func (p *SlimCommand) Save() bool {
 	return p.saveInfo(p)
 }
 

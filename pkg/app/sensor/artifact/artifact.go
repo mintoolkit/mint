@@ -2741,12 +2741,11 @@ func (p *store) saveReport() error {
 	logger.Trace("call")
 	defer logger.Trace("exit")
 
-	creport := report.ContainerReport{
-		Sensor: p.seReport,
-		Monitors: report.MonitorReports{
-			Pt:  p.ptMonReport,
-			Fan: p.fanMonReport,
-		},
+	creport := report.NewContainerReprt()
+	creport.Sensor = p.seReport
+	creport.Monitors = report.MonitorReports{
+		Pt:  p.ptMonReport,
+		Fan: p.fanMonReport,
 	}
 
 	if p.cmd != nil {

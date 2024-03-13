@@ -6,6 +6,12 @@ import (
 	"os"
 )
 
+const ContainerReportDT = "doc.report.container"
+
+func NewContainerReprt() *ContainerReport {
+	return &ContainerReport{Document: ContainerReportDT}
+}
+
 // ArtifactType is an artifact type ID
 type ArtifactType int
 
@@ -202,6 +208,7 @@ type StartCommandReport struct {
 
 // ContainerReport contains container report fields
 type ContainerReport struct {
+	Document     string              `json:"document"`
 	StartCommand *StartCommandReport `json:"start_command"`
 	Sensor       *SensorReport       `json:"sensor"`
 	System       SystemReport        `json:"system"`

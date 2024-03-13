@@ -2,7 +2,7 @@ package command
 
 // Command type constants
 const (
-	Build         Type = "build"
+	Slim          Type = "slim" //aka "build"
 	Profile       Type = "profile"
 	Xray          Type = "xray"
 	Lint          Type = "lint"

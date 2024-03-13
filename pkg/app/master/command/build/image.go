@@ -38,7 +38,7 @@ func inspectFatImage(
 	paramsStatePath string,
 	client *dockerapi.Client,
 	logger *log.Entry,
-	cmdReport *report.BuildCommand,
+	cmdReport *report.SlimCommand,
 ) (*image.Inspector, string, string, string) {
 	imageInspector, err := image.NewInspector(client, targetRef)
 	xc.FailOn(err)
@@ -180,7 +180,7 @@ func buildFatImage(
 	cbOpts *config.ContainerBuildOptions,
 	doShowBuildLogs bool,
 	client *dockerapi.Client,
-	cmdReport *report.BuildCommand,
+	cmdReport *report.SlimCommand,
 ) (fatImageRepoNameTag string) {
 	xc.Out.State("building",
 		ovars{
@@ -284,7 +284,7 @@ func buildOutputImage(
 	imageInspector *image.Inspector,
 	client *dockerapi.Client,
 	logger *log.Entry,
-	cmdReport *report.BuildCommand,
+	cmdReport *report.SlimCommand,
 	imageBuildEngine string,
 	imageBuildArch string,
 ) string {
