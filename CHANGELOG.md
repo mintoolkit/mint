@@ -1,5 +1,12 @@
 # Releases
 
+## 1.40.12 (3/12/2024)
+
+### Improvements
+
+- Default Docker API version update.
+- Report document type info in report documents.
+
 ## 1.40.11 (2/2/2024)
 
 ### New Features

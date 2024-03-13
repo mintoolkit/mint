@@ -192,7 +192,7 @@ Elixir application images:
 
 ## RECENT UPDATES
 
-Latest version: `1.40.12` (`3/5/2024`)
+Latest version: `1.40.12` (`3/12/2024`)
 
 The 1.40.12 version adds support for the latest Docker Engine version, improves `xray` reports and adds new `build` command flags (`--include-dir-bins` and `--include-ssh-client`).
 
