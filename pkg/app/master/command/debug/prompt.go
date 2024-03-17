@@ -152,7 +152,13 @@ func completeTarget(ia *command.InteractiveApp, token string, params prompt.Docu
 	if ccs != nil && ccs.Command == Name {
 		runtimeFlag := command.FullFlagName(FlagRuntime)
 		rtFlagVals, found := ccs.CommandFlags[runtimeFlag]
-		if found && len(rtFlagVals) > 0 && rtFlagVals[0] == KubernetesRuntime {
+		runtime := DockerRuntime
+		if found && len(rtFlagVals) > 0 {
+			runtime = rtFlagVals[0]
+		}
+
+		switch runtime {
+		case KubernetesRuntime:
 			kubeconfig := KubeconfigDefault
 			kubeconfigFlag := command.FullFlagName(FlagKubeconfig)
 			kcFlagVals, found := ccs.CommandFlags[kubeconfigFlag]
@@ -184,7 +190,15 @@ func completeTarget(ia *command.InteractiveApp, token string, params prompt.Docu
 					values = append(values, value)
 				}
 			}
-		} else {
+		case ContainerdRuntime:
+			names, _ := cdListContainers()
+			//todo: add image info for 'Description'
+			for _, name := range names {
+				value := prompt.Suggest{Text: name}
+				values = append(values, value)
+			}
+
+		default:
 			//either no explicit 'runtime' param or other/docker runtime
 			//todo: need a way to access/pass the docker client struct (or just pass the connect params)
 			result, err := listDebuggableDockerContainersWithConfig(ccs.Dclient)

@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"regexp"
 	"runtime"
+	"strings"
 	"syscall"
 
 	containerd "github.com/containerd/containerd"
@@ -67,6 +68,57 @@ func cdEnsureNamespaceWithParams(ctx context.Context, client *containerd.Client,
 	}
 
 	return "", fmt.Errorf("no namespaces")
+}
+
+func cdListContainers() ([]string, error) {
+	api, err := containerd.New(cdSocket)
+	if err != nil {
+		log.WithError(err).Error("containerd.New")
+		return nil, err
+	}
+	defer api.Close()
+
+	ctx := context.Background()
+	names, err := cdListContainersWithParams(ctx, api)
+	if err != nil {
+		log.WithError(err).Error("cdListNamespacesWithParams")
+		return nil, err
+	}
+	return names, nil
+}
+
+func cdListContainersWithParams(ctx context.Context, client *containerd.Client) ([]string, error) {
+	//todo: add image info
+	clist, err := client.Containers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var names []string
+	for idx, c := range clist {
+		labels, err := c.Labels(ctx)
+		if err != nil {
+			log.WithError(err).Error("C[%d]: id=%s: error getting labels", idx, c.ID())
+			continue
+		}
+
+		cname, found := labels["io.containerd.container.name"]
+		if !found {
+			cname, found = labels["nerdctl/name"]
+		}
+
+		if !found {
+			cname, found = labels["name"]
+		}
+
+		if cname == "" {
+			cname = c.ID()
+		}
+
+		names = append(names, cname)
+	}
+
+	return names, nil
 }
 
 // HandleContainerdRuntime implements support for the ContainerD runtime
@@ -249,7 +301,7 @@ func HandleContainerdRuntime(
 
 	//TODO: pull only if the image doesn't exist
 	//TODO: expand the image path for short docker image paths
-	if !strings.Contains(commandParams.DebugContainerImage,"/") {
+	if !strings.Contains(commandParams.DebugContainerImage, "/") {
 		//a hacky way to ensure full paths for containerd :)
 		commandParams.DebugContainerImage = fmt.Sprintf("docker.io/library/%s", commandParams.DebugContainerImage)
 	}
