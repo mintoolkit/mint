@@ -1,9 +1,12 @@
 package debug
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
+	"sync"
 
 	//"time"
 	"context"
@@ -12,12 +15,16 @@ import (
 	"runtime"
 	"syscall"
 
-	containerd "github.com/containerd/containerd"
-	"github.com/containerd/containerd/api/services/tasks/v1"
+	"github.com/containerd/console"
+	"github.com/containerd/containerd"
+	tasksv1 "github.com/containerd/containerd/api/services/tasks/v1"
 	"github.com/containerd/containerd/api/types/task"
 	"github.com/containerd/containerd/cio"
+	"github.com/containerd/containerd/cmd/ctr/commands"
+	"github.com/containerd/containerd/cmd/ctr/commands/tasks"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/oci"
+	"github.com/moby/term"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	log "github.com/sirupsen/logrus"
 
@@ -184,7 +191,7 @@ func HandleContainerdRuntime(
 		//TODO: support waiting for pending/starting containers
 	}
 
-	doTTY := true
+	doTTY := commandParams.DoTerminal && term.IsTerminal(os.Stdin.Fd())
 
 	if commandParams.DoRunAsTargetShell {
 		logger.Trace("doRunAsTargetShell")
@@ -327,7 +334,16 @@ func HandleContainerdRuntime(
 	}
 	defer debugContainer.Delete(ctx, containerd.WithSnapshotCleanup)
 
-	task, err := debugContainer.NewTask(ctx, cio.NewCreator(cio.WithStdio))
+	ioc, con, err := prepareTaskIO(ctx, doTTY, true, debugContainer)
+	if err != nil {
+		logger.WithError(err).Error("prepareTaskIO")
+		xc.FailOn(err)
+	}
+	if con != nil {
+		defer con.Reset()
+	}
+
+	task, err := debugContainer.NewTask(ctx, ioc)
 	if err != nil {
 		logger.WithError(err).Error("debugContainer.NewTask")
 		xc.FailOn(err)
@@ -353,10 +369,19 @@ func HandleContainerdRuntime(
 	xc.Out.State("debug.container.running")
 	xc.Out.Info("terminal.start",
 		ovars{
-			"note": "press enter if you dont see any output",
+			"note": "press enter if you don't see any output",
 		})
 
 	fmt.Printf("\n")
+
+	if doTTY {
+		if err := tasks.HandleConsoleResize(ctx, task, con); err != nil {
+			log.WithError(err).Error("console resize")
+		}
+	} else {
+		sigc := commands.ForwardAllSignals(ctx, task)
+		defer commands.StopCatch(sigc)
+	}
 
 	var exitStatus containerd.ExitStatus
 	select {
@@ -465,7 +490,7 @@ func cdListDebuggableContainers(ctx context.Context, api *containerd.Client) ([]
 		ctx = namespaces.NamespaceFromEnv(ctx)
 	}
 
-	allTasks, err := api.TaskService().List(ctx, &tasks.ListTasksRequest{})
+	allTasks, err := api.TaskService().List(ctx, &tasksv1.ListTasksRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -529,4 +554,90 @@ func cdContainerImage(ctx context.Context, cont containerd.Container) string {
 	}
 
 	return img.Name()
+}
+
+func prepareTaskIO(
+	ctx context.Context,
+	tty bool,
+	stdin bool,
+	cont containerd.Container,
+) (cio.Creator, console.Console, error) {
+	if tty {
+		con := console.Current()
+		if err := con.SetRaw(); err != nil {
+			return nil, nil, err
+		}
+
+		var in io.Reader
+		if stdin {
+			if con == nil {
+				return nil, nil, errors.New("input must be a terminal")
+			}
+			in = con
+		}
+
+		return cio.NewCreator(cio.WithStreams(in, con, nil), cio.WithTerminal), con, nil
+	}
+
+	var in io.Reader
+	if stdin {
+		in = &inCloser{
+			inputStream: os.Stdin,
+			close: func() {
+				if task, err := cont.Task(ctx, nil); err != nil {
+					log.Debugf("Failed to get task for stdinCloser: %s", err)
+				} else {
+					task.CloseIO(ctx, containerd.WithStdinCloser)
+				}
+			},
+		}
+	}
+
+	return cio.NewCreator(cio.WithStreams(
+		in,
+		os.Stdout,
+		os.Stderr,
+	)), nil, nil
+}
+
+type inCloser struct {
+	inputStream io.Reader
+	close       func()
+
+	mu     sync.Mutex
+	closed bool
+}
+
+func (s *inCloser) Read(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return 0, syscall.EBADF
+	}
+
+	n, err := s.inputStream.Read(p)
+	if err != nil {
+		if s.close != nil {
+			s.close()
+			s.closed = true
+		}
+	}
+
+	return n, err
+}
+
+func (s *inCloser) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return nil
+	}
+
+	if s.close != nil {
+		s.close()
+	}
+	s.closed = true
+	return nil
 }
