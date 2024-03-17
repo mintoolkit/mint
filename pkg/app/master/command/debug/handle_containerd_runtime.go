@@ -3,6 +3,8 @@ package debug
 import (
 	"fmt"
 	"os"
+	"strings"
+
 	//"time"
 	"context"
 	"os/signal"
@@ -249,7 +251,7 @@ func HandleContainerdRuntime(
 
 	//TODO: pull only if the image doesn't exist
 	//TODO: expand the image path for short docker image paths
-	if !strings.Contains(commandParams.DebugContainerImage,"/") {
+	if !strings.Contains(commandParams.DebugContainerImage, "/") {
 		//a hacky way to ensure full paths for containerd :)
 		commandParams.DebugContainerImage = fmt.Sprintf("docker.io/library/%s", commandParams.DebugContainerImage)
 	}

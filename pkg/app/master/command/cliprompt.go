@@ -19,11 +19,7 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/config"
-	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
 	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
-	"github.com/mintoolkit/mint/pkg/util/errutil"
-	"github.com/mintoolkit/mint/pkg/util/fsutil"
-	"github.com/mintoolkit/mint/pkg/version"
 )
 
 type InteractiveApp struct {
@@ -40,20 +36,6 @@ func NewInteractiveApp(app *cli.App, gparams *GenericParams) *InteractiveApp {
 			IgnoreCase: true,
 		},
 	}
-
-	client, err := dockerclient.New(gparams.ClientConfig)
-	if err == dockerclient.ErrNoDockerInfo {
-		exitMsg := "missing Docker connection info"
-		if gparams.InContainer && gparams.IsDSImage {
-			exitMsg = "make sure to pass the Docker connect parameters to the mint app container"
-		}
-		fmt.Printf("mint: info=docker.connect.error message='%s'\n", exitMsg)
-		fmt.Printf("mint: state=exited version=%s location='%s'\n", version.Current(), fsutil.ExeDir())
-		os.Exit(-777)
-	}
-	errutil.FailOn(err)
-
-	ia.dclient = client
 
 	ia.appPrompt = prompt.New(
 		ia.execute,
