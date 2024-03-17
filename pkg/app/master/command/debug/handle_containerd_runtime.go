@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
 	//"time"
 	"context"
 	"os/signal"
@@ -12,6 +13,8 @@ import (
 	"syscall"
 
 	containerd "github.com/containerd/containerd"
+	"github.com/containerd/containerd/api/services/tasks/v1"
+	"github.com/containerd/containerd/api/types/task"
 	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/oci"
@@ -24,102 +27,6 @@ import (
 )
 
 const cdSocket = "/run/containerd/containerd.sock"
-
-func cdListNamespaces() ([]string, error) {
-	api, err := containerd.New(cdSocket)
-	if err != nil {
-		log.WithError(err).Error("containerd.New")
-		return nil, err
-	}
-	defer api.Close()
-
-	ctx := context.Background()
-	names, err := cdListNamespacesWithParams(ctx, api)
-	if err != nil {
-		log.WithError(err).Error("cdListNamespacesWithParams")
-		return nil, err
-	}
-	return names, nil
-}
-
-func cdListNamespacesWithParams(ctx context.Context, client *containerd.Client) ([]string, error) {
-	names, err := client.NamespaceService().List(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return names, nil
-}
-
-func cdEnsureNamespaceWithParams(ctx context.Context, client *containerd.Client, name string) (string, error) {
-	nsList, err := cdListNamespacesWithParams(ctx, client)
-	if err != nil {
-		return "", err
-	}
-
-	for _, val := range nsList {
-		if name == "" {
-			return val, nil
-		}
-
-		if val == name {
-			return name, nil
-		}
-	}
-
-	return "", fmt.Errorf("no namespaces")
-}
-
-func cdListContainers() ([]string, error) {
-	api, err := containerd.New(cdSocket)
-	if err != nil {
-		log.WithError(err).Error("containerd.New")
-		return nil, err
-	}
-	defer api.Close()
-
-	ctx := context.Background()
-	names, err := cdListContainersWithParams(ctx, api)
-	if err != nil {
-		log.WithError(err).Error("cdListNamespacesWithParams")
-		return nil, err
-	}
-	return names, nil
-}
-
-func cdListContainersWithParams(ctx context.Context, client *containerd.Client) ([]string, error) {
-	//todo: add image info
-	clist, err := client.Containers(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var names []string
-	for idx, c := range clist {
-		labels, err := c.Labels(ctx)
-		if err != nil {
-			log.WithError(err).Error("C[%d]: id=%s: error getting labels", idx, c.ID())
-			continue
-		}
-
-		cname, found := labels["io.containerd.container.name"]
-		if !found {
-			cname, found = labels["nerdctl/name"]
-		}
-
-		if !found {
-			cname, found = labels["name"]
-		}
-
-		if cname == "" {
-			cname = c.ID()
-		}
-
-		names = append(names, cname)
-	}
-
-	return names, nil
-}
 
 // HandleContainerdRuntime implements support for the ContainerD runtime
 func HandleContainerdRuntime(
@@ -179,9 +86,19 @@ func HandleContainerdRuntime(
 	ctx = namespaces.WithNamespace(ctx, nsName)
 
 	if commandParams.ActionListDebuggableContainers {
-		xc.Out.State("action.list_debuggable_containers",
-			ovars{"namespace": nsName})
-		//TODO
+		xc.Out.State("action.list_debuggable_containers", ovars{"namespace": nsName})
+
+		containers, err := cdListDebuggableContainers(ctx, api)
+		if err != nil {
+			logger.WithError(err).Error("listDebuggableContainers")
+			xc.FailOn(err)
+		}
+
+		xc.Out.Info("debuggable.containers", ovars{"count": len(containers)})
+		for _, c := range containers {
+			xc.Out.Info("debuggable.container", ovars{"name": c.Name, "image": c.Image})
+		}
+
 		return
 	}
 
@@ -206,54 +123,46 @@ func HandleContainerdRuntime(
 	targetContainerIsRunning := false
 	var targetContainer containerd.Container
 	for idx, c := range clist {
-		labels, err := c.Labels(ctx)
-		if err != nil {
+		cname := cdContainerName(ctx, c)
+		if cname != commandParams.TargetRef {
 			continue
 		}
 
-		cname, found := labels["nerdctl/name"]
-
-		if !found {
-			cname, found = labels["name"]
+		task, err := c.Task(ctx, nil)
+		if err != nil {
+			logger.WithError(err).Error("c.Task")
+			xc.FailOn(err)
 		}
 
-		if found && cname == commandParams.TargetRef {
-			task, err := c.Task(ctx, nil)
-			if err != nil {
-				logger.WithError(err).Error("c.Task")
-				xc.FailOn(err)
-			}
-
-			status, err := task.Status(ctx)
-			if err != nil {
-				logger.WithError(err).Error("task.Status")
-				xc.FailOn(err)
-			}
-
-			if status.Status == containerd.Running {
-				targetContainerIndex = idx
-				targetContainer = c
-				containerFound = true
-				targetContainerIsRunning = true
-
-				logger.WithFields(
-					log.Fields{
-						"index":  targetContainerIndex,
-						"ns":     nsName,
-						"target": commandParams.TargetRef,
-					}).Trace("found container (running)")
-			} else {
-				logger.WithFields(
-					log.Fields{
-						"index":  targetContainerIndex,
-						"ns":     nsName,
-						"target": commandParams.TargetRef,
-						"id":     c.ID(),
-					}).Trace("found container (not running)")
-			}
-
-			break
+		status, err := task.Status(ctx)
+		if err != nil {
+			logger.WithError(err).Error("task.Status")
+			xc.FailOn(err)
 		}
+
+		if status.Status == containerd.Running {
+			targetContainerIndex = idx
+			targetContainer = c
+			containerFound = true
+			targetContainerIsRunning = true
+
+			logger.WithFields(
+				log.Fields{
+					"index":  targetContainerIndex,
+					"ns":     nsName,
+					"target": commandParams.TargetRef,
+				}).Trace("found container (running)")
+		} else {
+			logger.WithFields(
+				log.Fields{
+					"index":  targetContainerIndex,
+					"ns":     nsName,
+					"target": commandParams.TargetRef,
+					"id":     c.ID(),
+				}).Trace("found container (not running)")
+		}
+
+		break
 	}
 
 	if targetContainer != nil {
@@ -490,4 +399,134 @@ func HandleContainerdRuntime(
 	if err := debugContainer.Delete(ctx, containerd.WithSnapshotCleanup); err != nil {
 		logger.Debugf("failed to delete container: %v", err)
 	}
+}
+
+func cdListNamespaces() ([]string, error) {
+	api, err := containerd.New(cdSocket)
+	if err != nil {
+		log.WithError(err).Error("containerd.New")
+		return nil, err
+	}
+	defer api.Close()
+
+	ctx := context.Background()
+	names, err := cdListNamespacesWithParams(ctx, api)
+	if err != nil {
+		log.WithError(err).Error("cdListNamespacesWithParams")
+		return nil, err
+	}
+	return names, nil
+}
+
+func cdListNamespacesWithParams(ctx context.Context, client *containerd.Client) ([]string, error) {
+	names, err := client.NamespaceService().List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return names, nil
+}
+
+func cdEnsureNamespaceWithParams(ctx context.Context, client *containerd.Client, name string) (string, error) {
+	nsList, err := cdListNamespacesWithParams(ctx, client)
+	if err != nil {
+		return "", err
+	}
+
+	for _, val := range nsList {
+		if name == "" {
+			return val, nil
+		}
+
+		if val == name {
+			return name, nil
+		}
+	}
+
+	return "", fmt.Errorf("no namespaces")
+}
+
+type cdContainerInfo struct {
+	Name  string
+	Image string
+}
+
+func cdListDebuggableContainers(ctx context.Context, api *containerd.Client) ([]cdContainerInfo, error) {
+	var err error
+	if api == nil {
+		api, err = containerd.New(cdSocket)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create containerd client: %w", err)
+		}
+		defer api.Close()
+	}
+
+	if _, exists := namespaces.Namespace(ctx); !exists {
+		ctx = namespaces.NamespaceFromEnv(ctx)
+	}
+
+	allTasks, err := api.TaskService().List(ctx, &tasks.ListTasksRequest{})
+	if err != nil {
+		return nil, err
+	}
+	runningTasks := map[string]*task.Process{}
+	for _, t := range allTasks.Tasks {
+		if t.GetStatus() == task.Status_RUNNING {
+			runningTasks[t.ID] = t // t.ContainerID seems to be always empty but t.ID is usually the container ID
+		}
+	}
+
+	allContainers, err := api.Containers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var debuggableContainers []cdContainerInfo
+	for _, c := range allContainers {
+		if strings.HasPrefix(c.ID(), containerNamePrefix) {
+			continue
+		}
+
+		if _, found := runningTasks[c.ID()]; !found {
+			continue
+		}
+
+		debuggableContainers = append(debuggableContainers, cdContainerInfo{
+			Name:  cdContainerName(ctx, c),
+			Image: cdContainerImage(ctx, c),
+		})
+	}
+
+	return debuggableContainers, nil
+}
+
+func cdContainerName(ctx context.Context, cont containerd.Container) string {
+	labels, err := cont.Labels(ctx)
+	if err != nil {
+		log.WithError(err).Warnf("container=%s: error getting labels", cont.ID())
+	}
+
+	cname, found := labels["io.containerd.container.name"]
+	if !found {
+		cname, found = labels["nerdctl/name"]
+	}
+	if !found {
+		cname, found = labels["name"]
+	}
+
+	if cname == "" {
+		cname = cont.ID()
+	}
+
+	return cname
+}
+
+func cdContainerImage(ctx context.Context, cont containerd.Container) string {
+	img, err := cont.Image(ctx)
+	if err != nil {
+		log.WithError(err).Warnf("container=%s: error getting image", cont.ID())
+		return "<unknown>"
+	}
+
+	return img.Name()
 }
