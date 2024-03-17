@@ -1,6 +1,7 @@
 package debug
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/c-bata/go-prompt"
@@ -191,10 +192,13 @@ func completeTarget(ia *command.InteractiveApp, token string, params prompt.Docu
 				}
 			}
 		case ContainerdRuntime:
-			names, _ := cdListContainers()
-			//todo: add image info for 'Description'
-			for _, name := range names {
-				value := prompt.Suggest{Text: name}
+			conts, _ := cdListDebuggableContainers(context.Background(), nil)
+
+			for _, c := range conts {
+				value := prompt.Suggest{
+					Text:        c.Name,
+					Description: fmt.Sprintf("image: %s", c.Image),
+				}
 				values = append(values, value)
 			}
 
