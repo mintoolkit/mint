@@ -332,7 +332,15 @@ func HandleContainerdRuntime(
 		logger.WithError(err).Error("api.NewContainer")
 		xc.FailOn(err)
 	}
+
 	defer debugContainer.Delete(ctx, containerd.WithSnapshotCleanup)
+
+	xc.AddCleanupHandler(func() {
+		logger.Trace("xc.cleanup")
+		if err := debugContainer.Delete(ctx, containerd.WithSnapshotCleanup); err != nil {
+			logger.Debugf("failed to delete container: %v", err)
+		}
+	})
 
 	ioc, con, err := prepareTaskIO(ctx, doTTY, true, debugContainer)
 	if err != nil {
@@ -341,6 +349,11 @@ func HandleContainerdRuntime(
 	}
 	if con != nil {
 		defer con.Reset()
+
+		xc.AddCleanupHandler(func() {
+			logger.Trace("xc.cleanup")
+			con.Reset()
+		})
 	}
 
 	task, err := debugContainer.NewTask(ctx, ioc)

@@ -32,6 +32,17 @@ func OnCommand(
 	cmdReport := report.NewDebugCommand(gparams.ReportLocation, gparams.InContainer)
 	cmdReport.State = cmd.StateStarted
 
+	cmdReportOnExit := func() {
+		cmdReport.State = cmd.StateError
+		if cmdReport.Save() {
+			xc.Out.Info("report",
+				ovars{
+					"file": cmdReport.ReportLocation(),
+				})
+		}
+	}
+	xc.AddCleanupHandler(cmdReportOnExit)
+
 	xc.Out.State("started")
 	paramVars := ovars{
 		"runtime":     commandParams.Runtime,
