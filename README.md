@@ -15,7 +15,7 @@
 
 # Optimize Your Experience with Containers. Make Your Containers Better, Smaller, More Secure and Do Less to Get There (free and open source!)
 
-Note that **DockerSlim** is now **MinToolkit** or just **Mint** (it was also called **SlimToolkit**, but that name was too similar to a commercial company name and using a different name was a CNCF requirement for the project). It's not limited only to the Docker runtime and it has a growing support for additional container tools and runtimes in the cloud native ecosystem.
+Note that **DockerSlim** is now **MinToolkit** or just **Mint** (it was also called **SlimToolkit**, but that name was too similar to a commercial company name and using a different name was a CNCF requirement for the project). It's no longer limited only to the Docker runtime and its support for additional container runtimes and tools is growing. The "**min**" part of the name represents the ability to create **minimal container images**, which is now the unofficial defacto name to call slim images. "**min**" is also short for **minify**. The "**T**" part is short for "**toolkit**". Together **min** and **t** is a good way to describe the core functionality where the tool mints/creates new and improved container images.
 
 **Mint** was created by [Kyle](https://github.com/kcq) [Quest](https://twitter.com/kcqon) and it's been improved by many [contributors](https://github.com/mintoolkit/mint/graphs/contributors). New contributors are always welcome and the project is commited to providing more resources and support to make it easy to contribute.
 
