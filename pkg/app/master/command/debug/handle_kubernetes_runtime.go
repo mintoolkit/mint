@@ -419,14 +419,14 @@ func HandleKubernetesRuntime(
 		logger.Trace("doRunAsTargetShell")
 		commandParams.Entrypoint = ShellCommandPrefix(commandParams.DebugContainerImage)
 		shellConfig := configShell(sid, true)
-		if CgrSlimToolkitDebugImage == commandParams.DebugContainerImage {
+		if CgrCustomDebugImage == commandParams.DebugContainerImage {
 			shellConfig = configShellAlt(sid, true)
 		}
 
 		commandParams.Cmd = []string{shellConfig}
 	} else {
 		if len(commandParams.Cmd) == 0 &&
-			CgrSlimToolkitDebugImage == commandParams.DebugContainerImage {
+			CgrCustomDebugImage == commandParams.DebugContainerImage {
 			commandParams.Cmd = []string{bashShellName}
 		}
 	}
