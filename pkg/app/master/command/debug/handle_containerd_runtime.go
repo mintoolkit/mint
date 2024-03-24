@@ -192,39 +192,57 @@ func HandleContainerdRuntime(
 	}
 
 	doTTY := commandParams.DoTerminal && term.IsTerminal(os.Stdin.Fd())
+	logger.WithFields(
+		log.Fields{
+			"do.tty":        doTTY,
+			"do.term":       commandParams.DoTerminal,
+			"stdin.is.term": term.IsTerminal(os.Stdin.Fd()),
+		}).Trace("doTTY")
 
 	if commandParams.DoRunAsTargetShell {
 		logger.Trace("doRunAsTargetShell")
 		commandParams.Entrypoint = ShellCommandPrefix(commandParams.DebugContainerImage)
 		shellConfig := configShell(sid, true)
 		if CgrCustomDebugImage == commandParams.DebugContainerImage {
-			shellConfig = configShellAlt(sid, true)
+			shellConfig = configShellAlt(sid, false)
 		}
 
 		commandParams.Cmd = []string{shellConfig}
 	} else {
-		if len(commandParams.Cmd) == 0 &&
-			CgrCustomDebugImage == commandParams.DebugContainerImage {
-			commandParams.Cmd = []string{bashShellName}
+		commandParams.Entrypoint = ShellCommandPrefix(commandParams.DebugContainerImage)
+		if len(commandParams.Cmd) == 0 {
+			commandParams.Cmd = []string{defaultShellName}
+			if CgrCustomDebugImage == commandParams.DebugContainerImage {
+				commandParams.Cmd = []string{bashShellName}
+			}
 		}
 	}
 
 	logger.WithFields(
 		log.Fields{
 			"work.dir": commandParams.Workdir,
-			"params":   fmt.Sprintf("%#v", commandParams),
+			"params":   jsonutil.ToString(commandParams),
 		}).Trace("newDebuggingContainerInfo")
 
-	//TODO: pull only if the image doesn't exist
 	//TODO: expand the image path for short docker image paths
 	if !strings.Contains(commandParams.DebugContainerImage, "/") {
 		//a hacky way to ensure full paths for containerd :)
 		commandParams.DebugContainerImage = fmt.Sprintf("docker.io/library/%s", commandParams.DebugContainerImage)
 	}
-	debugImage, err := api.Pull(ctx, commandParams.DebugContainerImage, containerd.WithPullUnpack)
+
+	//TODO: pull even if local images exists if the 'pull' flag is specified explicitly
+	var debugImage containerd.Image
+	imgInfo, err := api.ImageService().Get(ctx, commandParams.DebugContainerImage)
 	if err != nil {
-		logger.WithError(err).Error("api.Pull")
-		xc.FailOn(err)
+		logger.WithError(err).Trace("api.ImageService.Get")
+		logger.Debugf("api.Pull(%s)", commandParams.DebugContainerImage)
+		debugImage, err = api.Pull(ctx, commandParams.DebugContainerImage, containerd.WithPullUnpack)
+		if err != nil {
+			logger.WithError(err).Error("api.Pull")
+			xc.FailOn(err)
+		}
+	} else {
+		debugImage = containerd.NewImage(api, imgInfo)
 	}
 
 	targetTask, err := targetContainer.Task(ctx, nil)
@@ -342,7 +360,7 @@ func HandleContainerdRuntime(
 		}
 	})
 
-	ioc, con, err := prepareTaskIO(ctx, doTTY, true, debugContainer)
+	ioc, con, err := prepareTaskIO(ctx, logger, doTTY, true, debugContainer)
 	if err != nil {
 		logger.WithError(err).Error("prepareTaskIO")
 		xc.FailOn(err)
@@ -571,11 +589,13 @@ func cdContainerImage(ctx context.Context, cont containerd.Container) string {
 
 func prepareTaskIO(
 	ctx context.Context,
+	logger *log.Entry,
 	tty bool,
 	stdin bool,
 	cont containerd.Container,
 ) (cio.Creator, console.Console, error) {
 	if tty {
+		logger.Trace("prepareTaskIO.with.tty")
 		con := console.Current()
 		if err := con.SetRaw(); err != nil {
 			return nil, nil, err
@@ -592,13 +612,15 @@ func prepareTaskIO(
 		return cio.NewCreator(cio.WithStreams(in, con, nil), cio.WithTerminal), con, nil
 	}
 
+	logger.Trace("prepareTaskIO.no.tty")
 	var in io.Reader
 	if stdin {
+		logger.Trace("prepareTaskIO.no.tty.with.stdin")
 		in = &inCloser{
 			inputStream: os.Stdin,
 			close: func() {
 				if task, err := cont.Task(ctx, nil); err != nil {
-					log.Debugf("Failed to get task for stdinCloser: %s", err)
+					logger.Debugf("Failed to get task for stdinCloser: %s", err)
 				} else {
 					task.CloseIO(ctx, containerd.WithStdinCloser)
 				}

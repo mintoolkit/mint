@@ -45,12 +45,13 @@ func OnCommand(
 
 	xc.Out.State("started")
 	paramVars := ovars{
-		"runtime":     commandParams.Runtime,
-		"target":      commandParams.TargetRef,
-		"debug-image": commandParams.DebugContainerImage,
-		"entrypoint":  commandParams.Entrypoint,
-		"cmd":         commandParams.Cmd,
-		"terminal":    commandParams.DoTerminal,
+		"runtime":             commandParams.Runtime,
+		"target":              commandParams.TargetRef,
+		"debug-image":         commandParams.DebugContainerImage,
+		"entrypoint":          commandParams.Entrypoint,
+		"cmd":                 commandParams.Cmd,
+		"terminal":            commandParams.DoTerminal,
+		"run-as-target-shell": commandParams.DoRunAsTargetShell,
 	}
 
 	if commandParams.Runtime == KubernetesRuntime {
