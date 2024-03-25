@@ -18,14 +18,6 @@ const (
 	Alias = "dbg"
 )
 
-const (
-	DockerRuntime     = "docker"
-	KubernetesRuntime = "k8s"
-	ContainerdRuntime = "containerd"
-	KubeconfigDefault = "${HOME}/.kube/config"
-	NamespaceDefault  = "default"
-)
-
 type NVPair struct {
 	Name  string
 	Value string

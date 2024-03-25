@@ -84,7 +84,7 @@ const (
 var Flags = map[string]cli.Flag{
 	FlagRuntime: &cli.StringFlag{
 		Name:    FlagRuntime,
-		Value:   DockerRuntime,
+		Value:   AutoRuntime,
 		Usage:   FlagRuntimeUsage,
 		EnvVars: []string{"DSLIM_DBG_RT"},
 	},

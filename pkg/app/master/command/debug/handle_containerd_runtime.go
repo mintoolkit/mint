@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/user"
 	"strings"
 	"sync"
 
@@ -30,10 +31,16 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
 	"github.com/mintoolkit/mint/pkg/util/jsonutil"
+	v "github.com/mintoolkit/mint/pkg/version"
 )
 
 const cdSocket = "/run/containerd/containerd.sock"
+
+func hasContainerDSocket() bool {
+	return hasSocket(cdSocket)
+}
 
 // HandleContainerdRuntime implements support for the ContainerD runtime
 func HandleContainerdRuntime(
@@ -58,13 +65,50 @@ func HandleContainerdRuntime(
 				"runtime": "containerd",
 			})
 
-		return
+		xc.Out.State("exited",
+			ovars{
+				"exit.code": 0,
+				"version":   v.Current(),
+				"location":  fsutil.ExeDir(),
+			})
+		xc.Exit(0)
+	}
+
+	if !hasContainerDSocket() {
+		xc.Out.Error("runtime.containerd", "socket.not.found")
+		xc.Out.State("exited",
+			ovars{
+				"exit.code": -1,
+				"version":   v.Current(),
+				"location":  fsutil.ExeDir(),
+			})
+		xc.Exit(-1)
 	}
 
 	ctx := context.Background()
 	api, err := containerd.New(cdSocket)
 	if err != nil {
-		log.WithError(err).Error("containerd.New")
+		if errors.Is(err, os.ErrPermission) {
+			username := "unknown"
+			usr, uerr := user.Current()
+			if uerr == nil {
+				username = usr.Username
+			}
+
+			xc.Out.Error("runtime.containerd", "socket.permission.error")
+			xc.Out.State("exited",
+				ovars{
+					"exit.code": -1,
+					"version":   v.Current(),
+					"location":  fsutil.ExeDir(),
+					"uid":       os.Geteuid(),
+					"user":      username,
+					"message":   "make sure to run as user with access to the containerd unix socket",
+				})
+			xc.Exit(-1)
+		}
+
+		log.WithError(err).Error("containerd.Newx")
 		xc.FailOn(err)
 	}
 	defer api.Close()

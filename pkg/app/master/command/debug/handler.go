@@ -116,6 +116,8 @@ func OnCommand(
 		xc.Out.State("exited",
 			ovars{
 				"exit.code": -1,
+				"version":   v.Current(),
+				"location":  fsutil.ExeDir(),
 			})
 		xc.Exit(-1)
 	}

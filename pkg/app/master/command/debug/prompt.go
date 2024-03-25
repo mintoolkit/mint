@@ -71,13 +71,22 @@ func completeDebugImage(ia *command.InteractiveApp, token string, params prompt.
 }
 
 var runtimeValues = []prompt.Suggest{
-	{Text: DockerRuntime, Description: "Docker runtime - debug a container running in Docker"},
-	{Text: KubernetesRuntime, Description: "Kubernetes runtime - debug a container running in Kubernetes"},
-	{Text: ContainerdRuntime, Description: "ContainerD runtime"},
+	{Text: DockerRuntime, Description: DockerRuntimeDesc},
+	{Text: KubernetesRuntime, Description: KubernetesRuntimeDesc},
+	{Text: ContainerdRuntime, Description: ContainerdRuntimeDesc},
+	{Text: AutoRuntime, Description: AutoRuntimeDesc},
 }
 
 func completeRuntime(ia *command.InteractiveApp, token string, params prompt.Document) []prompt.Suggest {
 	return prompt.FilterHasPrefix(runtimeValues, token, true)
+}
+
+func resolveAutoRuntime(val string) string {
+	if val != AutoRuntime {
+		return val
+	}
+
+	return AutoSelectRuntime()
 }
 
 func completeNamespace(ia *command.InteractiveApp, token string, params prompt.Document) []prompt.Suggest {
@@ -87,9 +96,10 @@ func completeNamespace(ia *command.InteractiveApp, token string, params prompt.D
 		runtimeFlag := command.FullFlagName(FlagRuntime)
 		if rtFlagVals, found := ccs.CommandFlags[runtimeFlag]; found {
 			if len(rtFlagVals) > 0 {
+				runtime := resolveAutoRuntime(rtFlagVals[0])
 
 				var names []string
-				switch rtFlagVals[0] {
+				switch runtime {
 				case KubernetesRuntime:
 					kubeconfig := KubeconfigDefault
 					kubeconfigFlag := command.FullFlagName(FlagKubeconfig)
@@ -120,7 +130,7 @@ func completePod(ia *command.InteractiveApp, token string, params prompt.Documen
 	if ccs != nil && ccs.Command == Name {
 		runtimeFlag := command.FullFlagName(FlagRuntime)
 		if rtFlagVals, found := ccs.CommandFlags[runtimeFlag]; found {
-			if len(rtFlagVals) > 0 && rtFlagVals[0] == KubernetesRuntime {
+			if len(rtFlagVals) > 0 && resolveAutoRuntime(rtFlagVals[0]) == KubernetesRuntime {
 				kubeconfig := KubeconfigDefault
 				kubeconfigFlag := command.FullFlagName(FlagKubeconfig)
 				kcFlagVals, found := ccs.CommandFlags[kubeconfigFlag]
@@ -153,11 +163,12 @@ func completeTarget(ia *command.InteractiveApp, token string, params prompt.Docu
 	if ccs != nil && ccs.Command == Name {
 		runtimeFlag := command.FullFlagName(FlagRuntime)
 		rtFlagVals, found := ccs.CommandFlags[runtimeFlag]
-		runtime := DockerRuntime
+		runtime := AutoRuntime
 		if found && len(rtFlagVals) > 0 {
 			runtime = rtFlagVals[0]
 		}
 
+		runtime = resolveAutoRuntime(runtime)
 		switch runtime {
 		case KubernetesRuntime:
 			kubeconfig := KubeconfigDefault
@@ -229,7 +240,7 @@ func completeSession(ia *command.InteractiveApp, token string, params prompt.Doc
 
 		runtimeFlag := command.FullFlagName(FlagRuntime)
 		rtFlagVals, found := ccs.CommandFlags[runtimeFlag]
-		if found && len(rtFlagVals) > 0 && rtFlagVals[0] == KubernetesRuntime {
+		if found && len(rtFlagVals) > 0 && resolveAutoRuntime(rtFlagVals[0]) == KubernetesRuntime {
 			kubeconfig := KubeconfigDefault
 			kubeconfigFlag := command.FullFlagName(FlagKubeconfig)
 			kcFlagVals, found := ccs.CommandFlags[kubeconfigFlag]
