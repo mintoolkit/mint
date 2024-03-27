@@ -16,6 +16,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
 	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
 	"github.com/mintoolkit/mint/pkg/util/errutil"
+	"github.com/mintoolkit/mint/pkg/util/jsonutil"
 )
 
 // HandleDockerRuntime implements support for the docker runtime
@@ -230,9 +231,12 @@ func HandleDockerRuntime(
 
 		commandParams.Cmd = []string{shellConfig}
 	} else {
-		if len(commandParams.Cmd) == 0 &&
-			CgrCustomDebugImage == commandParams.DebugContainerImage {
-			commandParams.Cmd = []string{bashShellName}
+		commandParams.Entrypoint = ShellCommandPrefix(commandParams.DebugContainerImage)
+		if len(commandParams.Cmd) == 0 {
+			commandParams.Cmd = []string{defaultShellName}
+			if CgrCustomDebugImage == commandParams.DebugContainerImage {
+				commandParams.Cmd = []string{bashShellName}
+			}
 		}
 	}
 
@@ -265,6 +269,7 @@ func HandleDockerRuntime(
 
 	xc.FailOn(err)
 
+	logger.Tracef("Debugger sidecar spec: %s", jsonutil.ToString(exe))
 	err = exe.Start()
 	xc.FailOn(err)
 

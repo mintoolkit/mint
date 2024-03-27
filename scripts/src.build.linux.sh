@@ -23,7 +23,7 @@ LD_FLAGS="-s -w -X github.com/mintoolkit/mint/pkg/version.appVersionTag=${TAG} -
 go generate github.com/mintoolkit/mint/pkg/appbom
 
 pushd ${BDIR}/cmd/mint
-GOOS=linux GOARCH=amd64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -o "${BDIR}/bin/linux/mint"
+GOOS=linux GOARCH=amd64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -tags "remote" -o "${BDIR}/bin/linux/mint"
 popd
 
 pushd ${BDIR}/cmd/mint-sensor

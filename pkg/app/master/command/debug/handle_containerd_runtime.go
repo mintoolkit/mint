@@ -1,19 +1,18 @@
 package debug
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"golang.org/x/sys/unix"
 	"io"
 	"os"
-	"os/user"
-	"strings"
-	"sync"
-
-	//"time"
-	"context"
 	"os/signal"
+	"os/user"
 	"regexp"
 	"runtime"
+	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/containerd/console"
@@ -21,8 +20,7 @@ import (
 	tasksv1 "github.com/containerd/containerd/api/services/tasks/v1"
 	"github.com/containerd/containerd/api/types/task"
 	"github.com/containerd/containerd/cio"
-	"github.com/containerd/containerd/cmd/ctr/commands"
-	"github.com/containerd/containerd/cmd/ctr/commands/tasks"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/oci"
 	"github.com/moby/term"
@@ -246,7 +244,7 @@ func HandleContainerdRuntime(
 	if commandParams.DoRunAsTargetShell {
 		logger.Trace("doRunAsTargetShell")
 		commandParams.Entrypoint = ShellCommandPrefix(commandParams.DebugContainerImage)
-		shellConfig := configShell(sid, true)
+		shellConfig := configShell(sid, false)
 		if CgrCustomDebugImage == commandParams.DebugContainerImage {
 			shellConfig = configShellAlt(sid, false)
 		}
@@ -382,6 +380,7 @@ func HandleContainerdRuntime(
 			}))
 	}
 
+	logger.Tracef("Debugger sidecar spec: %s", jsonutil.ToString(specOpts))
 	debugContainer, err := api.NewContainer(
 		ctx,
 		debugContainerName,
@@ -450,12 +449,12 @@ func HandleContainerdRuntime(
 	fmt.Printf("\n")
 
 	if doTTY {
-		if err := tasks.HandleConsoleResize(ctx, task, con); err != nil {
+		if err := taskHandleConsoleResize(logger, ctx, task, con); err != nil {
 			log.WithError(err).Error("console resize")
 		}
 	} else {
-		sigc := commands.ForwardAllSignals(ctx, task)
-		defer commands.StopCatch(sigc)
+		sigc := taskForwardAllSignals(ctx, task)
+		defer taskStopCatch(sigc)
 	}
 
 	var exitStatus containerd.ExitStatus
@@ -499,6 +498,64 @@ func HandleContainerdRuntime(
 	if err := debugContainer.Delete(ctx, containerd.WithSnapshotCleanup); err != nil {
 		logger.Debugf("failed to delete container: %v", err)
 	}
+}
+
+func cdListDebugContainersWithConfig(
+	targetContainer string,
+	onlyActive bool) ([]cdContainerInfo, error) {
+	api, err := containerd.New(cdSocket)
+	if err != nil {
+		log.WithError(err).Error("containerd.New")
+		return nil, err
+	}
+	defer api.Close()
+
+	ctx := context.Background()
+	return cdListDebugContainers(ctx, api, targetContainer, onlyActive)
+}
+
+func cdListDebugContainers(
+	ctx context.Context,
+	api *containerd.Client,
+	targetContainer string,
+	onlyActive bool) ([]cdContainerInfo, error) {
+	if _, exists := namespaces.Namespace(ctx); !exists {
+		ctx = namespaces.NamespaceFromEnv(ctx)
+	}
+
+	allTasks, err := api.TaskService().List(ctx, &tasksv1.ListTasksRequest{})
+	if err != nil {
+		return nil, err
+	}
+	runningTasks := map[string]*task.Process{}
+	for _, t := range allTasks.Tasks {
+		if t.GetStatus() == task.Status_RUNNING {
+			runningTasks[t.ID] = t // t.ContainerID seems to be always empty but t.ID is usually the container ID
+		}
+	}
+
+	allContainers, err := api.Containers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []cdContainerInfo
+	for _, c := range allContainers {
+		if !strings.HasPrefix(c.ID(), containerNamePrefix) {
+			continue
+		}
+
+		if _, found := runningTasks[c.ID()]; !found {
+			continue
+		}
+
+		result = append(result, cdContainerInfo{
+			Name:  cdContainerName(ctx, c),
+			Image: cdContainerImage(ctx, c),
+		})
+	}
+
+	return result, nil
 }
 
 func cdListNamespaces() ([]string, error) {
@@ -719,4 +776,75 @@ func (s *inCloser) Close() error {
 	}
 	s.closed = true
 	return nil
+}
+
+// from containerd/cmd/ctr/commands/tasks
+
+type resizer interface {
+	Resize(ctx context.Context, w, h uint32) error
+}
+
+func taskHandleConsoleResize(logger *log.Entry, ctx context.Context, task resizer, con console.Console) error {
+	// do an initial resize of the console
+	size, err := con.Size()
+	if err != nil {
+		return err
+	}
+	if err := task.Resize(ctx, uint32(size.Width), uint32(size.Height)); err != nil {
+		logger.WithError(err).Error("resize pty")
+	}
+	s := make(chan os.Signal, 16)
+	signal.Notify(s, unix.SIGWINCH)
+	go func() {
+		for range s {
+			size, err := con.Size()
+			if err != nil {
+				logger.WithError(err).Error("get pty size")
+				continue
+			}
+			if err := task.Resize(ctx, uint32(size.Width), uint32(size.Height)); err != nil {
+				logger.WithError(err).Error("resize pty")
+			}
+		}
+	}()
+	return nil
+}
+
+// from containerd/cmd/ctr/commands
+
+type killer interface {
+	Kill(context.Context, syscall.Signal, ...containerd.KillOpts) error
+}
+
+// ForwardAllSignals forwards signals
+func taskForwardAllSignals(ctx context.Context, task killer) chan os.Signal {
+	sigc := make(chan os.Signal, 128)
+	signal.Notify(sigc)
+	go func() {
+		for s := range sigc {
+			if canIgnoreSignal(s) {
+				log.Debugf("Ignoring signal %s", s)
+				continue
+			}
+			log.Debug("forwarding signal ", s)
+			if err := task.Kill(ctx, s.(syscall.Signal)); err != nil {
+				if errdefs.IsNotFound(err) {
+					log.WithError(err).Debugf("Not forwarding signal %s", s)
+					return
+				}
+				log.WithError(err).Errorf("forward signal %s", s)
+			}
+		}
+	}()
+	return sigc
+}
+
+// StopCatch stops and closes a channel
+func taskStopCatch(sigc chan os.Signal) {
+	signal.Stop(sigc)
+	close(sigc)
+}
+
+func canIgnoreSignal(s os.Signal) bool {
+	return s == unix.SIGURG
 }

@@ -2,6 +2,9 @@ package debug
 
 import (
 	"os"
+	"strings"
+
+	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
 )
 
 const (
@@ -45,7 +48,12 @@ var runtimes = []RuntimeInfo{
 		Description: ContainerdRuntimeDesc,
 	},
 	{
-		Socket:      DockerRuntimeSocket,
+		Socket:      dockerclient.UserDockerSocket(),
+		Name:        DockerRuntime,
+		Description: DockerRuntimeDesc,
+	},
+	{
+		Socket:      dockerclient.UnixSocketPath,
 		Name:        DockerRuntime,
 		Description: DockerRuntimeDesc,
 	},
@@ -54,18 +62,38 @@ var runtimes = []RuntimeInfo{
 		Name:        PodmanRuntime,
 		Description: PodmanRuntimeDesc,
 	},
+	{
+		Socket:      getPodmanSocketPath(),
+		Name:        PodmanRuntime,
+		Description: PodmanRuntimeDesc,
+	},
+	{
+		Socket:      getPodmanRemotePath(),
+		Name:        PodmanRuntime,
+		Description: PodmanRuntimeDesc,
+	},
 }
 
 func AvailableRuntimes() []string {
-	var available []string
+	runtimeSet := map[string]struct{}{}
 	for _, info := range runtimes {
 		if info.Socket == "" {
 			continue
 		}
 
-		if hasSocket(info.Socket) {
-			available = append(available, info.Name)
+		if strings.HasPrefix(info.Socket, "/") {
+			if hasSocket(info.Socket) {
+				runtimeSet[info.Name] = struct{}{}
+			}
+		} else {
+			//adding remote paths (for podman and others; without checking, for now)
+			runtimeSet[info.Name] = struct{}{}
 		}
+	}
+
+	var available []string
+	for k := range runtimeSet {
+		available = append(available, k)
 	}
 
 	return available

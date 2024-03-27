@@ -24,6 +24,7 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/util/jsonutil"
 )
 
 // HandleKubernetesRuntime implements support for the k8s runtime
@@ -425,9 +426,12 @@ func HandleKubernetesRuntime(
 
 		commandParams.Cmd = []string{shellConfig}
 	} else {
-		if len(commandParams.Cmd) == 0 &&
-			CgrCustomDebugImage == commandParams.DebugContainerImage {
-			commandParams.Cmd = []string{bashShellName}
+		commandParams.Entrypoint = ShellCommandPrefix(commandParams.DebugContainerImage)
+		if len(commandParams.Cmd) == 0 {
+			commandParams.Cmd = []string{defaultShellName}
+			if CgrCustomDebugImage == commandParams.DebugContainerImage {
+				commandParams.Cmd = []string{bashShellName}
+			}
 		}
 	}
 
@@ -449,6 +453,7 @@ func HandleKubernetesRuntime(
 		isEcPrivileged,
 		doTTY)
 
+	logger.Tracef("Debugger sidecar spec: %s", jsonutil.ToString(ecInfo))
 	pod.Spec.EphemeralContainers = append(pod.Spec.EphemeralContainers, ecInfo)
 
 	_, err = api.CoreV1().

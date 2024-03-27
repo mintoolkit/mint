@@ -74,6 +74,7 @@ var runtimeValues = []prompt.Suggest{
 	{Text: DockerRuntime, Description: DockerRuntimeDesc},
 	{Text: KubernetesRuntime, Description: KubernetesRuntimeDesc},
 	{Text: ContainerdRuntime, Description: ContainerdRuntimeDesc},
+	{Text: PodmanRuntime, Description: PodmanRuntimeDesc},
 	{Text: AutoRuntime, Description: AutoRuntimeDesc},
 }
 
@@ -212,7 +213,16 @@ func completeTarget(ia *command.InteractiveApp, token string, params prompt.Docu
 				}
 				values = append(values, value)
 			}
+		case PodmanRuntime:
+			conts, _ := listDebuggablePodmanContainersWithConfig(getPodmanConnContext())
 
+			for cname, iname := range conts {
+				value := prompt.Suggest{
+					Text:        cname,
+					Description: fmt.Sprintf("image: %s", iname),
+				}
+				values = append(values, value)
+			}
 		default:
 			//either no explicit 'runtime' param or other/docker runtime
 			//todo: need a way to access/pass the docker client struct (or just pass the connect params)
@@ -240,47 +250,103 @@ func completeSession(ia *command.InteractiveApp, token string, params prompt.Doc
 
 		runtimeFlag := command.FullFlagName(FlagRuntime)
 		rtFlagVals, found := ccs.CommandFlags[runtimeFlag]
-		if found && len(rtFlagVals) > 0 && resolveAutoRuntime(rtFlagVals[0]) == KubernetesRuntime {
-			kubeconfig := KubeconfigDefault
-			kubeconfigFlag := command.FullFlagName(FlagKubeconfig)
-			kcFlagVals, found := ccs.CommandFlags[kubeconfigFlag]
-			if found && len(kcFlagVals) > 0 {
-				kubeconfig = kcFlagVals[0]
-			}
-
-			namespace := ccs.GetCFValueWithDefault(FlagNamespace, NamespaceDefault)
-
-			var pod string
-			podFlag := command.FullFlagName(FlagPod)
-			podFlagVals, found := ccs.CommandFlags[podFlag]
-			if found && len(podFlagVals) > 0 {
-				pod = podFlagVals[0]
-			}
-
-			target := ccs.GetCFValue(FlagTarget)
-
-			result, err := listK8sDebugContainersWithConfig(
-				kubeconfig,
-				namespace,
-				pod,
-				target,
-				command.IsTrueStr(csessValStr))
-
-			if err == nil {
-				for _, info := range result {
-					desc := fmt.Sprintf("state: %s / start_time: %s / target: %s / image: %s",
-						info.State,
-						info.StartTime,
-						info.TargetContainerName,
-						info.SpecImage)
-					value := prompt.Suggest{
-						Text:        info.Name,
-						Description: desc,
-					}
-					values = append(values, value)
+		handleDockerRuntime := true
+		if found && len(rtFlagVals) > 0 {
+			handleDockerRuntime = false
+			switch resolveAutoRuntime(rtFlagVals[0]) {
+			case KubernetesRuntime:
+				kubeconfig := KubeconfigDefault
+				kubeconfigFlag := command.FullFlagName(FlagKubeconfig)
+				kcFlagVals, found := ccs.CommandFlags[kubeconfigFlag]
+				if found && len(kcFlagVals) > 0 {
+					kubeconfig = kcFlagVals[0]
 				}
+
+				namespace := ccs.GetCFValueWithDefault(FlagNamespace, NamespaceDefault)
+
+				var pod string
+				podFlag := command.FullFlagName(FlagPod)
+				podFlagVals, found := ccs.CommandFlags[podFlag]
+				if found && len(podFlagVals) > 0 {
+					pod = podFlagVals[0]
+				}
+
+				target := ccs.GetCFValue(FlagTarget)
+
+				result, err := listK8sDebugContainersWithConfig(
+					kubeconfig,
+					namespace,
+					pod,
+					target,
+					command.IsTrueStr(csessValStr))
+
+				if err == nil {
+					for _, info := range result {
+						desc := fmt.Sprintf("state: %s / start_time: %s / target: %s / image: %s",
+							info.State,
+							info.StartTime,
+							info.TargetContainerName,
+							info.SpecImage)
+						value := prompt.Suggest{
+							Text:        info.Name,
+							Description: desc,
+						}
+						values = append(values, value)
+					}
+				}
+			case ContainerdRuntime:
+				var target string
+				targetFlag := command.FullFlagName(FlagTarget)
+				targetFlagVals, found := ccs.CommandFlags[targetFlag]
+				if found && len(targetFlagVals) > 0 {
+					target = targetFlagVals[0]
+				}
+
+				result, err := cdListDebugContainersWithConfig(
+					target,
+					command.IsTrueStr(csessValStr))
+				if err == nil {
+					for _, info := range result {
+						desc := fmt.Sprintf("image: %s",
+							info.Image)
+						value := prompt.Suggest{
+							Text:        info.Name,
+							Description: desc,
+						}
+						values = append(values, value)
+					}
+				}
+			case PodmanRuntime:
+				var target string
+				targetFlag := command.FullFlagName(FlagTarget)
+				targetFlagVals, found := ccs.CommandFlags[targetFlag]
+				if found && len(targetFlagVals) > 0 {
+					target = targetFlagVals[0]
+				}
+
+				result, err := listPodmanDebugContainersWithConfig(getPodmanConnContext(),
+					target,
+					command.IsTrueStr(csessValStr))
+				if err == nil {
+					for _, info := range result {
+						desc := fmt.Sprintf("state: %s / start_time: %s / target: %s / image: %s",
+							info.State,
+							info.StartTime,
+							info.TargetContainerName,
+							info.SpecImage)
+						value := prompt.Suggest{
+							Text:        info.Name,
+							Description: desc,
+						}
+						values = append(values, value)
+					}
+				}
+			default:
+				handleDockerRuntime = true
 			}
-		} else {
+		}
+
+		if handleDockerRuntime {
 			//either no explicit 'runtime' param or other/docker runtime
 			//todo: need a way to access/pass the docker client struct (or just pass the connect params)
 			var target string

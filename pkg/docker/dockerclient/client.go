@@ -102,19 +102,27 @@ func getSocketInfo(filePath string) (*SocketInfo, error) {
 	return info, nil
 }
 
-func GetUnixSocketAddr() (*SocketInfo, error) {
-	//note: may move this to dockerutil
-	if _, err := os.Stat(UnixSocketPath); err == nil {
-		socketInfo, err := getSocketInfo(UnixSocketPath)
-		if err != nil {
-			return nil, err
-		}
-
-		socketInfo.Address = UnixSocketAddr
-		log.Debugf("dockerclient.GetUnixSocketAddr(): found => %s", jsonutil.ToString(socketInfo))
-		return socketInfo, nil
+func HasSocket(name string) bool {
+	_, err := os.Stat(name)
+	if err == nil || !os.IsNotExist(err) {
+		return true
 	}
 
+	return false
+}
+
+func HasUserDockerSocket() bool {
+	return HasSocket(UserDockerSocket())
+}
+
+func HasSystemDockerSocket() bool {
+	return HasSocket(UnixSocketPath)
+}
+
+func GetUnixSocketAddr() (*SocketInfo, error) {
+	//note: may move this to dockerutil
+
+	//check the Desktop socket first
 	userDockerSocket := UserDockerSocket()
 	if _, err := os.Stat(userDockerSocket); err == nil {
 		socketInfo, err := getSocketInfo(userDockerSocket)
@@ -123,6 +131,18 @@ func GetUnixSocketAddr() (*SocketInfo, error) {
 		}
 
 		socketInfo.Address = fmt.Sprintf("unix://%s", userDockerSocket)
+		log.Debugf("dockerclient.GetUnixSocketAddr(): found => %s", jsonutil.ToString(socketInfo))
+		return socketInfo, nil
+	}
+
+	//then check the system socket next
+	if _, err := os.Stat(UnixSocketPath); err == nil {
+		socketInfo, err := getSocketInfo(UnixSocketPath)
+		if err != nil {
+			return nil, err
+		}
+
+		socketInfo.Address = UnixSocketAddr
 		log.Debugf("dockerclient.GetUnixSocketAddr(): found => %s", jsonutil.ToString(socketInfo))
 		return socketInfo, nil
 	}

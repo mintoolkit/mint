@@ -22,5 +22,5 @@ BINDIR="${BDIR}/bin"
 mkdir -p "$BINDIR"
 rm -rf "${BINDIR}/"*
 
-CGO_ENABLED=0 go build -ldflags="${LD_FLAGS}" -mod=vendor -o "${BINDIR}/mint" "${BDIR}/cmd/mint/main.go"
+CGO_ENABLED=0 go build -ldflags="${LD_FLAGS}" -tags "remote" -mod=vendor -o "${BINDIR}/mint" "${BDIR}/cmd/mint/main.go"
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="${LD_FLAGS}" -mod=vendor -o "${BINDIR}/mint-sensor" "${BDIR}/cmd/mint-sensor/main.go"

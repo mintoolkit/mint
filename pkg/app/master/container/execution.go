@@ -154,8 +154,17 @@ func NewExecution(
 	return exe, nil
 }
 
+func (ref *Execution) loggerWithOp(op string) *log.Entry {
+	if ref.logger != nil {
+		return ref.logger.WithField("op", op)
+	} else {
+		return log.WithField("op", op)
+	}
+}
+
 // Start starts a new container execution
 func (ref *Execution) Start() error {
+	logger := ref.loggerWithOp("container.Execution.Start")
 	if ref.options.ContainerName != "" {
 		//we have an explicitly provided container name to use
 		//ideally we first validate that this name can be used...
@@ -236,7 +245,7 @@ func (ref *Execution) Start() error {
 	}
 
 	if ref.options != nil && ref.options.Terminal {
-		fmt.Println("adding more container params for Terminal")
+		logger.Tracef("ref.options.Terminal")
 		containerOptions.Config.OpenStdin = true
 		//containerOptions.Config.StdinOnce = true
 		containerOptions.Config.AttachStdin = true
@@ -251,10 +260,8 @@ func (ref *Execution) Start() error {
 	ref.State = XSCreated
 
 	if ref.ContainerName != containerInfo.Name {
-		if ref.logger != nil {
-			ref.logger.Debugf("RunContainer: Container name mismatch expected=%v got=%v",
-				ref.ContainerName, ref.ContainerName)
-		}
+		logger.Debugf("container name mismatch expected=%v got=%v",
+			ref.ContainerName, ref.ContainerName)
 	}
 
 	ref.ContainerID = containerInfo.ID
@@ -267,10 +274,7 @@ func (ref *Execution) Start() error {
 				"id":     ref.ContainerID,
 			})
 
-		if ref.logger != nil {
-			ref.logger.Tracef("container created: name=%s id=%s",
-				ref.ContainerName, ref.ContainerID)
-		}
+		logger.Tracef("container created: name=%s id=%s", ref.ContainerName, ref.ContainerID)
 	}
 
 	if ref.eventCh != nil {
@@ -338,10 +342,7 @@ func (ref *Execution) Start() error {
 				"id":     ref.ContainerID,
 			})
 
-		if ref.logger != nil {
-			ref.logger.Tracef("container started = name=%s id=%s\n",
-				ref.ContainerName, ref.ContainerID)
-		}
+		logger.Tracef("container started = name=%s id=%s\n", ref.ContainerName, ref.ContainerID)
 	}
 
 	if ref.eventCh != nil {
@@ -364,6 +365,7 @@ func (ref *Execution) Start() error {
 
 // Stop stops the container execution
 func (ref *Execution) Stop() error {
+	logger := ref.loggerWithOp("container.Execution.Stop")
 	ref.State = XSStopping
 	if ref.eventCh != nil {
 		ref.eventCh <- &ExecutionEvenInfo{
@@ -375,13 +377,9 @@ func (ref *Execution) Stop() error {
 
 	if err != nil {
 		if _, ok := err.(*dockerapi.ContainerNotRunning); ok {
-			if ref.logger != nil {
-				ref.logger.Info("can't stop the 'slim' container (container is not running)...")
-			}
+			logger.Info("can't stop the 'slim' container (container is not running)...")
 		} else {
-			if ref.logger != nil {
-				ref.logger.Infof("Execution.Stop: apiClient.StopContainer error - %v", err)
-			}
+			logger.Infof("Execution.Stop: apiClient.StopContainer error - %v", err)
 		}
 	}
 
@@ -397,6 +395,7 @@ func (ref *Execution) Stop() error {
 
 // Cleanup removes stopped container for the execution
 func (ref *Execution) Cleanup() error {
+	logger := ref.loggerWithOp("container.Execution.Cleanup")
 	removeOption := dockerapi.RemoveContainerOptions{
 		ID:            ref.ContainerID,
 		RemoveVolumes: true,
@@ -405,9 +404,7 @@ func (ref *Execution) Cleanup() error {
 
 	err := ref.APIClient.RemoveContainer(removeOption)
 	if err != nil {
-		if ref.logger != nil {
-			ref.logger.Info("error removing container =>", err)
-		}
+		logger.Info("error removing container =>", err)
 	}
 
 	ref.State = XSRemoved
@@ -427,6 +424,7 @@ func (ref *Execution) Wait() (int, error) {
 }
 
 func (ref *Execution) monitorContainerExitSync() {
+	logger := ref.loggerWithOp("container.Execution.monitorContainerExitSync")
 	ref.APIClient.AddEventListener(ref.dockerEventCh)
 
 	for {
@@ -452,9 +450,7 @@ func (ref *Execution) monitorContainerExitSync() {
 
 					if nonZeroExitCode {
 						if ref.isInterrupted && exitCodeStr == "137" {
-							if ref.logger != nil {
-								ref.logger.Tracef("container interrupted (expected) = %s", ref.ContainerID)
-							}
+							logger.Tracef("container interrupted (expected) = %s", ref.ContainerID)
 						} else {
 							ref.State = XSExitedCrash
 							ref.Crashed = true
@@ -466,9 +462,7 @@ func (ref *Execution) monitorContainerExitSync() {
 										"exit.code": exitCodeStr,
 									})
 
-								if ref.logger != nil {
-									ref.logger.Tracef("container crashed = %s", ref.ContainerID)
-								}
+								logger.Tracef("container crashed = %s", ref.ContainerID)
 							}
 
 							exitEvent.Event = XEExitedCrash
@@ -484,9 +478,7 @@ func (ref *Execution) monitorContainerExitSync() {
 									"exit.code": exitCodeStr,
 								})
 
-							if ref.logger != nil {
-								ref.logger.Tracef("container exited = %s", ref.ContainerID)
-							}
+							logger.Tracef("container exited = %s", ref.ContainerID)
 						}
 					}
 
@@ -497,15 +489,14 @@ func (ref *Execution) monitorContainerExitSync() {
 			}
 
 		case <-ref.dockerEventStopCh:
-			if ref.logger != nil {
-				ref.logger.Debug("container.Execution.monitorContainerExitSync: Docker event monitor stopped")
-			}
+			logger.Debug("docker event monitor stopped")
 			return
 		}
 	}
 }
 
 func (ref *Execution) monitorSysExitSync() {
+	logger := ref.loggerWithOp("container.Execution.monitorSysExitSync")
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT)
 
@@ -524,9 +515,7 @@ func (ref *Execution) monitorSysExitSync() {
 
 	err := ref.Stop()
 	if err != nil {
-		if ref.logger != nil {
-			ref.logger.Debugf("ref.Stop error: id=%s err=%v", ref.ContainerID, err)
-		}
+		logger.Debugf("ref.Stop error: id=%s err=%v", ref.ContainerID, err)
 	}
 }
 
@@ -580,14 +569,12 @@ func (ref *Execution) startLiveLogs() {
 }
 
 func (ref *Execution) ShowContainerLogs() {
+	logger := ref.loggerWithOp("container.Execution.ShowContainerLogs")
 	var outData bytes.Buffer
 	outw := bufio.NewWriter(&outData)
 	var errData bytes.Buffer
 	errw := bufio.NewWriter(&errData)
-
-	if ref.logger != nil {
-		ref.logger.Debug("getting container logs => ", ref.ContainerID)
-	}
+	logger.Debug("getting container logs => ", ref.ContainerID)
 
 	logsOptions := dockerapi.LogsOptions{
 		Container:    ref.ContainerID,
@@ -599,9 +586,7 @@ func (ref *Execution) ShowContainerLogs() {
 
 	err := ref.APIClient.Logs(logsOptions)
 	if err != nil {
-		if ref.logger != nil {
-			ref.logger.Infof("error getting container logs => %v - %v", ref.ContainerID, err)
-		}
+		logger.Infof("error getting container logs => %v - %v", ref.ContainerID, err)
 	} else {
 		outw.Flush()
 		errw.Flush()

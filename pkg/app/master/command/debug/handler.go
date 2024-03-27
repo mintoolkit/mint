@@ -1,17 +1,16 @@
 package debug
 
 import (
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
-	//"github.com/mintoolkit/mint/pkg/app/master/container"
-	//"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
 	"github.com/mintoolkit/mint/pkg/app/master/version"
 	cmd "github.com/mintoolkit/mint/pkg/command"
 	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
 	"github.com/mintoolkit/mint/pkg/report"
-	//"github.com/mintoolkit/mint/pkg/util/errutil"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
 	v "github.com/mintoolkit/mint/pkg/version"
 )
@@ -44,8 +43,12 @@ func OnCommand(
 	xc.AddCleanupHandler(cmdReportOnExit)
 
 	xc.Out.State("started")
+	rr := resolveAutoRuntime(commandParams.Runtime)
+	if rr != commandParams.Runtime {
+		rr = fmt.Sprintf("%s/%s", commandParams.Runtime, rr)
+	}
 	paramVars := ovars{
-		"runtime":             commandParams.Runtime,
+		"runtime":             rr,
 		"target":              commandParams.TargetRef,
 		"debug-image":         commandParams.DebugContainerImage,
 		"entrypoint":          commandParams.Entrypoint,
@@ -54,9 +57,13 @@ func OnCommand(
 		"run-as-target-shell": commandParams.DoRunAsTargetShell,
 	}
 
-	if commandParams.Runtime == KubernetesRuntime {
+	if resolveAutoRuntime(commandParams.Runtime) == KubernetesRuntime {
 		paramVars["namespace"] = commandParams.TargetNamespace
 		paramVars["pod"] = commandParams.TargetPod
+	}
+
+	if resolveAutoRuntime(commandParams.Runtime) == ContainerdRuntime {
+		paramVars["namespace"] = commandParams.TargetNamespace
 	}
 
 	xc.Out.Info("params", paramVars)
@@ -69,7 +76,7 @@ func OnCommand(
 			"debug.container.name": debugContainerName,
 		})
 
-	switch commandParams.Runtime {
+	switch resolveAutoRuntime(commandParams.Runtime) {
 	case DockerRuntime:
 		client, err := dockerclient.New(gparams.ClientConfig)
 		if err == dockerclient.ErrNoDockerInfo {
@@ -111,6 +118,12 @@ func OnCommand(
 		}
 
 		HandleContainerdRuntime(logger, xc, gparams, commandParams, sid, debugContainerName)
+	case PodmanRuntime:
+		if gparams.Debug {
+			version.Print(xc, Name, logger, nil, false, gparams.InContainer, gparams.IsDSImage)
+		}
+
+		HandlePodmanRuntime(logger, xc, gparams, commandParams, sid, debugContainerName)
 	default:
 		xc.Out.Error("runtime", "unsupported runtime")
 		xc.Out.State("exited",

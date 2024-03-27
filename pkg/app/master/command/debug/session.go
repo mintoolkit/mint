@@ -19,6 +19,7 @@ const (
 	CSWaiting    = "WAITING"
 	CSRunning    = "RUNNING"
 	CSTerminated = "TERMINATED"
+	CSOther      = "OTHER"
 )
 
 type DebugContainerInfo struct {
