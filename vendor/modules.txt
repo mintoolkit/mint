@@ -261,6 +261,7 @@ github.com/containers/common/pkg/flag
 github.com/containers/common/pkg/machine
 github.com/containers/common/pkg/manifests
 github.com/containers/common/pkg/parse
+github.com/containers/common/pkg/resize
 github.com/containers/common/pkg/retry
 github.com/containers/common/pkg/signal
 github.com/containers/common/pkg/ssh

@@ -5,14 +5,20 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
 
+	"github.com/moby/term"
+	terminal "golang.org/x/term"
+
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/bindings/containers"
 	"github.com/containers/podman/v5/pkg/bindings/images"
+	lsignal "github.com/containers/podman/v5/pkg/signal"
 	"github.com/containers/podman/v5/pkg/specgen"
 	log "github.com/sirupsen/logrus"
 
@@ -485,6 +491,21 @@ func HandlePodmanRuntime(
 		return
 	}
 
+	if terminal.IsTerminal(int(os.Stdin.Fd())) {
+		resize := make(chan resize.TerminalSize)
+
+		cancel, oldTermState, err := podmanTerminalAttach(connCtx, resize)
+		if err != nil {
+			return
+		}
+		defer func() {
+			if err := podmanTerminalRestore(oldTermState); err != nil {
+				log.Errorf("podmanTerminalRestore - %v", err)
+			}
+		}()
+		defer cancel()
+	}
+
 	r, w := io.Pipe()
 	go io.Copy(w, os.Stdin)
 
@@ -510,6 +531,87 @@ func HandlePodmanRuntime(
 	xc.FailOn(err)
 
 	logger.Trace("Debugger exited...")
+}
+
+func podmanTerminalAttach(ctx context.Context, resize chan resize.TerminalSize) (context.CancelFunc, *term.State, error) {
+	log.Debug("podmanTerminalAttach")
+
+	subCtx, cancel := context.WithCancel(ctx)
+
+	resizeTty(subCtx, resize)
+
+	oldTermState, err := term.SaveState(os.Stdin.Fd())
+	if err != nil {
+		// allow caller to not have to do any cleaning up if we error here
+		cancel()
+		return nil, nil, fmt.Errorf("unable to save terminal state: %w", err)
+	}
+
+	log.SetFormatter(&rawFormatter{})
+	if _, err := term.SetRawTerminal(os.Stdin.Fd()); err != nil {
+		return cancel, nil, err
+	}
+
+	return cancel, oldTermState, nil
+}
+
+func podmanTerminalRestore(state *term.State) error {
+	log.SetFormatter(&log.TextFormatter{})
+	return term.RestoreTerminal(os.Stdin.Fd(), state)
+}
+
+type rawFormatter struct {
+	log.TextFormatter
+}
+
+func (f *rawFormatter) Format(entry *log.Entry) ([]byte, error) {
+	bytes, err := f.TextFormatter.Format(entry)
+	if err != nil {
+		return bytes, err
+	}
+	return append(bytes, '\r'), nil
+}
+
+func getResize() *resize.TerminalSize {
+	winsize, err := term.GetWinsize(os.Stdin.Fd())
+	if err != nil {
+		log.Warnf("Could not get terminal size %v", err)
+		return nil
+	}
+	return &resize.TerminalSize{
+		Width:  winsize.Width,
+		Height: winsize.Height,
+	}
+}
+
+func resizeTty(ctx context.Context, resize chan resize.TerminalSize) {
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, lsignal.SIGWINCH)
+	go func() {
+		defer close(resize)
+		// Update the terminal size immediately without waiting
+		// for a SIGWINCH to get the correct initial size.
+		resizeEvent := getResize()
+		for {
+			if resizeEvent == nil {
+				select {
+				case <-ctx.Done():
+					return
+				case <-sigchan:
+					resizeEvent = getResize()
+				}
+			} else {
+				select {
+				case <-ctx.Done():
+					return
+				case <-sigchan:
+					resizeEvent = getResize()
+				case resize <- *resizeEvent:
+					resizeEvent = nil
+				}
+			}
+		}
+	}()
 }
 
 func podmanEnsureImage(logger *log.Entry, connCtx context.Context, image string) error {
@@ -628,6 +730,23 @@ func listPodmanDebugContainersWithConfig(
 	return listPodmanDebugContainers(connCtx, targetContainer, onlyActive)
 }
 
+// https://github.com/containers/podman/blob/main/libpod/define/containerstate.go#L42
+// PCS - Podman Container State
+const (
+	PCSUnknown    = "unknown"
+	PCSConfigured = "created"
+	PCSCreated    = "initialized"
+	PCSRunning    = "running"
+	PCSStopped    = "stopped"
+	PCSPaused     = "paused"
+	PCSExited     = "exited"
+	PCSRemoving   = "removing"
+	PCSStopping   = "stopping"
+	//also referenced in the APIs/docs:
+	PCSRestarting = "restarting"
+	PCSDead       = "dead"
+)
+
 func listPodmanDebugContainers(
 	connCtx context.Context,
 	targetContainer string,
@@ -668,11 +787,11 @@ func listPodmanDebugContainers(
 		}
 
 		switch container.State {
-		case "created", "paused", "restarting": //"restarting" - confirm
+		case PCSConfigured, PCSCreated, PCSPaused, PCSRestarting:
 			info.State = CSWaiting
-		case "running":
+		case PCSRunning:
 			info.State = CSRunning
-		case "exited", "dead", "removing": //"removing" - confirm
+		case PCSExited, PCSRemoving, PCSStopping, PCSStopped, PCSDead:
 			info.State = CSTerminated
 		default:
 			info.State = CSOther
