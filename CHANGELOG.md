@@ -1,5 +1,17 @@
 # Releases
 
+## 1.41.0 (3/12/2024)
+
+### New Features
+
+- ContainerD container runtime support for `debug`
+- Podman container runtime support for `debug`
+
+### Improvements
+
+- Auto-select the container runtime in `debug` by specifying `auto` as the `--runtime` flag value.
+
+
 ## 1.40.12 (3/12/2024)
 
 ### Improvements
