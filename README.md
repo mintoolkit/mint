@@ -328,6 +328,7 @@ Global options:
 - `--output-format` - set the output format to use ('text' (default), or 'json')
 - `--log` - log file to store logs
 - `--host` - Docker host address or socket (prefix with `tcp://` or `unix://`)
+- `--crt-connection` - Container runtime connection (for non-Docker runtimes / for Docker user --host)
 - `--tls` - use TLS connecting to Docker
 - `--tls-verify` - do TLS verification
 - `--tls-cert-path` - path to TLS cert files

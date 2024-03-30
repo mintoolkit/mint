@@ -23,15 +23,17 @@ import (
 )
 
 type InteractiveApp struct {
-	appPrompt   *prompt.Prompt
-	fpCompleter completer.FilePathCompleter
-	app         *cli.App
-	dclient     *dockerapi.Client
+	appPrompt     *prompt.Prompt
+	fpCompleter   completer.FilePathCompleter
+	app           *cli.App
+	dclient       *dockerapi.Client
+	crtConnection string
 }
 
 func NewInteractiveApp(app *cli.App, gparams *GenericParams) *InteractiveApp {
 	ia := InteractiveApp{
-		app: app,
+		crtConnection: gparams.CRTConnection,
+		app:           app,
 		fpCompleter: completer.FilePathCompleter{
 			IgnoreCase: true,
 		},
@@ -102,6 +104,10 @@ func (ia *InteractiveApp) complete(params prompt.Document) []prompt.Suggest {
 
 	commandState := newCurrentCommandState()
 	commandState.Dclient = ia.dclient
+
+	if ia.crtConnection != "" && commandState.CRTConnection == "" {
+		commandState.CRTConnection = ia.crtConnection
+	}
 
 	currentToken := params.GetWordBeforeCursor()
 	commandState.CurrentToken = currentToken
@@ -199,6 +205,10 @@ func (ia *InteractiveApp) complete(params prompt.Document) []prompt.Suggest {
 		} else {
 			if lastFlagName != "" {
 				commandState.GlobalFlags[lastFlagName] = allTokens[i]
+				if lastFlagName == fmt.Sprintf("--%s", FlagCRTConnection) {
+					commandState.CRTConnection = allTokens[i]
+				}
+
 				lastFlagName = ""
 			}
 		}
@@ -280,8 +290,9 @@ const (
 )
 
 type CurrentCommandState struct {
-	Dclient *dockerapi.Client
-	State   string
+	Dclient       *dockerapi.Client
+	CRTConnection string
+	State         string
 
 	AllTokensList   []string
 	CurrentToken    string
@@ -347,6 +358,7 @@ var GlobalFlagSuggestions = []prompt.Suggest{
 	{Text: FullFlagName(FlagVerifyTLS), Description: FlagVerifyTLSUsage},
 	{Text: FullFlagName(FlagTLSCertPath), Description: FlagTLSCertPathUsage},
 	{Text: FullFlagName(FlagHost), Description: FlagHostUsage},
+	{Text: FullFlagName(FlagCRTConnection), Description: FlagCRTConnectionUsage},
 	{Text: FullFlagName(FlagArchiveState), Description: FlagArchiveStateUsage},
 	{Text: FullFlagName(FlagInContainer), Description: FlagInContainerUsage},
 	{Text: FullFlagName(FlagCheckVersion), Description: FlagCheckVersionUsage},

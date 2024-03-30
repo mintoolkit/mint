@@ -25,6 +25,7 @@ const (
 	FlagVerifyTLS     = "tls-verify"
 	FlagTLSCertPath   = "tls-cert-path"
 	FlagHost          = "host"
+	FlagCRTConnection = "crt-connection"
 	FlagStatePath     = "state-path"
 	FlagInContainer   = "in-container"
 	FlagArchiveState  = "archive-state"
@@ -53,9 +54,10 @@ const (
 	FlagTLSCertPathUsage   = "path to TLS cert files"
 	FlagAPIVersionUsage    = "Container runtime API version"
 	FlagHostUsage          = "Docker host address or socket (prefix with 'tcp://' or 'unix://')"
+	FlagCRTConnectionUsage = "Container runtime connection (for non-Docker runtimes / for Docker user --host)"
 	FlagStatePathUsage     = "app state base path"
 	FlagInContainerUsage   = "app is running in a container"
-	FlagArchiveStateUsage  = "archive app state to the selected Docker volume (default volume - mint-state). By default, enabled when app is running in a container (disabled otherwise). Set it to \"off\" to disable explicitly."
+	FlagArchiveStateUsage  = "archive app state to the selected Docker volume (default volume - mint-state). By default, enabled when app is running in a container (disabled otherwise). Set it to 'off' to disable explicitly."
 	FlagNoColorUsage       = "disable color output"
 )
 
@@ -358,23 +360,30 @@ func GlobalFlags() []cli.Flag {
 			EnvVars: []string{"DSLIM_CRT_API_VER"},
 		},
 		&cli.StringFlag{
-			Name:  FlagHost,
-			Value: "",
-			Usage: "Docker host address",
+			Name:    FlagHost,
+			Value:   "",
+			Usage:   FlagHostUsage,
+			EnvVars: []string{"DSLIM_HOST"},
+		},
+		&cli.StringFlag{
+			Name:    FlagCRTConnection,
+			Value:   "",
+			Usage:   FlagCRTConnectionUsage,
+			EnvVars: []string{"DSLIM_CRT_CONN"},
 		},
 		&cli.StringFlag{
 			Name:  FlagStatePath,
 			Value: "",
-			Usage: "app state base path",
+			Usage: FlagStatePathUsage,
 		},
 		&cli.BoolFlag{
 			Name:  FlagInContainer,
-			Usage: "app is running in a container",
+			Usage: FlagInContainerUsage,
 		},
 		&cli.StringFlag{
 			Name:  FlagArchiveState,
 			Value: "",
-			Usage: "archive app state to the selected Docker volume (default volume - mint-state). By default, enabled when app is running in a container (disabled otherwise). Set it to \"off\" to disable explicitly.",
+			Usage: FlagArchiveStateUsage,
 		},
 		&cli.BoolFlag{
 			Name:  FlagNoColor,

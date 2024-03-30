@@ -24,20 +24,21 @@ type AppOptions struct {
 
 // GlobalAppOptions provides a set of global application parameters
 type GlobalAppOptions struct {
-	NoColor      *bool   `json:"no_color,omitempty"`
-	Debug        *bool   `json:"debug,omitempty"`
-	Verbose      *bool   `json:"verbose,omitempty"`
-	Quiet        *bool   `json:"quiet,omitempty"`
-	OutputFormat *string `json:"output_format,omitempty"`
-	LogLevel     *string `json:"log_level,omitempty"`
-	Log          *string `json:"log,omitempty"`
-	LogFormat    *string `json:"log_format,omitempty"`
-	UseTLS       *bool   `json:"tls,omitempty"`
-	VerifyTLS    *bool   `json:"tls_verify,omitempty"`
-	TLSCertPath  *string `json:"tls_cert_path,omitempty"`
-	APIVersion   *string `json:"api_version,omitempty"`
-	Host         *string `json:"host,omitempty"`
-	ArchiveState *string `json:"archive_state,omitempty"`
+	NoColor       *bool   `json:"no_color,omitempty"`
+	Debug         *bool   `json:"debug,omitempty"`
+	Verbose       *bool   `json:"verbose,omitempty"`
+	Quiet         *bool   `json:"quiet,omitempty"`
+	OutputFormat  *string `json:"output_format,omitempty"`
+	LogLevel      *string `json:"log_level,omitempty"`
+	Log           *string `json:"log,omitempty"`
+	LogFormat     *string `json:"log_format,omitempty"`
+	UseTLS        *bool   `json:"tls,omitempty"`
+	VerifyTLS     *bool   `json:"tls_verify,omitempty"`
+	TLSCertPath   *string `json:"tls_cert_path,omitempty"`
+	APIVersion    *string `json:"api_version,omitempty"`
+	Host          *string `json:"host,omitempty"`
+	CRTConnection *string `json:"crt_connection,omitempty"`
+	ArchiveState  *string `json:"archive_state,omitempty"`
 }
 
 func NewAppOptionsFromFile(dir string) (*AppOptions, error) {

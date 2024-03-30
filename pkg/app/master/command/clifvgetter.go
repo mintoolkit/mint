@@ -391,6 +391,7 @@ func GlobalFlagValues(ctx *cli.Context) *GenericParams {
 		Log:            ctx.String(FlagLog),
 		StatePath:      ctx.String(FlagStatePath),
 		ReportLocation: ctx.String(FlagCommandReport),
+		CRTConnection:  ctx.String(FlagCRTConnection),
 	}
 
 	if values.ReportLocation == "off" {

@@ -214,14 +214,22 @@ func completeTarget(ia *command.InteractiveApp, token string, params prompt.Docu
 				values = append(values, value)
 			}
 		case PodmanRuntime:
-			conts, _ := listDebuggablePodmanContainersWithConfig(getPodmanConnContext())
+			var connCtx context.Context
+			if ccs.CRTConnection != "" {
+				connCtx = getPodmanConnContextWithConn(ccs.CRTConnection)
+			} else {
+				connCtx = getPodmanConnContext()
+			}
 
-			for cname, iname := range conts {
-				value := prompt.Suggest{
-					Text:        cname,
-					Description: fmt.Sprintf("image: %s", iname),
+			if connCtx != nil {
+				conts, _ := listDebuggablePodmanContainersWithConfig(connCtx)
+				for cname, iname := range conts {
+					value := prompt.Suggest{
+						Text:        cname,
+						Description: fmt.Sprintf("image: %s", iname),
+					}
+					values = append(values, value)
 				}
-				values = append(values, value)
 			}
 		default:
 			//either no explicit 'runtime' param or other/docker runtime
@@ -324,21 +332,31 @@ func completeSession(ia *command.InteractiveApp, token string, params prompt.Doc
 					target = targetFlagVals[0]
 				}
 
-				result, err := listPodmanDebugContainersWithConfig(getPodmanConnContext(),
-					target,
-					command.IsTrueStr(csessValStr))
-				if err == nil {
-					for _, info := range result {
-						desc := fmt.Sprintf("state: %s / start_time: %s / target: %s / image: %s",
-							info.State,
-							info.StartTime,
-							info.TargetContainerName,
-							info.SpecImage)
-						value := prompt.Suggest{
-							Text:        info.Name,
-							Description: desc,
+				var connCtx context.Context
+				if ccs.CRTConnection != "" {
+					connCtx = getPodmanConnContextWithConn(ccs.CRTConnection)
+				} else {
+					connCtx = getPodmanConnContext()
+				}
+
+				if connCtx != nil {
+					result, err := listPodmanDebugContainersWithConfig(
+						connCtx,
+						target,
+						command.IsTrueStr(csessValStr))
+					if err == nil {
+						for _, info := range result {
+							desc := fmt.Sprintf("state: %s / start_time: %s / target: %s / image: %s",
+								info.State,
+								info.StartTime,
+								info.TargetContainerName,
+								info.SpecImage)
+							value := prompt.Suggest{
+								Text:        info.Name,
+								Description: desc,
+							}
+							values = append(values, value)
 						}
-						values = append(values, value)
 					}
 				}
 			default:
