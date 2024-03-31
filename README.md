@@ -1190,6 +1190,10 @@ drwxr-xr-x    3 root     root        4.0K Sep  2 15:51 node_modules
 
 Some of the useful debugging commands include `cat /proc/<TARGET_PID>/cmdline`, `ls -l /proc/<TARGET_PID>/cwd`, `cat /proc/1/environ`, `cat /proc/<TARGET_PID>/limits`, `cat /proc/<TARGET_PID>/status` and `ls -l /proc/<TARGET_PID>/fd`.
 
+### Talks and Presentations about Debugging
+
+* https://speakerdeck.com/kcq/building-a-tool-to-debug-minimal-container-images-in-kubernetes-docker-and-containerd
+* https://speakerdeck.com/kcq/improving-developer-experience-with-containers-making-it-easy-to-understand-optimize-and-troubleshoot-your-containers
 
 ## MINIFYING COMMAND LINE TOOLS
 
