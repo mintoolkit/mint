@@ -49,7 +49,7 @@ const (
 	FlagTerminalUsage = "Attach interactive terminal to the debug container"
 
 	FlagRunAsTargetShell      = "run-as-target-shell"
-	FlagRunAsTargetShellUsage = "Attach interactive terminal to the debug container and run shell as if it's running in the target container environment."
+	FlagRunAsTargetShellUsage = "Attach an interactive terminal to the debug container and run shell as if it's running in the target container environment."
 
 	FlagListSessions      = "list-sessions"
 	FlagListSessionsUsage = "List all debug sessions for the selected target (pod and optionally selected container for k8s or container for other runtimes)."
@@ -95,7 +95,7 @@ const (
 	FlagSecurityContextFromTargetUsage = "Use the security context params from the target container with the debug sidecar container"
 
 	FlagAutoRunAsNonRoot      = "auto-run-as-non-root"
-	FlagAutoRunAsNonRootUsage = "Auto-adjust the config to run as non-root"
+	FlagAutoRunAsNonRootUsage = "Auto-adjust the config to run as non-root (true by default)"
 )
 
 var Flags = map[string]cli.Flag{

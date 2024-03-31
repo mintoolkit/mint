@@ -267,16 +267,16 @@ See the [RUNNING CONTAINERIZED](#running-containerized) section for more usage i
 
 ## BASIC USAGE INFO
 
-`mint [global flags] [xray|build|profile|run|debug|lint|merge|images|registry|vulnerability|update|version|appbom|help] [command-specific flags] <IMAGE_ID_OR_NAME>`
+`mint [global flags] [debug|xray|build|profile|run|lint|merge|images|registry|vulnerability|update|version|appbom|help] [command-specific flags] <IMAGE_ID_OR_NAME>`
 
 If you don't specify any command `mint` will start in the interactive prompt mode.
 
 ### COMMANDS
 
+- `debug` - Debug minimal or regular container images running in Docker, Podman, Kubernetes and ContainerD.
 - `xray` - Performs static analysis for the target container image (including 'reverse engineering' the Dockerfile for the image). Use this command if you want to know what's inside of your container image and what makes it fat.
 - `lint` - Analyzes container instructions in Dockerfiles (Docker image support is WIP)
 - `build` - Analyzes, profiles and optimizes your container image generating the supported security profiles. This is the most popular command.
-- `debug` - Debug the running target container. This command is useful for troubleshooting running containers created from minimal/minified or regular container images.
 - `registry` - Execute registry operations (`pull`, `push`, `copy`, `server`).
 - `profile` - Performs basic container image analysis and dynamic container analysis, but it doesn't generate an optimized image.
 - `run` - Runs one or more containers (for now runs a single container similar to `docker run`)
@@ -300,10 +300,10 @@ If you run `mint` without any parameters you'll get an interactive prompt that w
 
 Commands:
 
+- `debug` - Debug minimal or regular container images running in Docker, Podman, Kubernetes and ContainerD.
 - `xray` - Show what's in the container image and reverse engineer its Dockerfile
 - `lint` - Lint the target Dockerfile (or image, in the future)
 - `build` - Analyze the target container image along with its application and build an optimized image from it
-- `debug` - Debug the running target container. This command is useful for troubleshooting running containers created from minimal/minified or regular container images.
 - `registry` - Execute registry operations (`pull`, `push`, `copy`, `server`).
 - `profile` - Collect fat image information and generate a fat container report
 - `merge` - Merge two container images (optimized to merge minified images)
@@ -562,19 +562,29 @@ The `--use-local-mounts` option is used to choose how the **Mint** sensor is add
 
 ### `DEBUG` COMMAND OPTIONS
 
-- `--runtime` - Runtime environment type (values: `docker`, `k8s`; defaults to `docker`)
-- `--debug-image` - Debug image to use for the debug side-car container (default value for this flag is `busybox`).
-- `--list-debug-images` - List possible debug images to use for the debug side-car container (for the `--debug-image` flag). This list is a ready to use set of debug images. You can use other images too.
-- `--target` - Target container name or ID (this can also be provided as the last param in the command line invocation of the `debug` command). Note that the target container must be running. You can use the `docker run` command to start the target container (or the kubernetes equivalent).
+Debug minimal or regular container images running in Docker, Podman, Kubernetes and ContainerD.
+
+- `--runtime` - Runtime environment type (values: `docker`, `k8s`, `containerd`, `podman` and a special meta runtime `auto`, which auto-selects the runtime based on the installed runtime; defaults to `auto`)
+- `--debug-image` - Debug image to use for the debug side-car container (default value for this flag is `busybox`). If you are using the interactive prompt mode you'll get a drop down list of all preselected debug images.
+- `--list-debug-images` - Show the built-in list of debug images to use for the debug sidecar container (with the `--debug-image` flag). You can use other images too. Use this flag by itself (no need to specify the `--target` flag).
+- `--target` - Target container name or ID (this can also be provided as the last param in the command line invocation of the `debug` command). Note that the target container must be running. If you are using the interactive prompt mode you'll get a drop down list of the currently running containers in the selected runtime.
 - `--namespace` - Namespace to target [k8s runtime] (defaults to `default`)
 - `--pod` - Pod to target [k8s runtime]
 - `--cmd` - (Optional) custom CMD to use for the debug side-car container (alternatively pass custom CMD params after '--').
 - `--entrypoint` - (Optional) custom ENTRYPOINT to use for the debug side-car container.
 - `--terminal` - Attach interactive terminal to the debug container (default: true). When the interactive terminal is not enabled the debug container output will be printed out to the screen when the `debug` command exits.
 - `--kubeconfig` - Kubeconfig file location [k8s runtime]
-- `--workdir` - Custom WORKDIR to use for the debug side-car container.
-- `--env` - Environment variable to add to the debug side-car container.
-- `--run-as-target-shell` - Attach interactive terminal to the debug container and run shell as if it's running in the target container environment.
+- `--workdir` - Custom WORKDIR to use for the debug sidecar container.
+- `--env` - Environment variable to add to the debug sidecar container.
+- `--load-target-env-vars` - Load all (container spec) environment variables from the target container into the debug sidecar container (true by default; set it to false if you don't want this behavior).
+- `--mount` - Volume to mount in the debug sidecar container (format: name:path or name:path:ro).
+- `--mount-target-volumes` - Mount all volumes mounted in the target container to the debug sidecar container.
+- `--uid` - UID to use for the debugging sidecar container.
+- `--gid` - GID to use for the debugging sidecar container.
+- `--run-privileged` - Run the debug sidecar as a privileged container (true by default).
+- `--security-context-from-target` - Use the security context params from the target container with the debug sidecar container.
+- `--auto-run-as-non-root` - Auto-adjust the config to run as non-root (true by default; set it to false to disable this behavior).
+- `--run-as-target-shell` - Attach an interactive terminal to the debug container and run shell as if it's running in the target container environment (true by default).
 - `--list-sessions` - List all debug sessions for the selected target (pod and optionally selected container for k8s or container for other runtimes).
 - `--show-session-logs` - Show logs for the selected debug session (using namespace, pod, target container or debug session container name for k8s or debug session container name for other runtimes).
 - `--session` - Debug session container name (used for debug sessoin actions).
@@ -582,7 +592,6 @@ The `--use-local-mounts` option is used to choose how the **Mint** sensor is add
 - `--list-namespaces` - List names for available namespaces (use this flag by itself) [k8s runtime].
 - `--list-pods` - List names for running pods in the selected namespace (use this flag by itself) [k8s runtime].
 - `--list-debuggable-containers` - List container names for active containers that can be debugged (use this flag by itself).
-- `--list-debug-images` - List possible debug images to use for the debug side-car container (use this flag by itself).
 - `--help` show help (default: false)
 
 See the "Debugging Using the `debug` Command" section for more information about this command.
@@ -1044,9 +1053,31 @@ You can use the `--http-probe-exec` and `--http-probe-exec-file` options to run 
 
 ### Debugging Using the `debug` Command
 
-The current version of the `debug` command is pretty basic and it lacks a number of useful capabilities. It will help you debug containers running in Docker or Kubernetes (use the `--runtime` flag and set it to `k8s` if you need to debug a container in Kubernetes). 
+Most users should run the `debug` command in the interactive mode, which can be done by executing the main app (`mint`) without any parameters. The interactive mode shows you the commands and their flags. It also helps you interactively select many important `debug` command flag values (e.g., target container, namespace, pod). 
 
-By default the `debug` command will provide you with an interactive terminal when it attaches the debugger side-car image to the debugged target container. Future versions will allow you to have different interaction modes with the target.
+The current version of the `debug` command supports multiple container runtimes: `docker`, `podman`, `kubernetes` and `containerd`.
+
+Use the `--runtime` flag to explicitly select your target container runtime. By default, the flag value is set to `auto` and the command will try to auto-detect the installed runtime(s). If the auto-select isn't picking up your installation set the flag explicitly.
+
+By default the `debug` command will provide you with an interactive terminal when it attaches the debuging sidecar image to the target container. The interactive terminal will allow you navigate the target container filesystem as if you were connected to the target container. To disable this behavior set `--run-as-target-shell` to `false`.
+
+Other default behavior:
+
+* The debugging sidecar container runs as a privileged container by default. To disable the behavior set `--run-privileged` to `false`.
+* The environment variables from the target container (defined at the container image/spec level) will be loaded into the debugging sidecar container. For now, this is only implemented for `k8s`. To disable the behavior set `--load-target-env-vars` to `false`.
+
+#### Podman Runtime
+
+Depending on how the Podman container runtime is installed and if you are using Podman Desktop you may need to start Podman services to expose the API the `debug` command is using. Right now it's your responsibility, but the future versions will auto-start the Podman service. 
+
+Here's what you'll need to do:
+
+1. Start the service (it can be done with a unix socket too): `podman system service --time=0 tcp://localhost:8899`
+2. Provide the same connection string to the `debug` command using the global `--crt-connection` flag: `mint --crt-connection tcp://localhost:8899 debug --runtime podman --target YOUR_CONTAINER_NAME_OR_ID`
+
+#### ContainerD Runtime
+
+You'll be able to use the ContainerD runtime only on Linux. At this point in time it's not possible to run the `debug` command on Macs with `Lima`, `Finch` or similar Mac options.
 
 #### The Debug Images
 
@@ -1056,7 +1087,7 @@ You can list all pre-selected debug images with the `--list-debug-images` and if
 
 Here's the current list of debug images:
 
-* `cgr.dev/chainguard/slim-toolkit-debug:latest` - a general purpose Mint debug image created by Chainguard
+* `cgr.dev/chainguard/min-toolkit-debug:latest` - a general purpose Mint debug image created by Chainguard
 * `cgr.dev/chainguard/wolfi-base:latest` - a basic lightweight Wolfi image
 * `busybox:latest` - a lightweight image with common unix utilities
 * `nicolaka/netshoot` - a network trouble-shooting swiss-army container
@@ -1087,6 +1118,11 @@ or
 
 >> mint debug --runtime=k8s --pod=example-pod --target=example-container
 
+```
+
+For a very simple setup where you have only one namespace, only one pod and only one container or if you want to target the first pod and the first container in that pod your debug command can be simplified to look like this:
+```bash
+>> mint debug --runtime k8s
 ```
 
 Now you should have an interactive shell into the debug container started by `mint` and you can type your regular shell commands.
