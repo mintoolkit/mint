@@ -23,6 +23,12 @@ type NVPair struct {
 	Value string
 }
 
+type Volume struct {
+	Name     string
+	Path     string
+	ReadOnly bool
+}
+
 type CommandParams struct {
 	/// the runtime environment type
 	Runtime string
@@ -42,6 +48,12 @@ type CommandParams struct {
 	Workdir string
 	/// Environment variables used launching the debugging container
 	EnvVars []NVPair
+	/// load the environment variables from the target container's container spec into the debug container
+	DoLoadTargetEnvVars bool
+	/// volumes to mount in the debug side-car container
+	Volumes []Volume
+	/// mount all volumes mounted in the target container
+	DoMountTargetVolumes bool
 	/// launch the debug container with an interactive terminal attached (like '--it' in docker)
 	DoTerminal bool
 	/// make it look like shell is running in the target container
@@ -62,6 +74,16 @@ type CommandParams struct {
 	ActionShowSessionLogs bool
 	/// Simple (non-debug) action - connect to an existing debug session
 	ActionConnectSession bool
+	/// UID to use for the debugging sidecar container
+	UID int64
+	/// GID to use for the debugging sidecar container
+	GID int64
+	/// run the debug sidecar as a privileged container
+	DoRunPrivileged bool
+	/// use the security context params from the target container with the debug sidecar container
+	UseSecurityContextFromTarget bool
+	/// auto-adjust the config to run as non-root (mostly for kubernetes)
+	DoAutoRunAsNonRoot bool
 }
 
 func ParseNameValueList(list []string) []NVPair {
@@ -84,6 +106,30 @@ func ParseNameValueList(list []string) []NVPair {
 	return pairs
 }
 
+func ParseMountList(list []string) []Volume {
+	var records []Volume
+	for _, val := range list {
+		val = strings.TrimSpace(val)
+		if val == "" {
+			continue
+		}
+
+		parts := strings.Split(val, ":")
+		if len(parts) < 2 || len(parts) > 3 {
+			continue
+		}
+
+		record := Volume{Name: parts[0], Path: parts[1]}
+		if len(parts) > 2 && (parts[2] == "ro" || parts[2] == "readonly") {
+			record.ReadOnly = true
+		}
+
+		records = append(records, record)
+	}
+
+	return records
+}
+
 var CLI = &cli.Command{
 	Name:    Name,
 	Aliases: []string{Alias},
@@ -98,6 +144,9 @@ var CLI = &cli.Command{
 		cflag(FlagCmd),
 		cflag(FlagWorkdir),
 		cflag(FlagEnv),
+		cflag(FlagLoadTargetEnvVars),
+		cflag(FlagMount),
+		cflag(FlagMountTargetVolumes),
 		cflag(FlagTerminal),
 		cflag(FlagRunAsTargetShell),
 		cflag(FlagListSessions),
@@ -109,6 +158,11 @@ var CLI = &cli.Command{
 		cflag(FlagListDebuggableContainers),
 		cflag(FlagListDebugImage),
 		cflag(FlagKubeconfig),
+		cflag(FlagUID),
+		cflag(FlagGID),
+		cflag(FlagRunPrivileged),
+		cflag(FlagSecurityContextFromTarget),
+		cflag(FlagAutoRunAsNonRoot),
 	},
 	Action: func(ctx *cli.Context) error {
 		gcvalues := command.GlobalFlagValues(ctx)
@@ -137,6 +191,9 @@ var CLI = &cli.Command{
 			Kubeconfig:                     ctx.String(FlagKubeconfig),
 			Workdir:                        ctx.String(FlagWorkdir),
 			EnvVars:                        ParseNameValueList(ctx.StringSlice(FlagEnv)),
+			DoLoadTargetEnvVars:            ctx.Bool(FlagLoadTargetEnvVars),
+			Volumes:                        ParseMountList(ctx.StringSlice(FlagMount)),
+			DoMountTargetVolumes:           ctx.Bool(FlagMountTargetVolumes),
 			Session:                        ctx.String(FlagSession),
 			ActionListNamespaces:           ctx.Bool(FlagListNamespaces),
 			ActionListPods:                 ctx.Bool(FlagListPods),
@@ -144,6 +201,11 @@ var CLI = &cli.Command{
 			ActionListSessions:             ctx.Bool(FlagListSessions),
 			ActionShowSessionLogs:          ctx.Bool(FlagShowSessionLogs),
 			ActionConnectSession:           ctx.Bool(FlagConnectSession),
+			UID:                            ctx.Int64(FlagUID),
+			GID:                            ctx.Int64(FlagGID),
+			DoRunPrivileged:                ctx.Bool(FlagRunPrivileged),
+			UseSecurityContextFromTarget:   ctx.Bool(FlagSecurityContextFromTarget),
+			DoAutoRunAsNonRoot:             ctx.Bool(FlagAutoRunAsNonRoot),
 		}
 
 		if commandParams.ActionListNamespaces &&

@@ -41,7 +41,7 @@ type RuntimeInfo struct {
 	Socket      string
 }
 
-var runtimes = []RuntimeInfo{
+var runtimeDefaultConnections = []RuntimeInfo{
 	{
 		Socket:      ContainerdRuntimeSocket,
 		Name:        ContainerdRuntime,
@@ -68,32 +68,39 @@ var runtimes = []RuntimeInfo{
 		Description: PodmanRuntimeDesc,
 	},
 	{
-		Socket:      getPodmanRemotePath(),
+		Socket:      getPodmanRemotePath(), //only reads configs (no REST calls)
 		Name:        PodmanRuntime,
 		Description: PodmanRuntimeDesc,
 	},
 }
 
 func AvailableRuntimes() []string {
-	runtimeSet := map[string]struct{}{}
-	for _, info := range runtimes {
+	usable := map[string]struct{}{}
+	for _, info := range runtimeDefaultConnections {
 		if info.Socket == "" {
 			continue
 		}
 
 		if strings.HasPrefix(info.Socket, "/") {
 			if hasSocket(info.Socket) {
-				runtimeSet[info.Name] = struct{}{}
+				usable[info.Name] = struct{}{}
 			}
 		} else {
 			//adding remote paths (for podman and others; without checking, for now)
-			runtimeSet[info.Name] = struct{}{}
+			usable[info.Name] = struct{}{}
 		}
 	}
 
 	var available []string
-	for k := range runtimeSet {
-		available = append(available, k)
+	//need to preserve the order from 'runtimes'
+	saved := map[string]struct{}{}
+	for _, info := range runtimeDefaultConnections {
+		_, ufound := usable[info.Name]
+		_, sfound := saved[info.Name]
+		if ufound && !sfound {
+			available = append(available, info.Name)
+			saved[info.Name] = struct{}{}
+		}
 	}
 
 	return available

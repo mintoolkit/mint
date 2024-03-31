@@ -20,28 +20,30 @@ const (
 	FlagPodUsage = "Pod to target (k8s runtime)"
 
 	FlagDebugImage      = "debug-image"
-	FlagDebugImageUsage = "Debug image to use for the debug side-car container"
+	FlagDebugImageUsage = "Debug image to use for the debug sidecar container"
 
 	FlagEntrypoint      = "entrypoint"
-	FlagEntrypointUsage = "Custom ENTRYPOINT to use for the debug side-car container."
+	FlagEntrypointUsage = "Custom ENTRYPOINT to use for the debug sidecar container."
 
 	FlagCmd      = "cmd"
-	FlagCmdUsage = "Custom CMD to use for the debug side-car container (alternatively pass custom CMD params after '--')."
+	FlagCmdUsage = "Custom CMD to use for the debug sidecar container (alternatively pass custom CMD params after '--')."
 
 	FlagWorkdir      = "workdir"
-	FlagWorkdirUsage = "Custom WORKDIR to use for the debug side-car container."
+	FlagWorkdirUsage = "Custom WORKDIR to use for the debug sidecar container."
 
 	//value expected to be "name=value"
 	FlagEnv      = "env"
-	FlagEnvUsage = "Environment variable to add to the debug side-car container."
+	FlagEnvUsage = "Environment variable to add to the debug sidecar container (format: name=value)."
 
-	//TBD
+	//value expected to be "name:path" or "name:path:ro"
 	FlagMount      = "mount"
-	FlagMountUsage = "Volume mount to create in the debug side-car container."
+	FlagMountUsage = "Volume to mount in the debug sidecar container (format: name:path or name:path:ro)."
 
-	//TBD
-	FlagLoadAllTargetEnvVars      = "load-all-target-env-vars"
-	FlagLoadAllTargetEnvVarsUsage = "Load all (known) environment variables from the target container"
+	FlagMountTargetVolumes      = "mount-target-volumes"
+	FlagMountTargetVolumesUsage = "Mount all volumes mounted in the target container"
+
+	FlagLoadTargetEnvVars      = "load-target-env-vars"
+	FlagLoadTargetEnvVarsUsage = "Load all (container spec) environment variables from the target container"
 
 	FlagTerminal      = "terminal"
 	FlagTerminalUsage = "Attach interactive terminal to the debug container"
@@ -75,10 +77,25 @@ const (
 	FlagListDebuggableContainersUsage = "List container names for active containers that can be debugged (use this flag by itself)."
 
 	FlagListDebugImage      = "list-debug-images"
-	FlagListDebugImageUsage = "List possible debug images to use for the debug side-car container (use this flag by itself)."
+	FlagListDebugImageUsage = "List possible debug images to use for the debug sidecar container (use this flag by itself)."
 
 	FlagKubeconfig      = "kubeconfig"
 	FlagKubeconfigUsage = "Kubeconfig file location (k8s runtime)"
+
+	FlagUID      = "uid"
+	FlagUIDUsage = "UID to use for the debugging sidecar container"
+
+	FlagGID      = "gid"
+	FlagGIDUsage = "GID to use for the debugging sidecar container"
+
+	FlagRunPrivileged      = "run-privileged"
+	FlagRunPrivilegedUsage = "Run the debug sidecar as a privileged container (true by default)"
+
+	FlagSecurityContextFromTarget      = "security-context-from-target"
+	FlagSecurityContextFromTargetUsage = "Use the security context params from the target container with the debug sidecar container"
+
+	FlagAutoRunAsNonRoot      = "auto-run-as-non-root"
+	FlagAutoRunAsNonRootUsage = "Auto-adjust the config to run as non-root"
 )
 
 var Flags = map[string]cli.Flag{
@@ -135,6 +152,24 @@ var Flags = map[string]cli.Flag{
 		Value:   cli.NewStringSlice(),
 		Usage:   FlagEnvUsage,
 		EnvVars: []string{"DSLIM_DBG_ENV"},
+	},
+	FlagLoadTargetEnvVars: &cli.BoolFlag{
+		Name:    FlagLoadTargetEnvVars,
+		Value:   true, //true by default
+		Usage:   FlagLoadTargetEnvVarsUsage,
+		EnvVars: []string{"DSLIM_DBG_LOAD_TARGET_ENVS"},
+	},
+	FlagMount: &cli.StringSliceFlag{
+		Name:    FlagMount,
+		Value:   cli.NewStringSlice(),
+		Usage:   FlagMountUsage,
+		EnvVars: []string{"DSLIM_DBG_MOUNT"},
+	},
+	FlagMountTargetVolumes: &cli.BoolFlag{
+		Name:    FlagMountTargetVolumes,
+		Value:   false, //false by default (because by default we run privileged)
+		Usage:   FlagMountTargetVolumesUsage,
+		EnvVars: []string{"DSLIM_DBG_MOUNT_TARGET_VOLUMES"},
 	},
 	FlagTerminal: &cli.BoolFlag{
 		Name:    FlagTerminal,
@@ -201,6 +236,36 @@ var Flags = map[string]cli.Flag{
 		Value:   KubeconfigDefault,
 		Usage:   FlagKubeconfigUsage,
 		EnvVars: []string{"DSLIM_DBG_KUBECONFIG"},
+	},
+	FlagUID: &cli.Int64Flag{
+		Name:    FlagUID,
+		Value:   -1,
+		Usage:   FlagUIDUsage,
+		EnvVars: []string{"DSLIM_DBG_UID"},
+	},
+	FlagGID: &cli.Int64Flag{
+		Name:    FlagGID,
+		Value:   -1,
+		Usage:   FlagGIDUsage,
+		EnvVars: []string{"DSLIM_DBG_GID"},
+	},
+	FlagRunPrivileged: &cli.BoolFlag{
+		Name:    FlagRunPrivileged,
+		Value:   true, //true by default
+		Usage:   FlagRunPrivilegedUsage,
+		EnvVars: []string{"DSLIM_DBG_RUN_PRIV"},
+	},
+	FlagSecurityContextFromTarget: &cli.BoolFlag{
+		Name:    FlagSecurityContextFromTarget,
+		Value:   false,
+		Usage:   FlagSecurityContextFromTargetUsage,
+		EnvVars: []string{"DSLIM_DBG_USE_TARGET_SEC_CTX"},
+	},
+	FlagAutoRunAsNonRoot: &cli.BoolFlag{
+		Name:    FlagAutoRunAsNonRoot,
+		Value:   true, //true by default
+		Usage:   FlagAutoRunAsNonRootUsage,
+		EnvVars: []string{"DSLIM_DBG_AUTO_RUN_AS_NONROOT"},
 	},
 }
 

@@ -40,6 +40,7 @@ var podmanRemotePath string
 
 var podmanConnCtxInit sync.Once
 var podmanConnCtx context.Context
+var podmanConnErr error
 
 func podmanIsRemote() bool {
 
@@ -124,21 +125,8 @@ func getPodmanConnContext() context.Context {
 		ctx := context.Background()
 		connCtx, err := bindings.NewConnectionWithIdentity(ctx, dcURI, dcIdentity, false)
 		if err != nil {
-			errutil.FailOn(err)
-			/*
-				xc.Out.Info("podman.connect.error",
-						ovars{
-							"message": err.Error(),
-						})
-
-				xc.Out.State("exited",
-					ovars{
-						"exit.code": -1,
-						"version":   v.Current(),
-						"location":  fsutil.ExeDir(),
-					})
-				xc.Exit(-1)
-			*/
+			podmanConnErr = err
+			log.WithError(err).Trace("getPodmanConnContext:bindings.NewConnectionWithIdentity")
 		}
 
 		podmanConnCtx = connCtx
@@ -162,7 +150,8 @@ func getPodmanConnContextWithConn(connURI string) context.Context {
 		ctx := context.Background()
 		connCtx, err := bindings.NewConnectionWithIdentity(ctx, connURI, "", false)
 		if err != nil {
-			errutil.FailOn(err)
+			podmanConnErr = err
+			log.WithError(err).Tracef("getPodmanConnContextWithConn(%s):bindings.NewConnectionWithIdentity", connURI)
 		}
 
 		podmanConnCtx = connCtx
@@ -193,9 +182,10 @@ func HandlePodmanRuntime(
 
 		xc.Out.State("exited",
 			ovars{
-				"exit.code": -1,
-				"version":   v.Current(),
-				"location":  fsutil.ExeDir(),
+				"exit.code":    -1,
+				"version":      v.Current(),
+				"location":     fsutil.ExeDir(),
+				"podman.error": podmanConnErr,
 			})
 		xc.Exit(-1)
 	}

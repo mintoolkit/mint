@@ -414,7 +414,7 @@ func HandleKubernetesRuntime(
 
 	//'tty' config needs to be the same when creating & attaching
 	doTTY := true
-	isEcPrivileged := true
+	isEcPrivileged := commandParams.DoRunPrivileged //true
 
 	if commandParams.DoRunAsTargetShell {
 		logger.Trace("doRunAsTargetShell")
@@ -435,11 +435,97 @@ func HandleKubernetesRuntime(
 		}
 	}
 
+	var targetEnvVars []corev1.EnvVar
+	if commandParams.DoLoadTargetEnvVars {
+		logger.Trace("doLoadTargetEnvVars")
+		targetEnvVars = targetContainer.Env
+	}
+
+	runAsNonRoot := func() bool {
+		sc := targetContainer.SecurityContext
+		if sc != nil &&
+			sc.RunAsNonRoot != nil &&
+			*sc.RunAsNonRoot {
+			return true
+		}
+
+		psc := pod.Spec.SecurityContext
+		if psc != nil &&
+			psc.RunAsNonRoot != nil &&
+			*psc.RunAsNonRoot {
+			return true
+		}
+
+		return false
+	}
+
+	runAsUser := func(lookup bool) *int64 {
+		if !lookup {
+			return nil
+		}
+
+		sc := targetContainer.SecurityContext
+		if sc != nil && sc.RunAsUser != nil {
+			return sc.RunAsUser
+		}
+
+		psc := pod.Spec.SecurityContext
+		if psc != nil && psc.RunAsUser != nil {
+			return psc.RunAsUser
+		}
+
+		return &defaultNonRootUser
+	}
+
+	runAsGroup := func(lookup bool) *int64 {
+		if !lookup {
+			return nil
+		}
+
+		sc := targetContainer.SecurityContext
+		if sc != nil && sc.RunAsGroup != nil {
+			return sc.RunAsGroup
+		}
+
+		psc := pod.Spec.SecurityContext
+		if psc != nil && psc.RunAsGroup != nil {
+			return psc.RunAsGroup
+		}
+
+		return &defaultNonRootGroup
+	}
+
+	targetIsNonRoot := runAsNonRoot()
+	runAsUserVal := runAsUser(targetIsNonRoot)
+	runAsGroupVal := runAsGroup(targetIsNonRoot)
+
+	var targetVolumes []corev1.VolumeMount
+	if commandParams.DoMountTargetVolumes ||
+		commandParams.UID > 0 ||
+		(targetIsNonRoot && commandParams.DoAutoRunAsNonRoot) {
+		logger.Trace("doMountTargetVolumes")
+		for _, record := range targetContainer.VolumeMounts {
+			if record.SubPath == "" {
+				targetVolumes = append(targetVolumes, record)
+			}
+		}
+	}
+
+	var securityCtx *corev1.SecurityContext
+	if commandParams.UseSecurityContextFromTarget {
+		securityCtx = targetContainer.SecurityContext
+	}
+
 	logger.WithFields(
 		log.Fields{
 			"work.dir": commandParams.Workdir,
 			"params":   fmt.Sprintf("%#v", commandParams),
 		}).Trace("newEphemeralContainerInfo")
+
+	var doRunAsNonRoot bool
+	if targetIsNonRoot && commandParams.DoAutoRunAsNonRoot {
+		doRunAsNonRoot = true
+	}
 
 	//TODO: pass commandParams.DoTerminal
 	ecInfo := newEphemeralContainerInfo(
@@ -449,8 +535,17 @@ func HandleKubernetesRuntime(
 		commandParams.Entrypoint,
 		commandParams.Cmd,
 		commandParams.Workdir,
+		targetEnvVars,
 		commandParams.EnvVars,
+		targetVolumes,
+		commandParams.Volumes,
 		isEcPrivileged,
+		commandParams.UID,
+		commandParams.GID,
+		securityCtx,
+		doRunAsNonRoot,
+		runAsUserVal,
+		runAsGroupVal,
 		doTTY)
 
 	logger.Tracef("Debugger sidecar spec: %s", jsonutil.ToString(ecInfo))
@@ -1183,6 +1278,10 @@ func ephemeralContainerFromPod(
 	return nil
 }
 
+var isTrue bool = true
+var defaultNonRootUser int64 = 1000
+var defaultNonRootGroup int64 = 1000
+
 func newEphemeralContainerInfo(
 	target string, // target container in the pod
 	name string, // name to use for the ephemeral container (must be unique)
@@ -1190,43 +1289,86 @@ func newEphemeralContainerInfo(
 	command []string, // custom ENTRYPOINT to use for the ephemeral container (yes, it's not CMD :-))
 	args []string, // custom CMD to use
 	workingDir string,
+	targetEnvVars []corev1.EnvVar,
 	envVars []NVPair,
+	targetVolumes []corev1.VolumeMount,
+	volumes []Volume,
 	isPrivileged bool, // true if it should be a privileged container
+	uid int64,
+	gid int64,
+	securityCtx *corev1.SecurityContext,
+	doRunAsNonRoot bool,
+	runAsUserVal *int64,
+	runAsGroupVal *int64,
 	doTTY bool,
 ) corev1.EphemeralContainer {
-	isTrue := true
 	out := corev1.EphemeralContainer{
 		TargetContainerName: target,
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
-			TTY:        doTTY,
-			Stdin:      true,
-			Name:       name,
-			Image:      image,
-			Command:    command,
-			Args:       args,
-			WorkingDir: workingDir,
-			//TODO: add support for more params:
-			//EnvFrom
-			//VolumeMounts
-			//maybe:
-			//ImagePullPolicy
+			TTY:          doTTY,
+			Stdin:        true,
+			Name:         name,
+			Image:        image,
+			Command:      command,
+			Args:         args,
+			WorkingDir:   workingDir,
+			Env:          targetEnvVars,
+			VolumeMounts: targetVolumes,
+			//TODO: add support for more params
 		},
 	}
 
-	if len(envVars) > 0 {
-		for _, val := range envVars {
-			if val.Name == "" {
-				continue
-			}
+	var sc corev1.SecurityContext
+	if securityCtx != nil {
+		sc = *securityCtx
+	}
 
-			nv := corev1.EnvVar{Name: val.Name, Value: val.Value}
-			out.Env = append(out.Env, nv)
+	out.EphemeralContainerCommon.SecurityContext = &sc
+
+	for _, val := range envVars {
+		if val.Name == "" {
+			continue
 		}
+
+		record := corev1.EnvVar{Name: val.Name, Value: val.Value}
+		out.Env = append(out.Env, record)
+	}
+
+	for _, val := range volumes {
+		if val.Name == "" {
+			continue
+		}
+
+		record := corev1.VolumeMount{
+			Name:      val.Name,
+			MountPath: val.Path,
+			ReadOnly:  val.ReadOnly,
+		}
+		out.VolumeMounts = append(out.VolumeMounts, record)
 	}
 
 	if isPrivileged {
-		out.EphemeralContainerCommon.SecurityContext = &corev1.SecurityContext{
-			Privileged: &isTrue,
+		out.EphemeralContainerCommon.SecurityContext.Privileged = &isTrue
+	} else if securityCtx != nil {
+		out.EphemeralContainerCommon.SecurityContext.Privileged = &isPrivileged
+	}
+
+	if uid > -1 {
+		out.EphemeralContainerCommon.SecurityContext.RunAsUser = &uid
+	}
+
+	if gid > -1 {
+		out.EphemeralContainerCommon.SecurityContext.RunAsGroup = &gid
+	}
+
+	if doRunAsNonRoot {
+		out.EphemeralContainerCommon.SecurityContext.RunAsNonRoot = &isTrue
+		if uid < 0 && runAsUserVal != nil {
+			out.EphemeralContainerCommon.SecurityContext.RunAsUser = runAsUserVal
+		}
+
+		if gid < 0 && runAsGroupVal != nil {
+			out.EphemeralContainerCommon.SecurityContext.RunAsGroup = runAsGroupVal
 		}
 	}
 

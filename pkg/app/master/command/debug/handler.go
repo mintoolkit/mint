@@ -76,7 +76,9 @@ func OnCommand(
 			"debug.container.name": debugContainerName,
 		})
 
-	switch resolveAutoRuntime(commandParams.Runtime) {
+	resolved := resolveAutoRuntime(commandParams.Runtime)
+	logger.Tracef("runtime.handler: rt=%s resolved=%s", commandParams.Runtime, resolved)
+	switch resolved {
 	case DockerRuntime:
 		client, err := dockerclient.New(gparams.ClientConfig)
 		if err == dockerclient.ErrNoDockerInfo {
