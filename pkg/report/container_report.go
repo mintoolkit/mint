@@ -6,10 +6,17 @@ import (
 	"os"
 )
 
-const ContainerReportDT = "doc.report.container"
+const (
+	ContainerReportDT = "doc.report.container"
+	OVContainerReport = "ov/container/1.1"
+	TTContainer       = "container"
+)
 
-func NewContainerReprt() *ContainerReport {
-	return &ContainerReport{Document: ContainerReportDT}
+func NewContainerReport() *ContainerReport {
+	return &ContainerReport{
+		Document: ContainerReportDT,
+		Version:  OVContainerReport,
+	}
 }
 
 // ArtifactType is an artifact type ID
@@ -125,7 +132,7 @@ type FSActivityInfo struct {
 type ArtifactProps struct {
 	FileType   ArtifactType    `json:"-"` //todo
 	FilePath   string          `json:"file_path"`
-	Mode       os.FileMode     `json:"-"` //todo
+	Mode       os.FileMode     `json:"modex"` //todo
 	ModeText   string          `json:"mode"`
 	LinkRef    string          `json:"link_ref,omitempty"`
 	Flags      map[string]bool `json:"flags,omitempty"`
@@ -133,8 +140,10 @@ type ArtifactProps struct {
 	FileSize   int64           `json:"file_size"`
 	Sha1Hash   string          `json:"sha1_hash,omitempty"`
 	AppType    string          `json:"app_type,omitempty"`
-	FileInode  uint64          `json:"-"` //todo
+	FileInode  uint64          `json:"in,omitempty"` //todo
 	FSActivity *FSActivityInfo `json:"-"`
+	UID        int             `json:"uid"`
+	GID        int             `json:"gid"`
 }
 
 // UnmarshalJSON decodes artifact property data
@@ -209,6 +218,10 @@ type StartCommandReport struct {
 // ContainerReport contains container report fields
 type ContainerReport struct {
 	Document     string              `json:"document"`
+	Version      string              `json:"version"`
+	TargetType   string              `json:"target_type"`
+	TargetID     string              `json:"target_id"`
+	ImageID      string              `json:"image_id"`
 	StartCommand *StartCommandReport `json:"start_command"`
 	Sensor       *SensorReport       `json:"sensor"`
 	System       SystemReport        `json:"system"`

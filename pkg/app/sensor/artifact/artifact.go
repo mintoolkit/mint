@@ -616,6 +616,13 @@ func (p *store) prepareArtifact(artifactFileName string) {
 		Mode:     srcLinkFileInfo.Mode(),
 		ModeText: srcLinkFileInfo.Mode().String(),
 		FileSize: srcLinkFileInfo.Size(),
+		UID:      -1,
+		GID:      -1,
+	}
+
+	if sysStat, ok := srcLinkFileInfo.Sys().(*syscall.Stat_t); ok {
+		props.UID = int(sysStat.Uid)
+		props.GID = int(sysStat.Gid)
 	}
 
 	props.Flags = p.getArtifactFlags(artifactFileName)
@@ -765,6 +772,13 @@ func (p *store) prepareArtifacts() {
 				Mode:     bpathFileInfo.Mode(),
 				ModeText: bpathFileInfo.Mode().String(),
 				FileSize: bpathFileInfo.Size(),
+				UID:      -1,
+				GID:      -1,
+			}
+
+			if sysStat, ok := bpathFileInfo.Sys().(*syscall.Stat_t); ok {
+				bprops.UID = int(sysStat.Uid)
+				bprops.GID = int(sysStat.Gid)
 			}
 
 			bprops.Flags = p.getArtifactFlags(bpath)
@@ -2669,6 +2683,7 @@ func (p *store) archiveArtifacts() error {
 // sure all the files & folders are reflected in the final report.
 // Hopefully, just a temporary workaround until a proper refactoring.
 func (p *store) enumerateArtifacts() {
+	//note: need to add extra metadata we collect in other places (e.g., sha1, file/data type)
 	logger := log.WithField("op", "store.enumerateArtifacts")
 	logger.Trace("call")
 	defer logger.Trace("exit")
@@ -2698,7 +2713,9 @@ func (p *store) enumerateArtifacts() {
 
 			if props, err := artifactProps(curpath); err == nil {
 				p.nameList = append(p.nameList, curpath)
-				p.rawNames[curpath] = props
+				if _, found := p.rawNames[curpath]; !found {
+					p.rawNames[curpath] = props
+				}
 				knownFiles[curpath] = true
 			} else {
 				logger.WithError(err).
@@ -2725,7 +2742,9 @@ func (p *store) enumerateArtifacts() {
 
 			if props, err := artifactProps(childpath); err == nil {
 				p.nameList = append(p.nameList, childpath)
-				p.rawNames[childpath] = props
+				if _, found := p.rawNames[childpath]; !found {
+					p.rawNames[childpath] = props
+				}
 				knownFiles[childpath] = true
 			} else {
 				logger.WithError(err).
@@ -2741,7 +2760,7 @@ func (p *store) saveReport() error {
 	logger.Trace("call")
 	defer logger.Trace("exit")
 
-	creport := report.NewContainerReprt()
+	creport := report.NewContainerReport()
 	creport.Sensor = p.seReport
 	creport.Monitors = report.MonitorReports{
 		Pt:  p.ptMonReport,
@@ -2749,6 +2768,18 @@ func (p *store) saveReport() error {
 	}
 
 	if p.cmd != nil {
+		if p.cmd.TargetType != "" {
+			creport.TargetType = p.cmd.TargetType
+		}
+
+		if p.cmd.TargetID != "" {
+			creport.TargetID = p.cmd.TargetID
+		}
+
+		if p.cmd.ImageID != "" {
+			creport.ImageID = p.cmd.ImageID
+		}
+
 		creport.StartCommand = &report.StartCommandReport{
 			AppName:       p.cmd.AppName,
 			AppArgs:       p.cmd.AppArgs,
@@ -3292,13 +3323,22 @@ func artifactProps(filename string) (*report.ArtifactProps, error) {
 		fileType = report.DirArtifactType
 	}
 
-	return &report.ArtifactProps{
+	result := &report.ArtifactProps{
 		FileType: fileType,
 		FilePath: filename,
 		Mode:     fileInfo.Mode(),
 		ModeText: fileInfo.Mode().String(),
 		FileSize: fileInfo.Size(),
-	}, nil
+		UID:      -1,
+		GID:      -1,
+	}
+
+	if sysStat, ok := fileInfo.Sys().(*syscall.Stat_t); ok {
+		result.UID = int(sysStat.Uid)
+		result.GID = int(sysStat.Gid)
+	}
+
+	return result, nil
 }
 
 func list2map(l []string) map[string]bool {

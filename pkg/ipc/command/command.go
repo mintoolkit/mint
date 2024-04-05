@@ -38,8 +38,13 @@ type Message interface {
 	GetName() MessageName
 }
 
+const TTContainer = "container"
+
 // StartMonitor contains the start monitor command fields
 type StartMonitor struct {
+	TargetType                   string
+	TargetID                     string
+	ImageID                      string
 	ObfuscateMetadata            bool                          `json:"obfuscate_metadata"`
 	RTASourcePT                  bool                          `json:"rta_source_ptrace"`
 	AppName                      string                        `json:"app_name"`

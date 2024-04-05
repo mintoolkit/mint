@@ -78,6 +78,12 @@ const (
 
 	enableMondelFlagUsage   = "enable monitor data event logging"
 	enableMondelFlagDefault = false
+
+	targetTypeFlagUsage   = "target environment type ('container')"
+	targetTypeFlagDefault = "container"
+
+	imageIDFlagUsage   = "target environment image ID"
+	imageIDFlagDefault = ""
 )
 
 var (
@@ -93,6 +99,8 @@ var (
 	stopSignal           *string        = flag.String("stop-signal", stopSignalFlagDefault, stopSignalFlagUsage)
 	stopGracePeriod      *time.Duration = flag.Duration("stop-grace-period", stopGracePeriodFlagDefault, stopGracePeriodFlagUsage)
 	enableMondel         *bool          = flag.Bool("mondel", enableMondelFlagDefault, enableMondelFlagUsage)
+	targetType           *string        = flag.String("target-type", targetTypeFlagDefault, targetTypeFlagUsage)
+	imageID              *string        = flag.String("image-id", imageIDFlagDefault, imageIDFlagUsage)
 
 	errUnknownMode = errors.New("unknown sensor mode")
 )
@@ -114,6 +122,8 @@ func init() {
 	flag.StringVar(stopSignal, "s", stopSignalFlagDefault, stopSignalFlagUsage)
 	flag.DurationVar(stopGracePeriod, "w", stopGracePeriodFlagDefault, stopGracePeriodFlagUsage)
 	flag.BoolVar(enableMondel, "n", enableMondelFlagDefault, enableMondelFlagUsage)
+	flag.StringVar(targetType, "t", targetTypeFlagDefault, targetTypeFlagUsage)
+	flag.StringVar(imageID, "i", imageIDFlagDefault, imageIDFlagUsage)
 }
 
 // Run starts the sensor app

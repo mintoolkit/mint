@@ -110,7 +110,7 @@ type SystemMetadata struct {
 }
 
 // Output Version for 'slim' (aka 'build')
-const OVSlimCommand = "cmd/ov/slim/1.1"
+const OVSlimCommand = "ov/command/slim/1.1"
 
 // SlimCommand is the 'build' command report data
 type SlimCommand struct {
@@ -135,7 +135,7 @@ type SlimCommand struct {
 }
 
 // Output Version for 'profile'
-const OVProfileCommand = "cmd/ov/profile/1.0"
+const OVProfileCommand = "ov/command/profile/1.0"
 
 // ProfileCommand is the 'profile' command report data
 type ProfileCommand struct {
@@ -155,7 +155,7 @@ type ProfileCommand struct {
 }
 
 // Output Version for 'xray'
-const OVXrayCommand = "cmd/ov/xray/1.2.3"
+const OVXrayCommand = "ov/command/xray/1.2.3"
 
 // XrayCommand is the 'xray' command report data
 type XrayCommand struct {
@@ -172,7 +172,7 @@ type XrayCommand struct {
 }
 
 // Output Version for 'lint'
-const OVLintCommand = "cmd/ov/lint/1.0"
+const OVLintCommand = "ov/command/lint/1.0"
 
 // LintCommand is the 'lint' command report data
 type LintCommand struct {
@@ -188,7 +188,7 @@ type LintCommand struct {
 }
 
 // Output Version for 'images'
-const OVImagesCommand = "cmd/ov/images/1.0"
+const OVImagesCommand = "ov/command/images/1.0"
 
 // ImagesCommand is the 'images' command report data
 type ImagesCommand struct {
@@ -196,7 +196,7 @@ type ImagesCommand struct {
 }
 
 // Output Version for 'containerize'
-const OVContainerizeCommand = "cmd/ov/containerize/1.0"
+const OVContainerizeCommand = "ov/command/containerize/1.0"
 
 // ContainerizeCommand is the 'containerize' command report data
 type ContainerizeCommand struct {
@@ -204,7 +204,7 @@ type ContainerizeCommand struct {
 }
 
 // Output Version for 'convert'
-const OVConvertCommand = "cmd/ov/convert/1.0"
+const OVConvertCommand = "ov/command/convert/1.0"
 
 // ConvertCommand is the 'convert' command report data
 type ConvertCommand struct {
@@ -212,7 +212,7 @@ type ConvertCommand struct {
 }
 
 // Output Version for 'merge'
-const OVMergeCommand = "cmd/ov/merge/1.0"
+const OVMergeCommand = "ov/command/merge/1.0"
 
 // MergeCommand is the 'merge' command report data
 type MergeCommand struct {
@@ -223,7 +223,7 @@ type MergeCommand struct {
 }
 
 // Output Version for 'edit'
-const OVEditCommand = "cmd/ov/edit/1.0"
+const OVEditCommand = "ov/command/edit/1.0"
 
 // EditCommand is the 'edit' command report data
 type EditCommand struct {
@@ -231,7 +231,7 @@ type EditCommand struct {
 }
 
 // Output Version for 'debug'
-const OVDebugCommand = "cmd/ov/debug/1.0"
+const OVDebugCommand = "ov/command/debug/1.0"
 
 // DebugCommand is the 'debug' command report data
 type DebugCommand struct {
@@ -239,7 +239,7 @@ type DebugCommand struct {
 }
 
 // Output Version for 'probe'
-const OVProbeCommand = "cmd/ov/probe/1.0"
+const OVProbeCommand = "ov/command/probe/1.0"
 
 // ProbeCommand is the 'probe' command report data
 type ProbeCommand struct {
@@ -247,7 +247,7 @@ type ProbeCommand struct {
 }
 
 // Output Version for 'server'
-const OVServerCommand = "cmd/ov/server/1.0"
+const OVServerCommand = "ov/command/server/1.0"
 
 // ServerCommand is the 'server' command report data
 type ServerCommand struct {
@@ -255,7 +255,7 @@ type ServerCommand struct {
 }
 
 // Output Version for 'run'
-const OVRunCommand = "cmd/ov/run/1.0"
+const OVRunCommand = "ov/command/run/1.0"
 
 // RunCommand is the 'run' command report data
 type RunCommand struct {
@@ -264,7 +264,7 @@ type RunCommand struct {
 }
 
 // Output Version for 'registry'
-const OVRegistryCommand = "cmd/ov/registry/1.0"
+const OVRegistryCommand = "ov/command/registry/1.0"
 
 // RegistryCommand is the 'registry' command report data
 type RegistryCommand struct {
@@ -273,7 +273,7 @@ type RegistryCommand struct {
 }
 
 // Output Version for 'vulnerability'
-const OVVulnerabilityCommand = "cmd/ov/vulnerability/1.0"
+const OVVulnerabilityCommand = "ov/command/vulnerability/1.0"
 
 // VulnerabilityCommand is the 'vulnerability' command report data
 type VulnerabilityCommand struct {

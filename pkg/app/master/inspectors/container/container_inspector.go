@@ -774,6 +774,9 @@ func (i *Inspector) RunContainer() error {
 	}
 
 	cmd := &command.StartMonitor{
+		TargetType:  command.TTContainer,
+		TargetID:    i.ContainerID,
+		ImageID:     i.ImageInspector.ImageInfo.ID,
 		RTASourcePT: i.RTASourcePT,
 		AppName:     i.FatContainerCmd[0],
 	}
