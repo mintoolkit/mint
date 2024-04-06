@@ -759,6 +759,20 @@ func deserialiseHealtheckInstruction(data string) (string, *docker.HealthConfig,
 			}
 		}
 
+		//new param
+		if strings.Contains(cleanInst, "--start-interval=") {
+			vparts := strings.SplitN(cleanInst, "--start-interval=", 2)
+			vparts = strings.SplitN(vparts[1], " ", 2)
+			val, err := time.ParseDuration(vparts[0])
+			log.Debugf("[%s] config.StartInterval %v / error = %v", vparts[0], val, err)
+			/*
+				config.StartInterval, err = time.ParseDuration(vparts[0])
+				if err != nil {
+					log.Errorf("[%s] config.StartPeriod err = %v", vparts[0], err)
+				}
+			*/
+		}
+
 		if strings.Contains(cleanInst, "--retries=") {
 			vparts := strings.SplitN(cleanInst, "--retries=", 2)
 			vparts = strings.SplitN(vparts[1], " ", 2)
@@ -817,17 +831,43 @@ func deserialiseHealtheckInstruction(data string) (string, *docker.HealthConfig,
 			log.Errorf("[%s] config.StartPeriod err = %v", paramParts[2], err)
 		}
 
+		//might have two params
+		var rawStartInterval string
+		var rawRetries string
+		if strings.Contains(paramParts[3], " ") {
+			pparts := strings.SplitN(paramParts[3], " ", 2)
+			for i, p := range pparts {
+				pparts[i] = strings.Trim(p, "\"'")
+			}
+			rawStartInterval = pparts[0]
+			rawRetries = pparts[1]
+		} else {
+			rawRetries = paramParts[3]
+		}
+
+		//new param
+		if rawStartInterval != "" {
+			var startInterval time.Duration
+			//config.StartInterval
+			startInterval, err = time.ParseDuration(rawStartInterval)
+			if err != nil {
+				log.Errorf("[%s] [np] config.StartInterval err = %v", rawStartInterval, err)
+			}
+
+			log.Debugf("[%s] config.StartInterval %v", rawStartInterval, startInterval)
+		}
+
 		var retries int64
-		if strings.Index(paramParts[3], `\x`) != -1 {
+		if strings.Index(rawRetries, `\x`) != -1 {
 			// retries are hex encoded
-			retries, err = strconv.ParseInt(strings.TrimPrefix(paramParts[3], `\x`), 16, 64)
-		} else if strings.Index(paramParts[3], `\U`) != -1 {
+			retries, err = strconv.ParseInt(strings.TrimPrefix(rawRetries, `\x`), 16, 64)
+		} else if strings.Index(rawRetries, `\U`) != -1 {
 			// retries are a unicode string
-			retries, err = strconv.ParseInt(strings.TrimPrefix(paramParts[3], `\U`), 16, 64)
-		} else if strings.Index(paramParts[3], `\`) == 0 {
+			retries, err = strconv.ParseInt(strings.TrimPrefix(rawRetries, `\U`), 16, 64)
+		} else if strings.Index(rawRetries, `\`) == 0 {
 			// retries is printed as a C-escape
-			if len(paramParts[3]) != 2 {
-				err = fmt.Errorf("expected retries (%s) to be an escape sequence", paramParts[3])
+			if len(rawRetries) != 2 {
+				err = fmt.Errorf("expected retries (%s) to be an escape sequence", rawRetries)
 			} else {
 				escapeCodes := map[byte]int64{
 					byte('a'): 7,
@@ -839,16 +879,16 @@ func deserialiseHealtheckInstruction(data string) (string, *docker.HealthConfig,
 					byte('r'): 13,
 				}
 				var ok bool
-				if retries, ok = escapeCodes[(paramParts[3])[1]]; !ok {
-					err = fmt.Errorf("got an invalid escape sequence: %s", paramParts[3])
+				if retries, ok = escapeCodes[(rawRetries)[1]]; !ok {
+					err = fmt.Errorf("got an invalid escape sequence: %s", rawRetries)
 				}
 			}
 		} else {
-			retries = int64((paramParts[3])[0])
+			retries = int64((rawRetries)[0])
 		}
 
 		if err != nil {
-			log.Errorf("[%s] config.Retries err = %v", paramParts[3], err)
+			log.Errorf("[%s] config.Retries err = %v", rawRetries, err)
 		} else {
 			config.Retries = int(retries)
 		}

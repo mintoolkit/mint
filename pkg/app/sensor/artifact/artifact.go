@@ -737,9 +737,13 @@ func (p *store) prepareArtifact(artifactFileName string) {
 
 	case srcLinkFileInfo.Mode().IsDir():
 		log.Debugf("prepareArtifact - is a directory (%d) - %v", len(p.dirMap)+1, artifactFileName)
-		props.FileType = report.DirArtifactType
-		p.dirMap[artifactFileName] = props
-		p.rawNames[artifactFileName] = props
+		if artifactFileName != "/" {
+			props.FileType = report.DirArtifactType
+			p.dirMap[artifactFileName] = props
+			p.rawNames[artifactFileName] = props
+		} else {
+			log.Debug("prepareArtifact - not adding the / directory")
+		}
 	default:
 		log.Debugf("prepareArtifact - other type (%d) [shouldn't see it] - %v", len(p.otherMap)+1, artifactFileName)
 		p.otherMap[artifactFileName] = props

@@ -640,6 +640,39 @@ func UpdateBuildOptionsWithSrcImageInfo(
 	options.ImageConfig.Config.OnBuild = imageInfo.Config.OnBuild
 	options.ImageConfig.Config.StopSignal = imageInfo.Config.StopSignal
 
+	options.ImageConfig.Config.ArgsEscaped = imageInfo.Config.ArgsEscaped
+	options.ImageConfig.Config.Domainname = imageInfo.Config.Domainname
+	options.ImageConfig.Config.Hostname = imageInfo.Config.Hostname
+	if imageInfo.Config.StopTimeout > 0 {
+		options.ImageConfig.Config.StopTimeout = &imageInfo.Config.StopTimeout
+	}
+	options.ImageConfig.Config.AttachStderr = imageInfo.Config.AttachStderr
+	options.ImageConfig.Config.AttachStdin = imageInfo.Config.AttachStdin
+	options.ImageConfig.Config.AttachStdout = imageInfo.Config.AttachStdout
+	options.ImageConfig.Config.OpenStdin = imageInfo.Config.OpenStdin
+	options.ImageConfig.Config.StdinOnce = imageInfo.Config.StdinOnce
+	options.ImageConfig.Config.Tty = imageInfo.Config.Tty
+	options.ImageConfig.Config.NetworkDisabled = imageInfo.Config.NetworkDisabled
+	options.ImageConfig.Config.MacAddress = imageInfo.Config.MacAddress
+
+	if len(imageInfo.Config.Shell) > 0 {
+		options.ImageConfig.Config.Shell = imageInfo.Config.Shell
+	}
+	if len(imageInfo.Config.OnBuild) > 0 {
+		options.ImageConfig.Config.OnBuild = imageInfo.Config.OnBuild
+	}
+
+	if imageInfo.Config.Healthcheck != nil {
+		hc := imageInfo.Config.Healthcheck
+		options.ImageConfig.Config.Healthcheck = &imagebuilder.HealthConfig{
+			Test:        hc.Test,
+			Interval:    hc.Interval,
+			Timeout:     hc.Timeout,
+			StartPeriod: hc.StartPeriod,
+			Retries:     hc.Retries,
+		}
+	}
+
 	for k, v := range imageInfo.Config.ExposedPorts {
 		options.ImageConfig.Config.ExposedPorts[string(k)] = v
 	}

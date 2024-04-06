@@ -83,11 +83,12 @@ type RunConfig struct {
 }
 
 type HealthConfig struct {
-	Test        []string      `json:",omitempty"`
-	Interval    time.Duration `json:",omitempty"`
-	Timeout     time.Duration `json:",omitempty"`
-	StartPeriod time.Duration `json:",omitempty"`
-	Retries     int           `json:",omitempty"`
+	Test          []string      `json:",omitempty"`
+	Interval      time.Duration `json:",omitempty"`
+	Timeout       time.Duration `json:",omitempty"`
+	StartPeriod   time.Duration `json:",omitempty"`
+	StartInterval time.Duration `json:",omitempty"`
+	Retries       int           `json:",omitempty"`
 }
 
 type SimpleBuildOptions struct {
