@@ -1,5 +1,19 @@
 # Releases
 
+## 1.41.1 (4/5/2024)
+
+### New Features
+
+- `--include-healthcheck` flag for the `slim` (aka `build`) command
+- Basic Redis network probing.
+
+### Improvements
+
+- `creport` data and format enhancements.
+- `debug` command doc updates.
+- `debug` command improvements for `podman`
+
+
 ## 1.41.0 (3/12/2024)
 
 ### New Features
