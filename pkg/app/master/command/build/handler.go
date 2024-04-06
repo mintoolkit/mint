@@ -123,6 +123,7 @@ func OnCommand(
 	includeExes map[string]*fsutil.AccessInfo,
 	doIncludeShell bool,
 	doIncludeWorkdir bool,
+	doIncludeHealthcheck bool,
 	includeLastImageLayers uint,
 	doIncludeAppImageAll bool,
 	appImageStartInstGroup int,
@@ -1091,6 +1092,7 @@ func OnCommand(
 		includeExes,
 		doIncludeShell,
 		doIncludeWorkdir,
+		doIncludeHealthcheck,
 		doIncludeCertAll,
 		doIncludeCertBundles,
 		doIncludeCertDirs,
@@ -1168,8 +1170,11 @@ func OnCommand(
 
 	monitorContainer(
 		xc,
+		logger,
 		targetRef,
 		continueAfter,
+		doIncludeHealthcheck,
+		imageInspector.ImageInfo.Config.Healthcheck,
 		execCmd,
 		execFileCmd,
 		httpProbeOpts,
@@ -1261,8 +1266,11 @@ func OnCommand(
 
 func monitorContainer(
 	xc *app.ExecutionContext,
+	logger *log.Entry,
 	targetRef string,
 	continueAfter *config.ContinueAfter,
+	doIncludeHealthcheck bool,
+	healthcheck *dockerapi.HealthConfig,
 	execCmd string,
 	execFileCmd string,
 	httpProbeOpts config.HTTPProbeOptions,
@@ -1474,6 +1482,62 @@ func monitorContainer(
 			//TBD
 		default:
 			errutil.Fail("unknown continue-after mode")
+		}
+	}
+
+	//TODO: add support for multiple "exec" probes and use it for healthchecks too
+	if doIncludeHealthcheck &&
+		healthcheck != nil &&
+		len(healthcheck.Test) > 1 &&
+		healthcheck.Test[0] != "NONE" {
+		logger.Debugf("monitorContainer: exec healthcheck command - '%+v'", healthcheck.Test)
+		var xcmd []string
+		var isCmdShell bool
+		switch healthcheck.Test[0] {
+		case "CMD", "cmd":
+			xcmd = healthcheck.Test[1:]
+		case "CMD-SHELL", "cmd-shell":
+			xcmd = []string{"sh", "-c", healthcheck.Test[1]}
+			isCmdShell = true
+		}
+
+		if len(xcmd) > 0 {
+			logger.Debugf("monitorContainer: (is.cmd.shell=%v) exec test - '%+v'", isCmdShell, xcmd)
+
+			go func() {
+				xc.Out.Info("healthcheck.exec.start", ovars{"cmd": xcmd})
+				var input *bytes.Buffer
+				input = bytes.NewBufferString("")
+				hexec, err := containerInspector.APIClient.CreateExec(dockerapi.CreateExecOptions{
+					Container:    containerInspector.ContainerID,
+					Cmd:          xcmd,
+					AttachStdin:  true,
+					AttachStdout: true,
+					AttachStderr: true,
+				})
+				xc.WarnOn(err)
+
+				buffer := &printbuffer.PrintBuffer{Prefix: fmt.Sprintf("%s[%s][exec]: output:", appName, Name)}
+				xc.WarnOn(containerInspector.APIClient.StartExec(hexec.ID, dockerapi.StartExecOptions{
+					InputStream:  input,
+					OutputStream: buffer,
+					ErrorStream:  buffer,
+				}))
+
+				exitCode := -1
+				inspect, err := containerInspector.APIClient.InspectExec(hexec.ID)
+				xc.WarnOn(err)
+				if inspect != nil {
+					errutil.WarnWhen(inspect.Running, "still running")
+					exitCode = inspect.ExitCode
+				}
+
+				xc.Out.Info("healthcheck.exec.end",
+					ovars{
+						"cmd":      xcmd,
+						"exitcode": exitCode,
+					})
+			}()
 		}
 	}
 

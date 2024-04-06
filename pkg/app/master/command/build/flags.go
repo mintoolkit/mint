@@ -40,6 +40,9 @@ const (
 	FlagIncludeWorkdir      = "include-workdir"
 	FlagIncludeWorkdirUsage = "Keep files in working directory"
 
+	FlagIncludeHealthcheck      = "include-healthcheck"
+	FlagIncludeHealthcheckUsage = "Keep the HEALTHCHECK related artifacts"
+
 	//TBD
 	FlagWorkdirExclude      = "workdir-exclude"
 	FlagWorkdirExcludeUsage = "Exclude filter for artifacts when working directory is included"
@@ -336,6 +339,12 @@ var Flags = map[string]cli.Flag{
 		Value:   true, //enabled by default
 		Usage:   FlagIncludeOSLibsNetUsage,
 		EnvVars: []string{"DSLIM_INCLUDE_OSLIBS_NET"},
+	},
+	FlagIncludeHealthcheck: &cli.BoolFlag{
+		Name:    FlagIncludeHealthcheck,
+		Value:   true, //enabled by default
+		Usage:   FlagIncludeHealthcheckUsage,
+		EnvVars: []string{"DSLIM_INCLUDE_HEALTHCHECK"},
 	},
 	////
 	FlagIncludeSSHClient: &cli.BoolFlag{

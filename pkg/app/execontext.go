@@ -50,6 +50,12 @@ func (ref *ExecutionContext) doCleanup() {
 	}
 }
 
+func (ref *ExecutionContext) WarnOn(err error) {
+	if err != nil {
+		log.WithError(err).Debug("error.warning")
+	}
+}
+
 func (ref *ExecutionContext) FailOn(err error) {
 	if err != nil {
 		ref.doCleanup()

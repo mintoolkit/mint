@@ -27,6 +27,9 @@ const (
 	defaultHTTPPortStr    = "80"
 	defaultHTTPSPortStr   = "443"
 	defaultFastCGIPortStr = "9000"
+
+	//other protocols (todo: refactor)
+	defaultRedisPortStr = "6379"
 )
 
 type ovars = app.OutVars
@@ -37,8 +40,10 @@ type CustomProbe struct {
 
 	opts config.HTTPProbeOptions
 
-	ports      []string
-	targetHost string
+	ports              []string
+	targetHost         string
+	ipcMode            string
+	availableHostPorts map[string]string
 
 	APISpecProbes []apiSpecInfo
 
@@ -61,7 +66,7 @@ func NewEndpointProbe(
 	opts config.HTTPProbeOptions,
 	printState bool,
 ) (*CustomProbe, error) {
-	probe := newCustomProbe(xc, targetEndpoint, opts, printState)
+	probe := newCustomProbe(xc, targetEndpoint, "", opts, printState)
 	if len(ports) == 0 {
 		ports = []uint{80}
 	}
@@ -84,9 +89,12 @@ func NewContainerProbe(
 	opts config.HTTPProbeOptions,
 	printState bool,
 ) (*CustomProbe, error) {
-	probe := newCustomProbe(xc, inspector.TargetHost, opts, printState)
+	probe := newCustomProbe(xc,
+		inspector.TargetHost,
+		inspector.SensorIPCMode,
+		opts,
+		printState)
 
-	availableHostPorts := map[string]string{}
 	for nsPortKey, nsPortData := range inspector.AvailablePorts {
 		log.Debugf("HTTP probe - target's network port key='%s' data='%#v'", nsPortKey, nsPortData)
 
@@ -100,11 +108,15 @@ func NewContainerProbe(
 			continue
 		}
 
-		availableHostPorts[nsPortData.HostPort] = nsPortKey.Port()
+		probe.availableHostPorts[nsPortData.HostPort] = nsPortKey.Port()
 	}
 
-	log.Debugf("HTTP probe - available host ports => %+v", availableHostPorts)
+	log.Debugf("HTTP probe - available host ports => %+v", probe.availableHostPorts)
 
+	tmpAvailableHostPorts := map[string]string{}
+	for k, v := range probe.availableHostPorts {
+		tmpAvailableHostPorts[k] = v
+	}
 	if len(probe.opts.Ports) > 0 {
 		for _, pnum := range probe.opts.Ports {
 			pspec := dockerapi.Port(fmt.Sprintf("%v/tcp", pnum))
@@ -133,7 +145,7 @@ func NewContainerProbe(
 				if _, ok := inspector.AvailablePorts[pspec]; ok {
 					hostPort := inspector.AvailablePorts[pspec].HostPort
 					if inspector.SensorIPCMode == container.SensorIPCModeDirect {
-						if containerPort := availableHostPorts[hostPort]; containerPort != "" {
+						if containerPort := tmpAvailableHostPorts[hostPort]; containerPort != "" {
 							probe.ports = append(probe.ports, containerPort)
 						} else {
 							log.Debugf("HTTP probe - could not find container port from host port => %v", hostPort)
@@ -142,9 +154,10 @@ func NewContainerProbe(
 						probe.ports = append(probe.ports, hostPort)
 					}
 
-					if _, ok := availableHostPorts[hostPort]; ok {
+					if _, ok := tmpAvailableHostPorts[hostPort]; ok {
 						log.Debugf("HTTP probe - delete exposed port from the available host ports => %v (%v)", hostPort, portInfo)
-						delete(availableHostPorts, hostPort)
+						//remove the port, so we can asign the rest of them in the last loop
+						delete(tmpAvailableHostPorts, hostPort)
 					}
 				} else {
 					log.Debugf("HTTP probe - Unknown exposed port - %v", portInfo)
@@ -152,7 +165,7 @@ func NewContainerProbe(
 			}
 		}
 
-		for hostPort, containerPort := range availableHostPorts {
+		for hostPort, containerPort := range tmpAvailableHostPorts {
 			if inspector.SensorIPCMode == container.SensorIPCModeDirect {
 				probe.ports = append(probe.ports, containerPort)
 			} else {
@@ -176,15 +189,14 @@ func NewPodProbe(
 	opts config.HTTPProbeOptions,
 	printState bool,
 ) (*CustomProbe, error) {
-	probe := newCustomProbe(xc, inspector.TargetHost(), opts, printState)
+	probe := newCustomProbe(xc, inspector.TargetHost(), "", opts, printState)
 
-	availableHostPorts := map[string]string{}
 	for nsPortKey, nsPortData := range inspector.AvailablePorts() {
 		log.Debugf("HTTP probe - target's network port key='%s' data='%#v'", nsPortKey, nsPortData)
-		availableHostPorts[nsPortData.HostPort] = nsPortKey.Port()
+		probe.availableHostPorts[nsPortData.HostPort] = nsPortKey.Port()
 	}
 
-	log.Debugf("HTTP probe - available host ports => %+v", availableHostPorts)
+	log.Debugf("HTTP probe - available host ports => %+v", probe.availableHostPorts)
 
 	if len(probe.opts.Ports) > 0 {
 		for _, pnum := range probe.opts.Ports {
@@ -198,7 +210,7 @@ func NewPodProbe(
 
 		log.Debugf("HTTP probe - filtered ports => %+v", probe.ports)
 	} else {
-		for hostPort := range availableHostPorts {
+		for hostPort := range probe.availableHostPorts {
 			probe.ports = append(probe.ports, hostPort)
 		}
 
@@ -215,6 +227,7 @@ func NewPodProbe(
 func newCustomProbe(
 	xc *app.ExecutionContext,
 	targetHost string,
+	ipcMode string,
 	opts config.HTTPProbeOptions,
 	printState bool,
 ) *CustomProbe {
@@ -241,11 +254,13 @@ func newCustomProbe(
 	}
 
 	probe := &CustomProbe{
-		xc:         xc,
-		opts:       opts,
-		printState: printState,
-		targetHost: targetHost,
-		doneChan:   make(chan struct{}),
+		xc:                 xc,
+		opts:               opts,
+		printState:         printState,
+		targetHost:         targetHost,
+		ipcMode:            ipcMode,
+		availableHostPorts: map[string]string{},
+		doneChan:           make(chan struct{}),
 	}
 
 	if opts.CrawlConcurrencyMax > 0 {
@@ -335,6 +350,51 @@ func (p *CustomProbe) Start() {
 		}
 
 		for _, port := range p.ports {
+			dstPort, found := p.availableHostPorts[port]
+			if (found && dstPort == defaultRedisPortStr) || port == defaultRedisPortStr {
+				//NOTE: a hacky way to support the Redis protocol
+				//TODO: refactor and have a flag to disable this port-based behavior
+				maxRetryCount := probeRetryCount
+				if p.opts.RetryCount > 0 {
+					maxRetryCount = p.opts.RetryCount
+				}
+
+				for i := 0; i < maxRetryCount; i++ {
+					output, err := redisPing(p.targetHost, port)
+					p.CallCount++
+
+					statusCode := "error"
+					callErrorStr := "none"
+					if err == nil {
+						statusCode = "ok"
+					} else {
+						callErrorStr = err.Error()
+					}
+
+					if p.printState {
+						p.xc.Out.Info("redis.probe.call",
+							ovars{
+								"status":  statusCode,
+								"output":  output,
+								"port":    port,
+								"attempt": i + 1,
+								"error":   callErrorStr,
+								"time":    time.Now().UTC().Format(time.RFC3339),
+							})
+					}
+
+					if err == nil {
+						p.OkCount++
+						break
+					} else {
+						p.ErrCount++
+					}
+
+					time.Sleep(1 * time.Second)
+				}
+				continue
+			}
+
 			//If it's ok stop after the first successful probe pass
 			if p.OkCount > 0 && !p.opts.Full {
 				break

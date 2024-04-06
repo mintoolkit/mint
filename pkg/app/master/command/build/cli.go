@@ -135,6 +135,7 @@ var CLI = &cli.Command{
 		cflag(FlagAppImageStartInst),
 		cflag(FlagAppImageDockerfile),
 		cflag(FlagIncludePathsCreportFile),
+		cflag(FlagIncludeHealthcheck),
 		cflag(FlagIncludeOSLibsNet),
 		cflag(FlagIncludeSSHClient),
 		cflag(FlagIncludeZoneInfo),
@@ -700,6 +701,8 @@ var CLI = &cli.Command{
 			xc.Exit(-1)
 		}
 
+		doIncludeHealthcheck := ctx.Bool(FlagIncludeHealthcheck)
+
 		doIncludeSSHClient := ctx.Bool(FlagIncludeSSHClient)
 		doIncludeOSLibsNet := ctx.Bool(FlagIncludeOSLibsNet)
 
@@ -815,6 +818,7 @@ var CLI = &cli.Command{
 			includeExes,
 			doIncludeShell,
 			doIncludeWorkdir,
+			doIncludeHealthcheck,
 			includeLastImageLayers,
 			doIncludeAppImageAll,
 			appImageStartInstGroup,

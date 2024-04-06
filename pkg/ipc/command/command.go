@@ -66,6 +66,7 @@ type StartMonitor struct {
 	IncludeDirBinsList           map[string]*fsutil.AccessInfo `json:"include_dir_bins_list,omitempty"`
 	IncludeExes                  []string                      `json:"include_exes,omitempty"`
 	IncludeShell                 bool                          `json:"include_shell,omitempty"`
+	IncludeHealthcheck           []string                      `json:"include_healthcheck,omitempty"`
 	IncludeWorkdir               string                        `json:"include_workdir,omitempty"`
 	IncludeCertAll               bool                          `json:"include_cert_all,omitempty"`
 	IncludeCertBundles           bool                          `json:"include_cert_bundles,omitempty"`

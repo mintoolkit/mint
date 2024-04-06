@@ -46,7 +46,16 @@ func WarnOn(err error) {
 		log.WithError(err).WithFields(log.Fields{
 			"version": version.Current(),
 			"stack":   string(stackData),
-		}).Warn("slim: warning")
+		}).Warn("warning")
+	}
+}
+
+// WarnWhen logs the given message if the condition is true
+func WarnWhen(cond bool, msg string) {
+	if cond {
+		log.WithFields(log.Fields{
+			"data": msg,
+		}).Warn("warning")
 	}
 }
 

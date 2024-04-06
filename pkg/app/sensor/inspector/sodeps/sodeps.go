@@ -24,6 +24,16 @@ const (
 	resolverExeName = "ldd"
 )
 
+func LookupExecPath(name string) string {
+	exePath, err := exec.LookPath(name)
+	if err != nil {
+		log.Debugf("sodeps.LookupExecPath(%s): error - %v", name, err)
+		return ""
+	}
+
+	return exePath
+}
+
 func AllExeDependencies(exeFileName string, find bool) ([]string, error) {
 	if !strings.HasPrefix(exeFileName, "/") {
 		if !find {

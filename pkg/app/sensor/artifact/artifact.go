@@ -19,6 +19,7 @@ import (
 
 	"github.com/armon/go-radix"
 	"github.com/bmatcuk/doublestar/v3"
+	"github.com/google/shlex"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/app"
@@ -31,6 +32,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/sysidentity"
 	"github.com/mintoolkit/mint/pkg/system"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/util/jsonutil"
 )
 
 const (
@@ -455,6 +457,45 @@ func (a *processor) Process(
 		}
 	}
 
+	for pid, pxi := range fanReport.Processes {
+		if pxi == nil {
+			logger.Debugf("pid=%v - no process execution info", pid)
+			continue
+		}
+
+		if pxi.Path != "" && fsutil.Exists(pxi.Path) {
+			fileList = append(fileList, pxi.Path)
+		}
+
+		var cwd string
+		if pxi.Cwd != "" && fsutil.DirExists(pxi.Cwd) {
+			cwd = pxi.Cwd
+			fileList = append(fileList, pxi.Cwd)
+		}
+
+		if pxi.Cmd != "" {
+			parts, err := shlex.Split(pxi.Cmd)
+			if err != nil {
+				logger.Debugf("pxi.Cmd='%s' - parse error: %v", pxi.Cmd, err)
+			} else {
+				parts = strings.Split(pxi.Cmd, " ")
+			}
+
+			for _, part := range parts {
+				var tp string
+				if strings.HasPrefix(part, "/") {
+					tp = part
+				} else if cwd != "" {
+					tp = fmt.Sprintf("%s/%s", cwd, part)
+				}
+
+				if fsutil.Exists(tp) {
+					fileList = append(fileList, tp)
+				}
+			}
+		}
+	}
+
 	logger.Debugf("len(fanReport.ProcessFiles)=%v / fileCount=%v", len(fanReport.ProcessFiles), fileCount)
 	allFilesMap := findSymlinks(fileList, mountPoint, cmd.Excludes)
 	return saveResults(a.origPathMap, a.artifactsDirName, cmd, allFilesMap, fanReport, ptReport, peReport, a.seReport)
@@ -544,6 +585,8 @@ type store struct {
 	linkMap       map[string]*report.ArtifactProps
 	fileMap       map[string]*report.ArtifactProps
 	saFileMap     map[string]*report.ArtifactProps
+	dirMap        map[string]*report.ArtifactProps
+	otherMap      map[string]*report.ArtifactProps
 	cmd           *command.StartMonitor
 	appStacks     map[string]*appStackInfo
 }
@@ -570,6 +613,8 @@ func newStore(
 		linkMap:       map[string]*report.ArtifactProps{},
 		fileMap:       map[string]*report.ArtifactProps{},
 		saFileMap:     map[string]*report.ArtifactProps{},
+		dirMap:        map[string]*report.ArtifactProps{},
+		otherMap:      map[string]*report.ArtifactProps{},
 		cmd:           cmd,
 		appStacks:     map[string]*appStackInfo{},
 	}
@@ -691,11 +736,13 @@ func (p *store) prepareArtifact(artifactFileName string) {
 		p.rawNames[artifactFileName] = props
 
 	case srcLinkFileInfo.Mode().IsDir():
-		log.Debugf("prepareArtifact - is a directory (shouldn't see it) - %v", artifactFileName)
+		log.Debugf("prepareArtifact - is a directory (%d) - %v", len(p.dirMap)+1, artifactFileName)
 		props.FileType = report.DirArtifactType
+		p.dirMap[artifactFileName] = props
 		p.rawNames[artifactFileName] = props
 	default:
-		log.Debugf("prepareArtifact - other type (shouldn't see it) - %v", artifactFileName)
+		log.Debugf("prepareArtifact - other type (%d) [shouldn't see it] - %v", len(p.otherMap)+1, artifactFileName)
+		p.otherMap[artifactFileName] = props
 		p.rawNames[artifactFileName] = props
 	}
 }
@@ -726,10 +773,6 @@ func (p *store) prepareArtifacts() {
 				} else {
 					log.Debugf("[warn] prepareArtifacts - fsa artifact - missing in rawNames => %v", artifactFileName)
 				}
-
-				//TMP:
-				//fsa might include directories, which we'll need to copy (dir only)
-				//but p.prepareArtifact() doesn't do anything with dirs for now
 			}
 		}
 	}
@@ -1021,6 +1064,89 @@ func (p *store) saveWorkdir(excludePatterns []string) {
 	//copy files separately and
 	//apply 'workdir-exclude' patterns in addition to the global excludes (excludePatterns)
 	//resolve symlinks
+}
+
+func (p *store) saveHealthcheck(excludePatterns []string,
+	exes map[string]struct{},
+	bins map[string]struct{},
+	dirs map[string]struct{},
+	includes map[string]bool) {
+	//note: needs to be called before the copy include exe, bin and path sections
+	if len(p.cmd.IncludeHealthcheck) == 0 {
+		return
+	}
+
+	//execSet := map[string]struct{}{}
+	//binSet := map[string]struct{}{}
+	artifactSet := map[string]struct{}{}
+	for _, part := range p.cmd.IncludeHealthcheck {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		//in case it's a file path with spaces
+		artifactSet[part] = struct{}{}
+		pparts, err := shlex.Split(part)
+		if err != nil {
+			log.Debugf("saveHealthcheck: part='%s' - parse error: %v", part, err)
+		} else {
+			pparts = strings.Split(part, " ")
+		}
+
+		for _, pp := range pparts {
+			artifactSet[pp] = struct{}{}
+		}
+	}
+
+	log.Tracef("saveHealthcheck: artifactSet(%d)", len(artifactSet))
+	for k := range artifactSet {
+		log.Tracef("saveHealthcheck: artifact - '%s'", k)
+		var tp string
+		if strings.HasPrefix(k, "/") {
+			if fsutil.Exists(k) {
+				if fsutil.IsDir(k) {
+					dirs[k] = struct{}{}
+					log.Debugf("saveHealthcheck: artifact='%s' - dirs", k)
+				} else {
+					if binProps, _ := binfile.Detected(k); binProps != nil && binProps.IsBin {
+						bins[k] = struct{}{}
+						log.Debugf("saveHealthcheck: artifact='%s' - bins", k)
+					} else {
+						includes[k] = false
+						log.Debugf("saveHealthcheck: artifact='%s' - includes", k)
+					}
+				}
+			}
+		} else {
+			execPath := sodeps.LookupExecPath(k)
+			if execPath != "" {
+				exes[execPath] = struct{}{}
+				log.Debugf("saveHealthcheck: artifact='%s' - exes[%s]", k, execPath)
+			} else {
+				cwd, err := os.Getwd()
+				if err == nil {
+					tp = fmt.Sprintf("%s/%s", cwd, k)
+					if fsutil.Exists(tp) {
+						if fsutil.IsDir(tp) {
+							dirs[tp] = struct{}{}
+							log.Debugf("saveHealthcheck: artifact='%s' - dirs[%s]", k, tp)
+						} else {
+							if binProps, _ := binfile.Detected(tp); binProps != nil && binProps.IsBin {
+								bins[tp] = struct{}{}
+								log.Debugf("saveHealthcheck: artifact='%s' - bins[%s]", k, tp)
+							} else {
+								includes[tp] = false
+								log.Debugf("saveHealthcheck: artifact='%s' - includes[%s]", k, tp)
+							}
+						}
+					}
+				} else {
+					log.Debug("saveHealthcheck: artifact='%s' - os.Getwd error - %v", k, err)
+				}
+			}
+		}
+	}
 }
 
 /////////////////////////////////////////////////////////
@@ -1841,6 +1967,19 @@ func (p *store) saveArtifacts() {
 	log.Debugf("saveArtifacts - copy files (%v) and copy additional files checked at runtime...", len(p.fileMap))
 	ngxEnsured := false
 
+	exeMap := map[string]struct{}{}
+	for _, exePath := range p.cmd.IncludeExes {
+		exeMap[exePath] = struct{}{}
+	}
+
+	binPathMap := map[string]struct{}{}
+	for _, binPath := range p.cmd.IncludeBins {
+		binPathMap[binPath] = struct{}{}
+	}
+
+	//NOTE: need to call before any copy file or includes
+	p.saveHealthcheck(excludePatterns, exeMap, binPathMap, extraDirs, includePaths)
+
 copyFiles:
 	for srcFileName, artifactInfo := range p.fileMap {
 		//need to make sure we don't filter out something we need
@@ -2243,7 +2382,7 @@ copyIncludes:
 		}
 	}
 
-	for _, exePath := range p.cmd.IncludeExes {
+	for exePath := range exeMap {
 		exeArtifacts, err := sodeps.AllExeDependencies(exePath, true)
 		if err != nil {
 			log.Debugf("saveArtifacts - %v - error getting exe artifacts => %v", exePath, err)
@@ -2259,11 +2398,6 @@ copyIncludes:
 				log.Debugf("CopyFile(%v,%v) error: %v", apath, dstPath, err)
 			}
 		}
-	}
-
-	binPathMap := map[string]struct{}{}
-	for _, binPath := range p.cmd.IncludeBins {
-		binPathMap[binPath] = struct{}{}
 	}
 
 addExtraBinIncludes:
@@ -2490,7 +2624,39 @@ copyBinIncludes:
 			log.Debug("saveArtifacts(): preserved root path doesnt exist")
 		}
 	}
+
+	p.saveDirs()
+	p.dumpUnprocessed()
 }
+
+func (p *store) saveDirs() {
+	log.Tracef("sensor.store.saveDirs - %v", len(p.dirMap))
+	for srcDirName := range p.dirMap {
+		if !fsutil.DirExists(srcDirName) {
+			log.Debugf("sensor.store.saveDirs: no target directory '%s' (skipping...)", srcDirName)
+			continue
+		}
+
+		log.Tracef("sensor.store.saveDirs: copy dir only %s", srcDirName)
+		dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, srcDirName)
+		if fsutil.DirExists(dstPath) {
+			log.Debugf("sensor.store.saveDirs: target directory already copied '%s' (skipping...)", srcDirName)
+			continue
+		}
+
+		if err := fsutil.CopyDirOnly(p.cmd.KeepPerms, srcDirName, dstPath); err != nil {
+			log.Debugf("sensor.store.saveDirs.CopyDirOnly(%v,%v) error: %v", srcDirName, dstPath, err)
+		}
+	}
+}
+
+func (p *store) dumpUnprocessed() {
+	if len(p.otherMap) > 0 {
+		log.Tracef("sensor.store.dumpUnprocessed: %s", jsonutil.ToString(p.otherMap))
+	}
+}
+
+//////////////////////////////////////////////////////////////
 
 func (p *store) detectAppStack(fileName string) {
 	isPython := detectPythonCodeFile(fileName)

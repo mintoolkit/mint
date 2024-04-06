@@ -120,6 +120,7 @@ type Inspector struct {
 	IncludeExes           map[string]*fsutil.AccessInfo
 	DoIncludeShell        bool
 	DoIncludeWorkdir      bool
+	DoIncludeHealthcheck  bool
 	DoIncludeCertAll      bool
 	DoIncludeCertBundles  bool
 	DoIncludeCertDirs     bool
@@ -201,6 +202,7 @@ func NewInspector(
 	includeExes map[string]*fsutil.AccessInfo,
 	doIncludeShell bool,
 	doIncludeWorkdir bool,
+	doIncludeHealthcheck bool,
 	doIncludeCertAll bool,
 	doIncludeCertBundles bool,
 	doIncludeCertDirs bool,
@@ -259,6 +261,7 @@ func NewInspector(
 		IncludeExes:           includeExes,
 		DoIncludeShell:        doIncludeShell,
 		DoIncludeWorkdir:      doIncludeWorkdir,
+		DoIncludeHealthcheck:  doIncludeHealthcheck,
 		DoIncludeCertAll:      doIncludeCertAll,
 		DoIncludeCertBundles:  doIncludeCertBundles,
 		DoIncludeCertDirs:     doIncludeCertDirs,
@@ -823,6 +826,19 @@ func (i *Inspector) RunContainer() error {
 		cmd.IncludeWorkdir = i.ImageInspector.ImageInfo.Config.WorkingDir
 	}
 
+	if i.DoIncludeHealthcheck &&
+		i.ImageInspector.ImageInfo.Config.Healthcheck != nil &&
+		len(i.ImageInspector.ImageInfo.Config.Healthcheck.Test) > 1 &&
+		i.ImageInspector.ImageInfo.Config.Healthcheck.Test[0] != "NONE" {
+		hc := i.ImageInspector.ImageInfo.Config.Healthcheck
+		switch hc.Test[0] {
+		case "CMD", "cmd":
+			cmd.IncludeHealthcheck = hc.Test[1:]
+		case "CMD-SHELL", "cmd-shell":
+			cmd.IncludeHealthcheck = []string{"sh", "-c", hc.Test[1]}
+		}
+	}
+
 	cmd.IncludeCertAll = i.DoIncludeCertAll
 	cmd.IncludeCertBundles = i.DoIncludeCertBundles
 	cmd.IncludeCertDirs = i.DoIncludeCertDirs
@@ -1110,6 +1126,8 @@ func (i *Inspector) setAvailablePorts(hostProbePorts map[dockerapi.Port][]docker
 			i.ContainerPortsInfo = fmt.Sprintf("%s %s", i.ContainerPortsInfo, hostMsg)
 		}
 	}
+
+	i.logger.Tracef("container.inspector.setAvailablePorts: i.AvailablePorts => %s", jsonutil.ToString(i.AvailablePorts))
 }
 
 func (i *Inspector) exitIPCPortConflict(port []dockerapi.PortBinding, typ string, code int) {
