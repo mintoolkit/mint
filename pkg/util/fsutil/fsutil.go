@@ -1,3 +1,6 @@
+//go:build !windows
+// +build !windows
+
 package fsutil
 
 import (
@@ -402,8 +405,7 @@ func CopySymlinkFile(clone bool, src, dst string, makeDir bool) error {
 			return err
 		}
 
-		if sysStat, ok := srcInfo.Sys().(*syscall.Stat_t); ok {
-			ssi := SysStatInfo(sysStat)
+		if ssi := SysStatInfo(srcInfo); ssi != nil {
 			if ssi.Ok {
 				if err := UpdateSymlinkTimes(dst, ssi.Atime, ssi.Mtime); err != nil {
 					log.Warnf("CopySymlinkFile(%v,%v) - UpdateSymlinkTimes error", src, dst)
@@ -470,8 +472,8 @@ func cloneDirPath(src, dst string) {
 			perms: srcInfo.Mode(),
 		}
 
-		if sysStat, ok := srcInfo.Sys().(*syscall.Stat_t); ok {
-			di.sys = SysStatInfo(sysStat)
+		if sysStat := SysStatInfo(srcInfo); sysStat != nil {
+			di.sys = *sysStat
 		}
 
 		dirs = append([]dirInfo{di}, dirs...)
@@ -551,8 +553,7 @@ func CopyRegularFile(clone bool, src, dst string, makeDir bool) error {
 					//try copying the timestamps too (even without cloning)
 					srcDirInfo, err := os.Stat(srcDirPath)
 					if err == nil {
-						if sysStat, ok := srcDirInfo.Sys().(*syscall.Stat_t); ok {
-							ssi := SysStatInfo(sysStat)
+						if ssi := SysStatInfo(srcDirInfo); ssi != nil {
 							if ssi.Ok {
 								if err := UpdateFileTimes(dstDirPath, ssi.Atime, ssi.Mtime); err != nil {
 									log.Warnf("CopyRegularFile() - UpdateFileTimes(%v) error - %v", dstDirPath, err)
@@ -602,8 +603,7 @@ func CopyRegularFile(clone bool, src, dst string, makeDir bool) error {
 			return err
 		}
 
-		if sysStat, ok := srcFileInfo.Sys().(*syscall.Stat_t); ok {
-			ssi := SysStatInfo(sysStat)
+		if ssi := SysStatInfo(srcFileInfo); ssi != nil {
 			if ssi.Ok {
 				if err := UpdateFileTimes(dst, ssi.Atime, ssi.Mtime); err != nil {
 					log.Warnf("CopyRegularFile(%v,%v) - UpdateFileTimes error", src, dst)
@@ -621,8 +621,7 @@ func CopyRegularFile(clone bool, src, dst string, makeDir bool) error {
 			log.Warnf("CopyRegularFile(%v,%v) - unable to set mode", src, dst)
 		}
 
-		if sysStat, ok := srcFileInfo.Sys().(*syscall.Stat_t); ok {
-			ssi := SysStatInfo(sysStat)
+		if ssi := SysStatInfo(srcFileInfo); ssi != nil {
 			if ssi.Ok {
 				if err := UpdateFileTimes(dst, ssi.Atime, ssi.Mtime); err != nil {
 					log.Warnf("CopyRegularFile(%v,%v) - UpdateFileTimes error", src, dst)
@@ -680,10 +679,7 @@ func AppendToFile(target string, data []byte, preserveTimes bool) error {
 		return err
 	}
 
-	var ssi SysStat
-	if rawSysStat, ok := tfi.Sys().(*syscall.Stat_t); ok {
-		ssi = SysStatInfo(rawSysStat)
-	}
+	ssi := SysStatInfo(tfi)
 
 	tf, err := os.OpenFile(target, os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
@@ -697,7 +693,7 @@ func AppendToFile(target string, data []byte, preserveTimes bool) error {
 		return err
 	}
 
-	if preserveTimes && ssi.Ok {
+	if preserveTimes && ssi != nil && ssi.Ok {
 		if err := UpdateFileTimes(target, ssi.Atime, ssi.Mtime); err != nil {
 			log.Warnf("AppendToFile(%v) - UpdateFileTimes error", target)
 		}
@@ -724,10 +720,7 @@ func ReplaceFileData(target string, replace []ReplaceInfo, preserveTimes bool) e
 		return err
 	}
 
-	var ssi SysStat
-	if rawSysStat, ok := tfi.Sys().(*syscall.Stat_t); ok {
-		ssi = SysStatInfo(rawSysStat)
-	}
+	ssi := SysStatInfo(tfi)
 
 	raw, err := os.ReadFile(target)
 	if err != nil {
@@ -756,7 +749,7 @@ func ReplaceFileData(target string, replace []ReplaceInfo, preserveTimes bool) e
 			return err
 		}
 
-		if preserveTimes && ssi.Ok {
+		if preserveTimes && ssi != nil && ssi.Ok {
 			if err := UpdateFileTimes(target, ssi.Atime, ssi.Mtime); err != nil {
 				log.Warnf("ReplaceFileData(%v) - UpdateFileTimes error", target)
 			}
@@ -779,10 +772,7 @@ func UpdateFileData(target string, updater DataUpdaterFn, preserveTimes bool) er
 		return err
 	}
 
-	var ssi SysStat
-	if rawSysStat, ok := tfi.Sys().(*syscall.Stat_t); ok {
-		ssi = SysStatInfo(rawSysStat)
-	}
+	ssi := SysStatInfo(tfi)
 
 	raw, err := os.ReadFile(target)
 	if err != nil {
@@ -799,7 +789,7 @@ func UpdateFileData(target string, updater DataUpdaterFn, preserveTimes bool) er
 		return err
 	}
 
-	if preserveTimes && ssi.Ok {
+	if preserveTimes && ssi != nil && ssi.Ok {
 		if err := UpdateFileTimes(target, ssi.Atime, ssi.Mtime); err != nil {
 			log.Warnf("ReplaceFileData(%v) - UpdateFileTimes error", target)
 		}
@@ -894,8 +884,7 @@ func copyFileObjectHandler(
 
 						srcDirInfo, err := os.Stat(path)
 						if err == nil {
-							if sysStat, ok := srcDirInfo.Sys().(*syscall.Stat_t); ok {
-								ssi := SysStatInfo(sysStat)
+							if ssi := SysStatInfo(srcDirInfo); ssi != nil {
 								if ssi.Ok {
 									if err := UpdateFileTimes(targetPath, ssi.Atime, ssi.Mtime); err != nil {
 										log.Warnf("copyFileObjectHandler() - UpdateFileTimes(%v) error - %v", targetPath, err)
@@ -1028,8 +1017,7 @@ func CopyDirOnly(clone bool, src, dst string) error {
 			}
 
 			//try copying the timestamps too (even without cloning)
-			if sysStat, ok := srcInfo.Sys().(*syscall.Stat_t); ok {
-				ssi := SysStatInfo(sysStat)
+			if ssi := SysStatInfo(srcInfo); ssi != nil {
 				if ssi.Ok {
 					if err := UpdateFileTimes(dst, ssi.Atime, ssi.Mtime); err != nil {
 						log.Warnf("CopyDirOnly() - UpdateFileTimes(%v) error - %v", dst, err)
