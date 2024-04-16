@@ -250,7 +250,7 @@ func HandleContainerdRuntime(
 		}
 
 		commandParams.Cmd = []string{shellConfig}
-	} else {
+	} else if len(commandParams.Entrypoint) == 0 && len(commandParams.Cmd) == 0 {
 		commandParams.Entrypoint = ShellCommandPrefix(commandParams.DebugContainerImage)
 		if len(commandParams.Cmd) == 0 {
 			commandParams.Cmd = []string{defaultShellName}
