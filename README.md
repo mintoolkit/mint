@@ -211,9 +211,9 @@ mint update
 
 1. Download the zip package for your platform.
 
-   - [Latest Mac binaries](https://github.com/mintoolkit/mint/releases/download/1.41.1/dist_mac.zip) (`curl -L -o ds.zip https://github.com/minttoolkit/mint/releases/download/1.41.1/dist_mac.zip`)
+   - [Latest Mac binaries](https://github.com/mintoolkit/mint/releases/download/1.41.1/dist_mac.zip) (`curl -L -o ds.zip https://github.com/mintoolkit/mint/releases/download/1.41.1/dist_mac.zip`)
 
-   - [Latest Mac M1 binaries](https://github.com/mintoolkit/mint/releases/download/1.41.1/dist_mac_m1.zip) (`curl -L -o ds.zip https://github.com/minttoolkit/mint/releases/download/1.41.1/dist_mac_m1.zip)`)
+   - [Latest Mac M1 binaries](https://github.com/mintoolkit/mint/releases/download/1.41.1/dist_mac_m1.zip) (`curl -L -o ds.zip https://github.com/mintoolkit/mint/releases/download/1.41.1/dist_mac_m1.zip)`)
 
    - [Latest Linux binaries](https://github.com/mintoolkit/mint/releases/download/1.41.1/dist_linux.tar.gz) (`curl -L -o ds.tar.gz https://github.com/mintoolkit/mint/releases/download/1.41.1/dist_linux.tar.gz`)
 
