@@ -1,0 +1,73 @@
+Vagrant.configure("2") do |config|
+# config.vm.box = "bento/fedora-39"
+  config.vm.box = "fedora/39-cloud-base"
+  config.vm.hostname = "fedora-docker"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "2048"
+    vb.cpus = "2"
+  end
+
+  config.vm.provision "shell", inline: <<-SHELL
+    # Update the system
+    dnf update -y
+
+    # Install necessary packages
+    dnf install -y dnf-plugins-core
+
+    # Add Docker repository
+    dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+
+    # Install Docker Community Edition 26.1.1
+    dnf install -y docker-ce-26.1.1 docker-ce-cli-26.1.1 containerd.io
+
+    # Start and enable Docker service
+    systemctl start docker
+    systemctl enable docker
+
+    # Add vagrant user to docker group
+    usermod -aG docker vagrant
+
+    # Install the current version of DockerSlim
+    curl -L -o ds.tar.gz https://github.com/mintoolkit/mint/releases/download/1.41.1/dist_linux.tar.gz
+    tar -xzf ds.tar.gz
+    mv dist_linux/mint /usr/local/bin/
+    mv dist_linux/mint-sensor /usr/local/bin/
+    # Copying the 'slim' symlink to use 'slim build' (optional, nice for backward compatibility)
+    mv dist_linux/slim /usr/local/bin/
+    # NOTE: 
+    # You can also copy the 'docker-slim' symlink
+    # if you want to use 'docker-slim build' in your commands
+    rm -rf dist_linux ds.tar.gz
+
+    # Custom nginx container test image
+    cat > /home/vagrant/Dockerfile <<EOF
+FROM nginx
+RUN echo '<html><head><title>TEST</title></head><body><h1>TEST</h1></body></html>' > /usr/share/nginx/html/index.html
+EOF
+
+    # Slim command that minifies with a Dockerfile
+    cat > /home/vagrant/slim.sh <<EOF
+#!/bin/bash
+
+mint slim --tag myimage --dockerfile Dockerfile --dockerfile-context .
+
+# alternatively you can also run (same results; using the 'slim' symlink):
+# slim build --tag myimage --dockerfile Dockerfile --dockerfile-context .
+EOF
+    chmod a+x /home/vagrant/slim.sh
+    # Helper scripts to test
+    cat > /home/vagrant/run.sh <<EOF
+#!/bin/bash
+
+docker run -d -p 8080:80 myimage
+EOF
+    chmod a+x /home/vagrant/run.sh
+    cat > /home/vagrant/test.sh <<EOF
+#!/bin/bash
+
+curl http://localhost:8080
+EOF
+    chmod a+x /home/vagrant/test.sh
+  SHELL
+end
