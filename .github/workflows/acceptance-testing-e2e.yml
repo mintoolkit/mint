@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out slimtoolkit/slim repo
-        uses: actions/checkout@v4.1.2
+        uses: actions/checkout@v4.1.4
 
       - name: Set up Go development environment
         uses: actions/setup-go@v5.0.0
@@ -23,28 +23,28 @@ jobs:
         run: make build
 
       - name: Upload Slim app binaries (Linux, amd64)
-        uses: actions/upload-artifact@v4.3.1
+        uses: actions/upload-artifact@v4.3.3
         with:
           name: dist_linux
           path: dist_linux
           retention-days: 1
 
       - name: Upload Slim app binaries (Linux, arm64)
-        uses: actions/upload-artifact@v4.3.1
+        uses: actions/upload-artifact@v4.3.3
         with:
           name: dist_linux_arm64
           path: dist_linux_arm64
           retention-days: 1
 
       - name: Upload Slim app binaries (Linux, arm)
-        uses: actions/upload-artifact@v4.3.1
+        uses: actions/upload-artifact@v4.3.3
         with:
           name: dist_linux_arm
           path: dist_linux_arm
           retention-days: 1
 
       - name: Upload Slim app binaries (macOS, amd64)
-        uses: actions/upload-artifact@v4.3.1
+        uses: actions/upload-artifact@v4.3.3
         with:
           name: dist_mac
           path: dist_mac
@@ -64,7 +64,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out slimtoolkit/slim repo
-        uses: actions/checkout@v4.1.2
+        uses: actions/checkout@v4.1.4
 
       - name: Set up Go development environment
         uses: actions/setup-go@v5.0.0
@@ -72,7 +72,7 @@ jobs:
           go-version: '1.21.4'
 
       - name: Download Slim app binaries
-        uses: actions/download-artifact@v4.1.4
+        uses: actions/download-artifact@v4.1.7
         with:
           name: ${{ matrix.bin_artifacts }}
           path: bin
@@ -116,16 +116,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out slimtoolkit/slim repo
-        uses: actions/checkout@v4.1.2
+        uses: actions/checkout@v4.1.4
 
       - name: Check out slimtoolkit/examples repo
-        uses: actions/checkout@v4.1.2
+        uses: actions/checkout@v4.1.4
         with:
           repository: slimtoolkit/examples
           path: e2e
 
       - name: Download Slim app binaries
-        uses: actions/download-artifact@v4.1.4
+        uses: actions/download-artifact@v4.1.7
         with:
           name: ${{ matrix.bin_artifacts }}
           path: bin
