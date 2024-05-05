@@ -23,6 +23,7 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		{Text: command.FullFlagName(FlagDebugImage), Description: FlagDebugImageUsage},
 		{Text: command.FullFlagName(FlagEntrypoint), Description: FlagEntrypointUsage},
 		{Text: command.FullFlagName(FlagCmd), Description: FlagCmdUsage},
+		{Text: command.FullFlagName(FlagShellCmd), Description: FlagShellCmdUsage},
 		{Text: command.FullFlagName(FlagWorkdir), Description: FlagWorkdirUsage},
 		{Text: command.FullFlagName(FlagEnv), Description: FlagEnvUsage},
 		{Text: command.FullFlagName(FlagMount), Description: FlagMountUsage},

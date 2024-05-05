@@ -230,14 +230,17 @@ func HandleDockerRuntime(
 		}
 
 		commandParams.Cmd = []string{shellConfig}
-	} else if len(commandParams.Entrypoint) == 0 && len(commandParams.Cmd) == 0 {
-		commandParams.Entrypoint = ShellCommandPrefix(commandParams.DebugContainerImage)
-		if len(commandParams.Cmd) == 0 {
-			commandParams.Cmd = []string{defaultShellName}
-			if CgrCustomDebugImage == commandParams.DebugContainerImage {
-				commandParams.Cmd = []string{bashShellName}
+	} else if len(commandParams.Entrypoint) == 0 {
+		if len(commandParams.Cmd) == 0 || commandParams.CmdIsShell {
+			commandParams.Entrypoint = ShellCommandPrefix(commandParams.DebugContainerImage)
+			if len(commandParams.Cmd) == 0 {
+				commandParams.Cmd = []string{defaultShellName}
+				if CgrCustomDebugImage == commandParams.DebugContainerImage {
+					commandParams.Cmd = []string{bashShellName}
+				}
 			}
 		}
+		//else keep the entrypoint (and cmd) from the debug image
 	}
 
 	options := container.ExecutionOptions{

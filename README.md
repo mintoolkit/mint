@@ -571,7 +571,8 @@ Debug minimal or regular container images running in Docker, Podman, Kubernetes 
 - `--target` - Target container name or ID (this can also be provided as the last param in the command line invocation of the `debug` command). Note that the target container must be running. If you are using the interactive prompt mode you'll get a drop down list of the currently running containers in the selected runtime.
 - `--namespace` - Namespace to target [k8s runtime] (defaults to `default`)
 - `--pod` - Pod to target [k8s runtime]
-- `--cmd` - (Optional) custom CMD to use for the debug side-car container (alternatively pass custom CMD params after '--').
+- `--cmd` - (Optional) custom CMD to use for the debug side-car container (if you need to run CMD value in a shell use --shell-cmd or '--' instead).
+- `--shell-cmd` - (Optional) custom CMD to use as a shell command for the debug sidecar container (alternatively pass custom CMD params after '--').
 - `--entrypoint` - (Optional) custom ENTRYPOINT to use for the debug side-car container.
 - `--terminal` - Attach interactive terminal to the debug container (default: true). When the interactive terminal is not enabled the debug container output will be printed out to the screen when the `debug` command exits.
 - `--kubeconfig` - Kubeconfig file location [k8s runtime]

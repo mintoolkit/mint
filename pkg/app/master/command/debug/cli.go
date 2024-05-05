@@ -42,6 +42,7 @@ type CommandParams struct {
 	DebugContainerImage string
 	/// ENTRYPOINT used launching the debugging container
 	Entrypoint []string
+	CmdIsShell bool
 	/// CMD used launching the debugging container
 	Cmd []string
 	/// WORKDIR used launching the debugging container
@@ -142,6 +143,7 @@ var CLI = &cli.Command{
 		cflag(FlagDebugImage),
 		cflag(FlagEntrypoint),
 		cflag(FlagCmd),
+		cflag(FlagShellCmd),
 		cflag(FlagWorkdir),
 		cflag(FlagEnv),
 		cflag(FlagLoadTargetEnvVars),
@@ -251,6 +253,14 @@ var CLI = &cli.Command{
 			}
 		}
 
+		if rawCmd := ctx.String(FlagShellCmd); rawCmd != "" {
+			commandParams.CmdIsShell = true
+			commandParams.Cmd, err = command.ParseExec(rawCmd)
+			if err != nil {
+				return err
+			}
+		}
+
 		//explicitly setting the entrypoint and/or cmd clears
 		//implies a custom debug session where the 'RATS' setting should be ignored
 		if len(commandParams.Entrypoint) > 0 || len(commandParams.Cmd) > 0 {
@@ -296,6 +306,7 @@ var CLI = &cli.Command{
 						}
 					}
 					if len(cmdClean) > 0 {
+						commandParams.CmdIsShell = true
 						commandParams.Cmd = cmdClean
 						commandParams.DoTerminal = false
 						commandParams.DoRunAsTargetShell = false

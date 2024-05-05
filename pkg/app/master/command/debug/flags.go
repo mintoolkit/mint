@@ -26,7 +26,10 @@ const (
 	FlagEntrypointUsage = "Custom ENTRYPOINT to use for the debug sidecar container."
 
 	FlagCmd      = "cmd"
-	FlagCmdUsage = "Custom CMD to use for the debug sidecar container (alternatively pass custom CMD params after '--')."
+	FlagCmdUsage = "Custom CMD to use for the debug sidecar container."
+
+	FlagShellCmd      = "shell-cmd"
+	FlagShellCmdUsage = "Custom CMD to use as a shell command for the debug sidecar container (alternatively pass custom CMD params after '--')."
 
 	FlagWorkdir      = "workdir"
 	FlagWorkdirUsage = "Custom WORKDIR to use for the debug sidecar container."
@@ -140,6 +143,12 @@ var Flags = map[string]cli.Flag{
 		Value:   "",
 		Usage:   FlagCmdUsage,
 		EnvVars: []string{"DSLIM_DBG_CMD"},
+	},
+	FlagShellCmd: &cli.StringFlag{
+		Name:    FlagShellCmd,
+		Value:   "",
+		Usage:   FlagShellCmdUsage,
+		EnvVars: []string{"DSLIM_DBG_SHELL_CMD"},
 	},
 	FlagWorkdir: &cli.StringFlag{
 		Name:    FlagWorkdir,
