@@ -79,7 +79,7 @@ func flagSetString(flag cli.Flag, paramValue interface{}) (string, error) {
 			return strconv.Itoa(paramValue.(int)), nil
 		} else if paramValueType == reflect.Float64 {
 			// Decimal will be truncated out here
-			return strconv.Itoa(int(paramValueType)), nil
+			return strconv.Itoa(int(paramValue.(float64))), nil
 		} else {
 			return "", fmt.Errorf("expected Int value found: %v for flag %s", paramValueType, flag.Names()[0])
 		}
