@@ -1146,7 +1146,7 @@ func (p *store) saveHealthcheck(excludePatterns []string,
 						}
 					}
 				} else {
-					log.Debug("saveHealthcheck: artifact='%s' - os.Getwd error - %v", k, err)
+					log.Debugf("saveHealthcheck: artifact='%s' - os.Getwd error - %v", k, err)
 				}
 			}
 		}
