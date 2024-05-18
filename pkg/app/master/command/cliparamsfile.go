@@ -38,23 +38,18 @@ func ParseParamsFromFile(ctx *cli.Context, xc *app.ExecutionContext, filePath st
 
 }
 
-func validFlagsMap(xc *app.ExecutionContext, validFlags []cli.Flag) map[string]cli.Flag {
+func validFlagsMap(validFlags []cli.Flag) (map[string]cli.Flag, error) {
 	validFlagsMap := make(map[string]cli.Flag)
 
 	for _, flag := range validFlags {
 		if len(flag.Names()) == 0 {
-			xc.Out.Error("params-file.validate.params", "flag names has no values")
-			xc.Out.State("exited",
-				ovars{
-					"exit.code": -1,
-				})
-			xc.Exit(-1)
+			return nil, errors.New("flag names has no values")
 		}
 
 		validFlagsMap[flag.Names()[0]] = flag
 	}
 
-	return validFlagsMap
+	return validFlagsMap, nil
 }
 
 func flagSetString(flag cli.Flag, paramValue interface{}) (string, error) {
@@ -103,7 +98,11 @@ func flagSetString(flag cli.Flag, paramValue interface{}) (string, error) {
 }
 
 func setFileParams(ctx *cli.Context, xc *app.ExecutionContext, params map[string]interface{}, validFlags []cli.Flag) error {
-	validFlagsMap := validFlagsMap(xc, validFlags)
+	validFlagsMap, err := validFlagsMap(validFlags)
+
+	if err != nil {
+		return err
+	}
 
 	for fileParamKey, fileParamValue := range params {
 
