@@ -132,19 +132,19 @@ func TestFlagSetStringInvalidFlagValues(t *testing.T) {
 			name:        "StringSliceFlag with bool value",
 			flag:        &cli.StringSliceFlag{Name: "test"},
 			paramValue:  true,
-			expectedErr: "expected string or string slice value found: bool for flag test",
+			expectedErr: "expected string or string array value found: bool for flag test",
 		},
 		{
 			name:        "StringSliceFlag with bool value",
 			flag:        &cli.StringSliceFlag{Name: "test"},
 			paramValue:  84,
-			expectedErr: "expected string or string slice value found: int for flag test",
+			expectedErr: "expected string or string array value found: int for flag test",
 		},
 		{
 			name:        "StringSliceFlag with bool value",
 			flag:        &cli.StringSliceFlag{Name: "test"},
 			paramValue:  EmptyStruct{},
-			expectedErr: "expected string or string slice value found: struct for flag test",
+			expectedErr: "expected string or string array value found: command.EmptyStruct for flag test",
 		},
 		{
 			name:        "BoolFlag with string value",
@@ -162,7 +162,7 @@ func TestFlagSetStringInvalidFlagValues(t *testing.T) {
 			name:        "StringFlag with slice value",
 			flag:        &cli.StringFlag{Name: "test"},
 			paramValue:  []string{"value1", "value2"},
-			expectedErr: "expected string value found: slice for flag test",
+			expectedErr: "expected string value found: []string for flag test",
 		},
 		{
 			name:        "StringFlag with int value",

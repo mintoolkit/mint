@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -53,44 +52,39 @@ func validFlagsMap(validFlags []cli.Flag) (map[string]cli.Flag, error) {
 }
 
 func flagSetString(flag cli.Flag, paramValue interface{}) (string, error) {
-	paramValueType := reflect.TypeOf(paramValue).Kind()
-
 	switch flag.(type) {
 	case *cli.StringFlag:
-		if paramValueType == reflect.String {
-			return paramValue.(string), nil
-		} else {
-			return "", fmt.Errorf("expected string value found: %v for flag %s", paramValueType, flag.Names()[0])
+		switch paramValueType := paramValue.(type) {
+		case string:
+			return paramValueType, nil
+		default:
+			return "", fmt.Errorf("expected string value found: %T for flag %s", paramValueType, flag.Names()[0])
 		}
 	case *cli.BoolFlag:
-		if paramValueType == reflect.Bool {
-			return strconv.FormatBool(paramValue.(bool)), nil
-		} else {
-			return "", fmt.Errorf("expected boolean value found: %v for flag %s", paramValueType, flag.Names()[0])
+		switch paramValueType := paramValue.(type) {
+		case bool:
+			return strconv.FormatBool(paramValueType), nil
+		default:
+			return "", fmt.Errorf("expected boolean value found: %T for flag %s", paramValueType, flag.Names()[0])
 		}
 	case *cli.IntFlag:
-		// JSON Unmarshal unmarshals a JSON number as a Float64 by default
-		if paramValueType == reflect.Int {
-			return strconv.Itoa(paramValue.(int)), nil
-		} else if paramValueType == reflect.Float64 {
-			// Decimal will be truncated out here
-			return strconv.Itoa(int(paramValue.(float64))), nil
-		} else {
-			return "", fmt.Errorf("expected Int value found: %v for flag %s", paramValueType, flag.Names()[0])
+		switch paramValueType := paramValue.(type) {
+		case int:
+			return strconv.Itoa(paramValueType), nil
+		case float64:
+			//JSON unmarshal unmarshals a JSON number as a float64 by default
+			return strconv.Itoa(int(paramValueType)), nil
+		default:
+			return "", fmt.Errorf("expected Int value found: %T for flag %s", paramValueType, flag.Names()[0])
 		}
 	case *cli.StringSliceFlag:
-		// Parse both string slice or string values
-		if paramValueType == reflect.String {
-			return paramValue.(string), nil
-		} else if paramValueType == reflect.Slice {
-			var values []string
-			slice := reflect.ValueOf(paramValue)
-			for i := 0; i < slice.Len(); i++ {
-				values = append(values, fmt.Sprintf("%v", slice.Index(i).Interface()))
-			}
-			return strings.Join(values, ","), nil
-		} else {
-			return "", fmt.Errorf("expected string or string slice value found: %v for flag %s", paramValueType, flag.Names()[0])
+		switch paramValueType := paramValue.(type) {
+		case string:
+			return paramValueType, nil
+		case []string:
+			return strings.Join(paramValueType, ","), nil
+		default:
+			return "", fmt.Errorf("expected string or string array value found: %T for flag %s", paramValueType, flag.Names()[0])
 		}
 	default:
 		return "", errors.New("flag type not supported by params file")
