@@ -91,6 +91,10 @@ func flagSetString(flag cli.Flag, paramValue interface{}) (string, error) {
 	}
 }
 
+func convertFlagSnakeToKebab(snakeValue string) string {
+	return strings.ReplaceAll(snakeValue, "_", "-")
+}
+
 func setFileParams(ctx *cli.Context, xc *app.ExecutionContext, params map[string]interface{}, validFlags []cli.Flag) error {
 	validFlagsMap, err := validFlagsMap(validFlags)
 
@@ -99,25 +103,26 @@ func setFileParams(ctx *cli.Context, xc *app.ExecutionContext, params map[string
 	}
 
 	for fileParamKey, fileParamValue := range params {
+		kebabFormatFlag := convertFlagSnakeToKebab(fileParamKey)
 
-		if flag, ok := validFlagsMap[fileParamKey]; !ok {
-			return fmt.Errorf("the command params file contains an invalid flag - %s", fileParamKey)
+		if flag, ok := validFlagsMap[kebabFormatFlag]; !ok {
+			return fmt.Errorf("the command params file contains an invalid flag - %s", kebabFormatFlag)
 		} else {
 			setValue, err := flagSetString(flag, fileParamValue)
 			if err != nil {
 				return err
 			}
 
-			if ctx.IsSet(fileParamKey) {
+			if ctx.IsSet(kebabFormatFlag) {
 				xc.Out.Info("command.params.file",
 					ovars{
 						"message": "updating already set value from params file",
-						"param":   fileParamKey,
+						"param":   kebabFormatFlag,
 					})
 			}
 
 			// The Parameter key and value has now been sanitized and the values can be set
-			ctx.Set(fileParamKey, setValue)
+			ctx.Set(kebabFormatFlag, setValue)
 		}
 	}
 

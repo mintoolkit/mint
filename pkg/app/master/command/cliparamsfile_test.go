@@ -218,3 +218,22 @@ func TestFlagSetStringUnsupportedFlagError(t *testing.T) {
 		})
 	}
 }
+
+func TestConvertSnakeToKebab(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"_this_is_a_test_", "-this-is-a-test-"},
+		{"flag_example", "flag-example"},
+		{"nostringreplace", "nostringreplace"},
+		{"multiple_____replace", "multiple-----replace"},
+	}
+
+	for _, test := range tests {
+		result := convertFlagSnakeToKebab(test.input)
+		if result != test.expected {
+			t.Errorf("convertFlagSnakeToKebab(%q) = %q; expected %q", test.input, result, test.expected)
+		}
+	}
+}
