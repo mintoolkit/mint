@@ -44,56 +44,58 @@ type CommandParams struct {
 	DetectAllCertPKFiles bool `json:"detect_all_cert_pks,omitempty"`
 }
 
+var XRayFlags = []cli.Flag{
+	command.Cflag(command.FlagCommandParamsFile),
+	command.Cflag(command.FlagTarget),
+	command.Cflag(command.FlagPull),
+	command.Cflag(command.FlagDockerConfigPath),
+	command.Cflag(command.FlagRegistryAccount),
+	command.Cflag(command.FlagRegistrySecret),
+	command.Cflag(command.FlagShowPullLogs),
+	cflag(FlagChanges),
+	cflag(FlagChangesOutput),
+	cflag(FlagLayer),
+	cflag(FlagAddImageManifest),
+	cflag(FlagAddImageConfig),
+	cflag(FlagLayerChangesMax),
+	cflag(FlagAllChangesMax),
+	cflag(FlagAddChangesMax),
+	cflag(FlagModifyChangesMax),
+	cflag(FlagDeleteChangesMax),
+	cflag(FlagChangePath),
+	cflag(FlagChangeData),
+	cflag(FlagReuseSavedImage),
+	cflag(FlagTopChangesMax),
+	cflag(FlagChangeMatchLayersOnly),
+	cflag(FlagHashData),
+	cflag(FlagDetectUTF8),
+	cflag(FlagDetectAllCertFiles),
+	cflag(FlagDetectAllCertPKFiles),
+	cflag(FlagDetectDuplicates),
+	cflag(FlagShowDuplicates),
+	cflag(FlagShowSpecialPerms),
+	cflag(FlagChangeDataHash),
+	cflag(FlagExportAllDataArtifacts),
+	cflag(FlagDetectIdentities),
+	cflag(FlagDetectIdentitiesParam),
+	cflag(FlagDetectIdentitiesDumpRaw),
+	cflag(FlagDetectScheduledTasks),
+	cflag(FlagDetectScheduledTasksParam),
+	cflag(FlagDetectScheduledTasksDumpRaw),
+	cflag(FlagDetectServices),
+	cflag(FlagDetectServicesParam),
+	cflag(FlagDetectServicesDumpRaw),
+	cflag(FlagDetectSystemHooks),
+	cflag(FlagDetectSystemHooksParam),
+	cflag(FlagDetectSystemHooksDumpRaw),
+	command.Cflag(command.FlagRemoveFileArtifacts),
+}
+
 var CLI = &cli.Command{
 	Name:    Name,
 	Aliases: []string{Alias},
 	Usage:   Usage,
-	Flags: []cli.Flag{
-		command.Cflag(command.FlagCommandParamsFile),
-		command.Cflag(command.FlagTarget),
-		command.Cflag(command.FlagPull),
-		command.Cflag(command.FlagDockerConfigPath),
-		command.Cflag(command.FlagRegistryAccount),
-		command.Cflag(command.FlagRegistrySecret),
-		command.Cflag(command.FlagShowPullLogs),
-		cflag(FlagChanges),
-		cflag(FlagChangesOutput),
-		cflag(FlagLayer),
-		cflag(FlagAddImageManifest),
-		cflag(FlagAddImageConfig),
-		cflag(FlagLayerChangesMax),
-		cflag(FlagAllChangesMax),
-		cflag(FlagAddChangesMax),
-		cflag(FlagModifyChangesMax),
-		cflag(FlagDeleteChangesMax),
-		cflag(FlagChangePath),
-		cflag(FlagChangeData),
-		cflag(FlagReuseSavedImage),
-		cflag(FlagTopChangesMax),
-		cflag(FlagChangeMatchLayersOnly),
-		cflag(FlagHashData),
-		cflag(FlagDetectUTF8),
-		cflag(FlagDetectAllCertFiles),
-		cflag(FlagDetectAllCertPKFiles),
-		cflag(FlagDetectDuplicates),
-		cflag(FlagShowDuplicates),
-		cflag(FlagShowSpecialPerms),
-		cflag(FlagChangeDataHash),
-		cflag(FlagExportAllDataArtifacts),
-		cflag(FlagDetectIdentities),
-		cflag(FlagDetectIdentitiesParam),
-		cflag(FlagDetectIdentitiesDumpRaw),
-		cflag(FlagDetectScheduledTasks),
-		cflag(FlagDetectScheduledTasksParam),
-		cflag(FlagDetectScheduledTasksDumpRaw),
-		cflag(FlagDetectServices),
-		cflag(FlagDetectServicesParam),
-		cflag(FlagDetectServicesDumpRaw),
-		cflag(FlagDetectSystemHooks),
-		cflag(FlagDetectSystemHooksParam),
-		cflag(FlagDetectSystemHooksDumpRaw),
-		command.Cflag(command.FlagRemoveFileArtifacts),
-	},
+	Flags:   XRayFlags,
 	Action: func(ctx *cli.Context) error {
 		gcvalues, ok := command.CLIContextGet(ctx.Context, command.GlobalParams).(*command.GenericParams)
 		if !ok || gcvalues == nil {
@@ -105,8 +107,9 @@ var CLI = &cli.Command{
 			gcvalues.QuietCLIMode,
 			gcvalues.OutputFormat)
 
-		//NOTE: this is a placeholder to load all command params from a file
-		_ = ctx.String(command.FlagCommandParamsFile)
+		if ctx.String(command.FlagCommandParamsFile) != "" {
+			command.ParseParamsFromFile(ctx, xc, ctx.String(command.FlagCommandParamsFile), XRayFlags)
+		}
 
 		targetRef := ctx.String(command.FlagTarget)
 		if targetRef == "" {
