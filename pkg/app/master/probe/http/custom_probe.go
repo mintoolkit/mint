@@ -27,9 +27,6 @@ const (
 	defaultHTTPPortStr    = "80"
 	defaultHTTPSPortStr   = "443"
 	defaultFastCGIPortStr = "9000"
-
-	//other protocols (todo: refactor)
-	defaultRedisPortStr = "6379"
 )
 
 type ovars = app.OutVars
@@ -392,7 +389,56 @@ func (p *CustomProbe) Start() {
 
 					time.Sleep(1 * time.Second)
 				}
-				continue
+
+				if p.OkCount > 0 {
+					continue
+				}
+			} else if (found && dstPort == defaultDNSPortStr) || port == defaultDNSPortStr {
+				//NOTE: a hacky way to support the DNS protocol
+				//TODO: refactor and have a flag to disable this port-based behavior
+				maxRetryCount := probeRetryCount
+				if p.opts.RetryCount > 0 {
+					maxRetryCount = p.opts.RetryCount
+				}
+
+				for i := 0; i < maxRetryCount; i++ {
+					//NOTE: use 'tcp', but later add support for 'udp' when probes support UDP
+					output, err := dnsPing(context.Background(), p.targetHost, port, true)
+					p.CallCount++
+
+					statusCode := "error"
+					callErrorStr := "none"
+					if err == nil {
+						statusCode = "ok"
+					} else {
+						callErrorStr = err.Error()
+					}
+
+					if p.printState {
+						p.xc.Out.Info("dns.probe.call",
+							ovars{
+								"status":  statusCode,
+								"output":  output,
+								"port":    port,
+								"attempt": i + 1,
+								"error":   callErrorStr,
+								"time":    time.Now().UTC().Format(time.RFC3339),
+							})
+					}
+
+					if err == nil {
+						p.OkCount++
+						break
+					} else {
+						p.ErrCount++
+					}
+
+					time.Sleep(1 * time.Second)
+				}
+
+				if p.OkCount > 0 {
+					continue
+				}
 			}
 
 			//If it's ok stop after the first successful probe pass

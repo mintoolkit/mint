@@ -6,7 +6,10 @@ import (
 	"net"
 )
 
-const redisPingReq = "*1\r\n$4\r\nPING\r\n"
+const (
+	defaultRedisPortStr = "6379"
+	redisPingReq        = "*1\r\n$4\r\nPING\r\n"
+)
 
 func redisPing(targetHost string, port string) (string, error) {
 	addr := fmt.Sprintf("%s:%s", targetHost, port)
