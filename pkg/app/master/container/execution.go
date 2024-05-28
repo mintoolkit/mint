@@ -77,6 +77,8 @@ type ExecutionOptions struct {
 	Volumes       []config.VolumeMount
 	LiveLogs      bool
 	Terminal      bool
+	User          string
+	Group         string
 	IO            ExecutionIO
 }
 
@@ -250,6 +252,14 @@ func (ref *Execution) Start() error {
 		//containerOptions.Config.StdinOnce = true
 		containerOptions.Config.AttachStdin = true
 		containerOptions.Config.Tty = true
+	}
+
+	if ref.options.User != "" {
+		containerOptions.Config.User = ref.options.User
+		if ref.options.Group != "" {
+			containerOptions.Config.User = fmt.Sprintf("%s:%s",
+				containerOptions.Config.User, ref.options.Group)
+		}
 	}
 
 	containerInfo, err := ref.APIClient.CreateContainer(containerOptions)

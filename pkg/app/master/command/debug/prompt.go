@@ -33,7 +33,7 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		{Text: command.FullFlagName(FlagGID), Description: FlagGIDUsage},
 		{Text: command.FullFlagName(FlagRunPrivileged), Description: FlagRunPrivilegedUsage},
 		{Text: command.FullFlagName(FlagSecurityContextFromTarget), Description: FlagSecurityContextFromTargetUsage},
-		{Text: command.FullFlagName(FlagAutoRunAsNonRoot), Description: FlagAutoRunAsNonRootUsage},
+		{Text: command.FullFlagName(FlagFallbackToTargetUser), Description: FlagFallbackToTargetUserUsage},
 		{Text: command.FullFlagName(FlagTerminal), Description: FlagTerminalUsage},
 		{Text: command.FullFlagName(FlagRunAsTargetShell), Description: FlagRunAsTargetShellUsage},
 		{Text: command.FullFlagName(FlagListSessions), Description: FlagListSessionsUsage},
@@ -66,7 +66,7 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		command.FullFlagName(FlagLoadTargetEnvVars):         command.CompleteTBool,
 		command.FullFlagName(FlagRunPrivileged):             command.CompleteTBool,
 		command.FullFlagName(FlagSecurityContextFromTarget): command.CompleteBool,
-		command.FullFlagName(FlagAutoRunAsNonRoot):          command.CompleteTBool,
+		command.FullFlagName(FlagFallbackToTargetUser):      command.CompleteTBool,
 	},
 }
 

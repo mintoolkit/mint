@@ -416,6 +416,108 @@ func HandleKubernetesRuntime(
 	doTTY := true
 	isEcPrivileged := commandParams.DoRunPrivileged //true
 
+	roRootFilesystem := func() bool {
+		sc := targetContainer.SecurityContext
+		if sc != nil && sc.ReadOnlyRootFilesystem != nil {
+			return *sc.ReadOnlyRootFilesystem
+		}
+
+		return false
+	}
+
+	podRunAsNonRoot := func() bool {
+		psc := pod.Spec.SecurityContext
+		if psc != nil &&
+			psc.RunAsNonRoot != nil &&
+			*psc.RunAsNonRoot {
+			return true
+		}
+
+		return false
+	}
+
+	runAsNonRoot := func() bool {
+		sc := targetContainer.SecurityContext
+		if sc != nil &&
+			sc.RunAsNonRoot != nil &&
+			*sc.RunAsNonRoot {
+			return true
+		}
+
+		return podRunAsNonRoot()
+	}
+
+	runAsUser := func(lookup bool) *int64 {
+		if !lookup {
+			return nil
+		}
+
+		sc := targetContainer.SecurityContext
+		if sc != nil && sc.RunAsUser != nil {
+			return sc.RunAsUser
+		}
+
+		psc := pod.Spec.SecurityContext
+		if psc != nil && psc.RunAsUser != nil {
+			return psc.RunAsUser
+		}
+
+		return nil
+	}
+
+	runAsGroup := func(lookup bool) *int64 {
+		if !lookup {
+			return nil
+		}
+
+		sc := targetContainer.SecurityContext
+		if sc != nil && sc.RunAsGroup != nil {
+			return sc.RunAsGroup
+		}
+
+		psc := pod.Spec.SecurityContext
+		if psc != nil && psc.RunAsGroup != nil {
+			return psc.RunAsGroup
+		}
+
+		return nil
+	}
+
+	targetIsNonRoot := runAsNonRoot()
+	runAsUserVal := runAsUser(targetIsNonRoot)
+	if targetIsNonRoot && runAsUserVal == nil {
+		//TODO: first, try getting the user identity from the target's container image
+		runAsUserVal = &defaultNonRootUser
+	}
+	runAsGroupVal := runAsGroup(targetIsNonRoot)
+	if targetIsNonRoot && runAsGroupVal == nil && commandParams.UID < 0 {
+		//don't use the default group if UID is set
+		runAsGroupVal = &defaultNonRootGroup
+	}
+
+	var doRunAsNonRoot bool
+	if targetIsNonRoot && commandParams.DoFallbackToTargetUser {
+		doRunAsNonRoot = true
+	}
+
+	var disableRunAsTargetShellReason string
+	if roRootFilesystem() && commandParams.DoRunAsTargetShell {
+		disableRunAsTargetShellReason = "readonly target filesystem"
+	}
+
+	if targetIsNonRoot && commandParams.DoRunAsTargetShell {
+		disableRunAsTargetShellReason = "runAsNonRoot target"
+	}
+
+	if disableRunAsTargetShellReason != "" {
+		commandParams.DoRunAsTargetShell = false
+		xc.Out.Info("cmd.input.param.disable",
+			ovars{
+				"name":   FlagRunAsTargetShell,
+				"reason": disableRunAsTargetShellReason,
+			})
+	}
+
 	if commandParams.DoRunAsTargetShell {
 		logger.Trace("doRunAsTargetShell")
 		commandParams.Entrypoint = ShellCommandPrefix(commandParams.DebugContainerImage)
@@ -444,68 +546,10 @@ func HandleKubernetesRuntime(
 		targetEnvVars = targetContainer.Env
 	}
 
-	runAsNonRoot := func() bool {
-		sc := targetContainer.SecurityContext
-		if sc != nil &&
-			sc.RunAsNonRoot != nil &&
-			*sc.RunAsNonRoot {
-			return true
-		}
-
-		psc := pod.Spec.SecurityContext
-		if psc != nil &&
-			psc.RunAsNonRoot != nil &&
-			*psc.RunAsNonRoot {
-			return true
-		}
-
-		return false
-	}
-
-	runAsUser := func(lookup bool) *int64 {
-		if !lookup {
-			return nil
-		}
-
-		sc := targetContainer.SecurityContext
-		if sc != nil && sc.RunAsUser != nil {
-			return sc.RunAsUser
-		}
-
-		psc := pod.Spec.SecurityContext
-		if psc != nil && psc.RunAsUser != nil {
-			return psc.RunAsUser
-		}
-
-		return &defaultNonRootUser
-	}
-
-	runAsGroup := func(lookup bool) *int64 {
-		if !lookup {
-			return nil
-		}
-
-		sc := targetContainer.SecurityContext
-		if sc != nil && sc.RunAsGroup != nil {
-			return sc.RunAsGroup
-		}
-
-		psc := pod.Spec.SecurityContext
-		if psc != nil && psc.RunAsGroup != nil {
-			return psc.RunAsGroup
-		}
-
-		return &defaultNonRootGroup
-	}
-
-	targetIsNonRoot := runAsNonRoot()
-	runAsUserVal := runAsUser(targetIsNonRoot)
-	runAsGroupVal := runAsGroup(targetIsNonRoot)
-
 	var targetVolumes []corev1.VolumeMount
 	if commandParams.DoMountTargetVolumes ||
 		commandParams.UID > 0 ||
-		(targetIsNonRoot && commandParams.DoAutoRunAsNonRoot) {
+		(targetIsNonRoot && commandParams.DoFallbackToTargetUser) {
 		logger.Trace("doMountTargetVolumes")
 		for _, record := range targetContainer.VolumeMounts {
 			if record.SubPath == "" {
@@ -521,14 +565,11 @@ func HandleKubernetesRuntime(
 
 	logger.WithFields(
 		log.Fields{
-			"work.dir": commandParams.Workdir,
-			"params":   fmt.Sprintf("%#v", commandParams),
+			"work.dir":         commandParams.Workdir,
+			"params":           fmt.Sprintf("%#v", commandParams),
+			"run.as.nonroot":   doRunAsNonRoot,
+			"is.ec.privileged": isEcPrivileged,
 		}).Trace("newEphemeralContainerInfo")
-
-	var doRunAsNonRoot bool
-	if targetIsNonRoot && commandParams.DoAutoRunAsNonRoot {
-		doRunAsNonRoot = true
-	}
 
 	//TODO: pass commandParams.DoTerminal
 	ecInfo := newEphemeralContainerInfo(
@@ -1104,6 +1145,15 @@ var (
 	ErrContainerTerminated = errors.New("Container terminated")
 )
 
+type CreateContainerError struct {
+	Reason  string
+	Message string
+}
+
+func (e *CreateContainerError) Error() string {
+	return fmt.Sprintf("Error: reason='%s' message='%s'", e.Reason, e.Message)
+}
+
 func waitForContainer(
 	logger *log.Entry,
 	xc *app.ExecutionContext,
@@ -1197,10 +1247,20 @@ func waitForContainer(
 							}
 
 							xc.Out.Info("wait.for.container", paramVars)
+						}
 
-							if status.State.Terminated != nil {
-								return false, ErrContainerTerminated
+						if status.State.Waiting != nil &&
+							status.State.Waiting.Reason == "CreateContainerConfigError" {
+							cce := &CreateContainerError{
+								Reason:  status.State.Waiting.Reason,
+								Message: status.State.Waiting.Message,
 							}
+
+							return false, cce
+						}
+
+						if status.State.Terminated != nil {
+							return false, ErrContainerTerminated
 						}
 					}
 				}
@@ -1362,15 +1422,19 @@ func newEphemeralContainerInfo(
 
 	if gid > -1 {
 		out.EphemeralContainerCommon.SecurityContext.RunAsGroup = &gid
+	} else if uid > -1 {
+		out.EphemeralContainerCommon.SecurityContext.RunAsGroup = &uid
 	}
 
 	if doRunAsNonRoot {
 		out.EphemeralContainerCommon.SecurityContext.RunAsNonRoot = &isTrue
-		if uid < 0 && runAsUserVal != nil {
+		if out.EphemeralContainerCommon.SecurityContext.RunAsUser == nil &&
+			runAsUserVal != nil {
 			out.EphemeralContainerCommon.SecurityContext.RunAsUser = runAsUserVal
 		}
 
-		if gid < 0 && runAsGroupVal != nil {
+		if out.EphemeralContainerCommon.SecurityContext.RunAsGroup == nil &&
+			runAsGroupVal != nil {
 			out.EphemeralContainerCommon.SecurityContext.RunAsGroup = runAsGroupVal
 		}
 	}

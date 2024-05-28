@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	versionCheckEndpoint = "https://versions.api.dockerslim.com/check"
+	versionCheckEndpoint = "https://versions.api.mintoolkit.com/check"
 	jsonContentType      = "application/json"
 	versionAuthKey       = "1JZg1RXvS6mZ0ANgf7p9PoYWQ9q.1JZg3zytWMmBVH50c0RvtBvVpq8"
 )

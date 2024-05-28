@@ -270,6 +270,14 @@ func HandleDockerRuntime(
 	exe.NetworkMode = mode
 	exe.PidMode = mode
 
+	if commandParams.UID > -1 {
+		options.User = fmt.Sprintf("%v", commandParams.UID)
+	}
+
+	if commandParams.GID > -1 {
+		options.Group = fmt.Sprintf("%v", commandParams.GID)
+	}
+
 	xc.FailOn(err)
 
 	logger.Tracef("Debugger sidecar spec: %s", jsonutil.ToString(exe))

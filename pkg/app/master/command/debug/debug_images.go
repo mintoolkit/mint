@@ -11,7 +11,7 @@ const (
 	NicolakaNetshootImage = "nicolaka/netshoot"
 	KoolkitsNodeImage     = "lightruncom/koolkits:node"
 	KoolkitsPythonImage   = "lightruncom/koolkits:python"
-	KoolkitsGolangImage   = "lightruncom/koolkits:golang"
+	KoolkitsGolangImage   = "mintoolkit/koolkits-golang:latest"
 	KoolkitsJVMImage      = "lightruncom/koolkits:jvm"
 	DigitaloceanDoksImage = "digitalocean/doks-debug:latest"
 	ZinclabsUbuntuImage   = "public.ecr.aws/zinclabs/debug-ubuntu-base:latest"

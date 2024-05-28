@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example-pod-nonroot
+  labels:
+    name: nginx
+spec:
+  securityContext:
+    runAsNonRoot: true
+  containers:
+  - name: example-container
+    image: cgr.dev/chainguard/nginx:latest
+    ports:
+    - containerPort: 8080
+      hostPort: 8080
+
+# kubectl apply -f manifest_nonroot.yaml
+# kubectl exec -it example-pod-nonroot -c example-container -- /bin/sh
+# kubectl attach -it example-pod-nonroot -c example-container
+# mint debug --runtime=k8s --namespace=default --pod=example-pod-nonroot --target=example-container
+# kubectl delete -f manifest_nonroot.yaml

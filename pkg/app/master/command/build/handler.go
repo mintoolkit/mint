@@ -214,7 +214,7 @@ func OnCommand(
 	xc.Out.State("started")
 
 	if kubeOpts.HasTargetSet() {
-		xc.Out.Info("params",
+		xc.Out.Info("cmd.input.params",
 			ovars{
 				"target.type":        "kubernetes.workload",
 				"target":             kubeOpts.Target.Workload,
@@ -288,7 +288,7 @@ func OnCommand(
 	}
 
 	if len(composeFiles) > 0 && targetComposeSvc != "" {
-		xc.Out.Info("params",
+		xc.Out.Info("cmd.input.params",
 			ovars{
 				"target.type":        "compose.service",
 				"target":             targetRef,
@@ -299,7 +299,7 @@ func OnCommand(
 				"image-build-engine": imageBuildEngine,
 			})
 	} else if cbOpts.Dockerfile != "" {
-		xc.Out.Info("params",
+		xc.Out.Info("cmd.input.params",
 			ovars{
 				"target.type":        "dockerfile",
 				"context":            targetRef,
@@ -310,7 +310,7 @@ func OnCommand(
 				"image-build-engine": imageBuildEngine,
 			})
 	} else {
-		xc.Out.Info("params",
+		xc.Out.Info("cmd.input.params",
 			ovars{
 				"target.type":        "image",
 				"target.image":       targetRef,

@@ -43,7 +43,7 @@ func OnPullCommand(
 	cmdReport.TargetReference = cparams.TargetRef
 
 	xc.Out.State(cmd.StateStarted)
-	xc.Out.Info("params",
+	xc.Out.Info("cmd.input.params",
 		ovars{
 			"cmd.params": fmt.Sprintf("%+v", cparams),
 		})

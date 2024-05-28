@@ -91,7 +91,7 @@ func OnCommand(
 	cmdReport.OriginalImage = targetRef
 
 	xc.Out.State(cmd.StateStarted)
-	xc.Out.Info("params",
+	xc.Out.Info("cmd.input.params",
 		ovars{
 			"target": targetRef,
 		})

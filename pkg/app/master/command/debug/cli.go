@@ -83,8 +83,8 @@ type CommandParams struct {
 	DoRunPrivileged bool
 	/// use the security context params from the target container with the debug sidecar container
 	UseSecurityContextFromTarget bool
-	/// auto-adjust the config to run as non-root (mostly for kubernetes)
-	DoAutoRunAsNonRoot bool
+	/// fallback to using target container user if it's non-root (mostly for kubernetes)
+	DoFallbackToTargetUser bool
 }
 
 func ParseNameValueList(list []string) []NVPair {
@@ -164,7 +164,7 @@ var CLI = &cli.Command{
 		cflag(FlagGID),
 		cflag(FlagRunPrivileged),
 		cflag(FlagSecurityContextFromTarget),
-		cflag(FlagAutoRunAsNonRoot),
+		cflag(FlagFallbackToTargetUser),
 	},
 	Action: func(ctx *cli.Context) error {
 		gcvalues := command.GlobalFlagValues(ctx)
@@ -207,7 +207,7 @@ var CLI = &cli.Command{
 			GID:                            ctx.Int64(FlagGID),
 			DoRunPrivileged:                ctx.Bool(FlagRunPrivileged),
 			UseSecurityContextFromTarget:   ctx.Bool(FlagSecurityContextFromTarget),
-			DoAutoRunAsNonRoot:             ctx.Bool(FlagAutoRunAsNonRoot),
+			DoFallbackToTargetUser:         ctx.Bool(FlagFallbackToTargetUser),
 		}
 
 		if commandParams.ActionListNamespaces &&

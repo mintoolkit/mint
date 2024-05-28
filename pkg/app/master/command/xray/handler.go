@@ -149,7 +149,7 @@ func OnCommand(
 	cmdReport.TargetReference = targetRef
 
 	xc.Out.State(cmd.StateStarted)
-	xc.Out.Info("params",
+	xc.Out.Info("cmd.input.params",
 		ovars{
 			"target":             targetRef,
 			"add-image-manifest": doAddImageManifest,

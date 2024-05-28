@@ -48,13 +48,16 @@ func OnCommand(
 		rr = fmt.Sprintf("%s/%s", commandParams.Runtime, rr)
 	}
 	paramVars := ovars{
-		"runtime":             rr,
-		"target":              commandParams.TargetRef,
-		"debug-image":         commandParams.DebugContainerImage,
-		"entrypoint":          commandParams.Entrypoint,
-		"cmd":                 commandParams.Cmd,
-		"terminal":            commandParams.DoTerminal,
-		"run-as-target-shell": commandParams.DoRunAsTargetShell,
+		"runtime":                 rr,
+		"target":                  commandParams.TargetRef,
+		"debug-image":             commandParams.DebugContainerImage,
+		"entrypoint":              commandParams.Entrypoint,
+		"cmd":                     commandParams.Cmd,
+		"terminal":                commandParams.DoTerminal,
+		"run-as-target-shell":     commandParams.DoRunAsTargetShell,
+		"uid":                     commandParams.UID,
+		"gid":                     commandParams.GID,
+		"fallback-to-target-user": commandParams.DoFallbackToTargetUser,
 	}
 
 	if resolveAutoRuntime(commandParams.Runtime) == KubernetesRuntime {
@@ -66,7 +69,7 @@ func OnCommand(
 		paramVars["namespace"] = commandParams.TargetNamespace
 	}
 
-	xc.Out.Info("params", paramVars)
+	xc.Out.Info("cmd.input.params", paramVars)
 
 	sid := generateSessionID()
 	debugContainerName := generateContainerName(sid)

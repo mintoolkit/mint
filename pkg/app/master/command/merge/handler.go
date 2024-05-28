@@ -47,7 +47,7 @@ func OnCommand(
 	cmdReport.UseLastImageMetadata = cparams.UseLastImageMetadata
 
 	xc.Out.State("started")
-	xc.Out.Info("params",
+	xc.Out.Info("cmd.input.params",
 		ovars{
 			"image.first":             cparams.FirstImage,
 			"image.last":              cparams.LastImage,

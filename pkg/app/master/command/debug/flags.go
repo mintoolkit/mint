@@ -97,8 +97,8 @@ const (
 	FlagSecurityContextFromTarget      = "security-context-from-target"
 	FlagSecurityContextFromTargetUsage = "Use the security context params from the target container with the debug sidecar container"
 
-	FlagAutoRunAsNonRoot      = "auto-run-as-non-root"
-	FlagAutoRunAsNonRootUsage = "Auto-adjust the config to run as non-root (true by default)"
+	FlagFallbackToTargetUser      = "fallback-to-target-user"
+	FlagFallbackToTargetUserUsage = "Fallback to using target container user if it's non-root (true by default)"
 )
 
 var Flags = map[string]cli.Flag{
@@ -270,11 +270,11 @@ var Flags = map[string]cli.Flag{
 		Usage:   FlagSecurityContextFromTargetUsage,
 		EnvVars: []string{"DSLIM_DBG_USE_TARGET_SEC_CTX"},
 	},
-	FlagAutoRunAsNonRoot: &cli.BoolFlag{
-		Name:    FlagAutoRunAsNonRoot,
+	FlagFallbackToTargetUser: &cli.BoolFlag{
+		Name:    FlagFallbackToTargetUser,
 		Value:   true, //true by default
-		Usage:   FlagAutoRunAsNonRootUsage,
-		EnvVars: []string{"DSLIM_DBG_AUTO_RUN_AS_NONROOT"},
+		Usage:   FlagFallbackToTargetUserUsage,
+		EnvVars: []string{"DSLIM_DBG_FALLBACK_TO_TARGET_USER"},
 	},
 }
 

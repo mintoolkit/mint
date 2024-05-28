@@ -587,7 +587,7 @@ Debug minimal or regular container images running in Docker, Podman, Kubernetes 
 - `--gid` - GID to use for the debugging sidecar container.
 - `--run-privileged` - Run the debug sidecar as a privileged container (true by default).
 - `--security-context-from-target` - Use the security context params from the target container with the debug sidecar container.
-- `--auto-run-as-non-root` - Auto-adjust the config to run as non-root (true by default; set it to false to disable this behavior).
+- `--fallback-to-target-user` - Fallback to using target container user if it's non-root (true by default; set it to false to disable this behavior).
 - `--run-as-target-shell` - Attach an interactive terminal to the debug container and run shell as if it's running in the target container environment (true by default).
 - `--list-sessions` - List all debug sessions for the selected target (pod and optionally selected container for k8s or container for other runtimes).
 - `--show-session-logs` - Show logs for the selected debug session (using namespace, pod, target container or debug session container name for k8s or debug session container name for other runtimes).

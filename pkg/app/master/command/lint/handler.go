@@ -46,7 +46,7 @@ func OnCommand(
 	cmdReport.State = cmd.StateStarted
 
 	xc.Out.State("started")
-	xc.Out.Info("params",
+	xc.Out.Info("cmd.input.params",
 		ovars{
 			"target":      targetRef,
 			"list.checks": doListChecks,
