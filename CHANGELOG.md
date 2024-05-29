@@ -1,5 +1,23 @@
 # Releases
 
+## 1.41.2 (5/28/2024)
+
+### New Features
+
+- The `--command-params-file` flag now works for the `slim` (aka `build`) and `xray` commands ( thanks to @Billy-North ).
+- The `--shell-cmd` flag for the `debug` command allowing you to be more explicit about the intent to use a shell (alternative to `--cmd`).
+- Basic DNS network probing.
+
+### Improvements
+
+- Renamed the `--auto-run-as-non-root` `debug` command flag to `--fallback-to-target-user`.
+- Improved non-root user handling for the `debug` command (to disable the automated user identity selection logic set `--fallback-to-target-user` to false)
+
+### Bug Fixes
+
+- Use the custom entrypoint and cmd when they are not empty for the `debug` command ( fixed by @sword-jin )
+
+
 ## 1.41.1 (4/5/2024)
 
 ### New Features
