@@ -112,11 +112,18 @@ func OnCommand(
 
 		HandleDockerRuntime(logger, xc, gparams, commandParams, client, sid, debugContainerName)
 	case KubernetesRuntime:
+		//hacky v1... using docker client to lookup image info
+		//todo: use another way to get k8s container image info
+		client, err := dockerclient.New(gparams.ClientConfig)
+		if err != nil {
+			logger.WithError(err).Tracef("k8s.runtime.docker.client.error")
+		}
+
 		if gparams.Debug {
 			version.Print(xc, Name, logger, nil, false, gparams.InContainer, gparams.IsDSImage)
 		}
 
-		HandleKubernetesRuntime(logger, xc, gparams, commandParams, sid, debugContainerName)
+		HandleKubernetesRuntime(logger, xc, gparams, commandParams, client, sid, debugContainerName)
 	case ContainerdRuntime:
 		if gparams.Debug {
 			version.Print(xc, Name, logger, nil, false, gparams.InContainer, gparams.IsDSImage)

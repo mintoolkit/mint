@@ -8,9 +8,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
+	dockerapi "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -24,6 +26,7 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
 	"github.com/mintoolkit/mint/pkg/util/jsonutil"
 )
 
@@ -33,6 +36,7 @@ func HandleKubernetesRuntime(
 	xc *app.ExecutionContext,
 	gparams *command.GenericParams,
 	commandParams *CommandParams,
+	dockerClient *dockerapi.Client,
 	sid string,
 	debugContainerName string) {
 	logger = logger.WithFields(
@@ -484,15 +488,119 @@ func HandleKubernetesRuntime(
 	}
 
 	targetIsNonRoot := runAsNonRoot()
-	runAsUserVal := runAsUser(targetIsNonRoot)
-	if targetIsNonRoot && runAsUserVal == nil {
-		//TODO: first, try getting the user identity from the target's container image
-		runAsUserVal = &defaultNonRootUser
-	}
+
 	runAsGroupVal := runAsGroup(targetIsNonRoot)
 	if targetIsNonRoot && runAsGroupVal == nil && commandParams.UID < 0 {
 		//don't use the default group if UID is set
 		runAsGroupVal = &defaultNonRootGroup
+	}
+
+	runAsUserVal := runAsUser(targetIsNonRoot)
+	if targetIsNonRoot && runAsUserVal == nil {
+		//first, try getting the user identity from the target's container image
+		var userFromImage string
+		if targetContainer.Image != "" && dockerClient != nil {
+			//TODO: improve
+			//v1 version is very hacky:
+			//* it expects the Docker container runtime locally
+			//* it expects the target container image to be available locally
+			//* it expects the target container images to be pullable (with no auth)
+			imageInspector, err := image.NewInspector(dockerClient, targetContainer.Image)
+			if err == nil {
+				noImage, err := imageInspector.NoImage()
+				if err == nil {
+					var foundImage bool
+					if noImage {
+						if err := imageInspector.Pull(true, "", "", ""); err != nil {
+							logger.WithError(err).Trace("imageInspector.Pull")
+						}
+
+						imageInspector, err = image.NewInspector(dockerClient, targetContainer.Image)
+						if err == nil {
+							noImage, err = imageInspector.NoImage()
+							if err == nil {
+								if !noImage {
+									foundImage = true
+								}
+							} else {
+								logger.WithError(err).Trace("imageInspector.NoImage")
+							}
+						} else {
+							logger.WithError(err).Trace("image.NewInspector")
+						}
+					} else {
+						foundImage = true
+					}
+
+					if foundImage {
+						if err := imageInspector.Inspect(); err == nil {
+							userFromImage = imageInspector.ImageInfo.Config.User
+						} else {
+							logger.WithError(err).Trace("imageInspector.Inspect")
+						}
+					}
+
+				} else {
+					logger.WithError(err).Trace("imageInspector.NoImage")
+				}
+			} else {
+				logger.WithError(err).Trace("image.NewInspector")
+			}
+		}
+
+		uid := int64(-1)
+		gid := int64(-1)
+		if userFromImage != "" {
+			var uidStr string
+			var gidStr string
+			if strings.Contains(userFromImage, ":") {
+				parts := strings.SplitN(userFromImage, ":", 2)
+				uidStr = parts[0]
+				gidStr = parts[1]
+			} else {
+				uidStr = userFromImage
+			}
+
+			uid, err = strconv.ParseInt(uidStr, 10, 64)
+			if err != nil {
+				logger.WithError(err).Tracef("strconv.ParseUint(uidStr=%s)", uidStr)
+				uid = -1
+			}
+
+			if gidStr != "" {
+				gid, err = strconv.ParseInt(gidStr, 10, 64)
+				if err != nil {
+					logger.WithError(err).Tracef("strconv.ParseUint(gidStr=%s)", gidStr)
+					gid = -1
+				}
+			}
+
+			logger.WithFields(
+				log.Fields{
+					"data":    userFromImage,
+					"image":   targetContainer.Image,
+					"uid.str": uidStr,
+					"gid.str": gidStr,
+					"uid":     uid,
+					"gid":     gid,
+				}).Trace("user.from.target.image")
+		}
+
+		if uid > -1 {
+			runAsUserVal = &uid
+			logger.Debugf("using.target.image.user=%v", uid)
+		} else {
+			runAsUserVal = &defaultNonRootUser
+		}
+
+		if gid == -1 {
+			gid = uid
+		}
+
+		if runAsGroupVal == &defaultNonRootGroup && gid > -1 {
+			runAsGroupVal = &gid
+			logger.Debugf("using.target.image.user.group=%v", gid)
+		}
 	}
 
 	var doRunAsNonRoot bool
