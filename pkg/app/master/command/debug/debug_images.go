@@ -7,7 +7,7 @@ import (
 const (
 	CgrCustomDebugImage   = "cgr.dev/chainguard/min-toolkit-debug:latest"
 	WolfiBaseImage        = "cgr.dev/chainguard/wolfi-base:latest"
-	BusyboxImage          = "busybox:latest"
+	BusyboxImage          = "busybox@sha256:05a79c7279f71f86a2a0d05eb72fcb56ea36139150f0a75cd87e80a4272e4e39"
 	NicolakaNetshootImage = "nicolaka/netshoot"
 	KoolkitsNodeImage     = "lightruncom/koolkits:node"
 	KoolkitsPythonImage   = "lightruncom/koolkits:python"

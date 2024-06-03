@@ -37,7 +37,7 @@ Note that some application stacks do require advanced container probing to make 
 
 It's also a good idea to use your app/environment tests when you run the **Mint** app. See the `--continue-after` flag for more details about integrating your tests with the temporary container **Mint** creates when it's doing its dynamic analysis. Running tests in the target container is also an option, but it does require you to specify a custom ENTRYPOINT/CMD with a custom wrapper to start your app and to execute your tests.
 
-![Minify How](assets/images/docs/SlimHow.jpeg)
+![Minify How](assets/images/docs/SlimHow.png)
 
 Interactive CLI prompt screencast:
 
