@@ -430,8 +430,9 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--poststart-compose-svc` - placeholder for now
 - `--http-probe` - Enables/disables HTTP probing (ENABLED by default; you have to disable the probe if you don't need it by setting the flag to `false`: `--http-probe=false`)
 - `--http-probe-off` - Alternative way to disable HTTP probing
-- `--http-probe-cmd` - Additional HTTP probe command [can use this flag multiple times]
+- `--http-probe-cmd` - User defined HTTP probe(s) as `[[[[\"crawl\":]PROTO:]METHOD:]PATH]` [can use this flag multiple times]
 - `--http-probe-cmd-file` - File with user defined HTTP probe commands
+- `--http-probe-cmd-upload` - User defined HTTP probe(s) to submit form data as `[[[[[PROTO:]FORM_FILE_NAME:]FORM_FIELD_NAME:]FILE_OR_GENERATE_TYPE:]PATH]` [can use this flag multiple times
 - `--http-probe-start-wait` - Number of seconds to wait before starting HTTP probing
 - `--http-probe-retry-count` - Number of retries for each HTTP probe (default value: 5)
 - `--http-probe-retry-wait` - Number of seconds to wait before retrying HTTP probe (doubles when target is not ready; default value: 8)
@@ -958,11 +959,13 @@ To configure Docker Desktop to create the default Unix socket open its UI and go
 
 ## HTTP PROBE COMMANDS
 
-If the HTTP probe is enabled (note: it is enabled by default) it will default to running `GET /` with HTTP and then HTTPS on every exposed port. You can add additional commands using the `--http-probe-cmd` and `--http-probe-cmd-file` options.
+If the HTTP probe is enabled (note: it is enabled by default) it will default to running `GET /` with HTTP and then HTTPS on every exposed port. You can add additional commands using the `--http-probe-cmd`, `--http-probe-cmd-upload` and `--http-probe-cmd-file` options.
 
 If you want to disable HTTP probing set the `--http-probe` flag to false (e.g., `--http-probe=false`). You can also use the `--http-probe-off` flag to do the same (simply use the flag without any parameters).
 
 The `--http-probe-cmd` option is good when you want to specify a small number of simple commands where you select some or all of these HTTP command options: crawling (defaults to false), protocol, method (defaults to GET), resource (path and query string).
+
+The `--http-probe-cmd-upload` option is good when you want to upload a file. The file upload is done using a multipart form data request (the most common way to upload files). The flag value has the following format: `[[[[[PROTO:]FORM_FILE_NAME:]FORM_FIELD_NAME:]FILE_OR_GENERATE_TYPE:]PATH]`. The most basic flag value is a `PATH` (e.g., `--http-probe-cmd-upload /uploadpath`). When no file to upload or data generate instruction is provided a simple text file is generated. The `FILE_OR_GENERATE_TYPE` section can either point to a local file path for the file to upload or it can be one of the data generate instructions: `generate.text`, `generate.text.json`, `generate.image`, `generate.image.png`, `generate.image.jpeg`, `generate.image.gif`. You can specify a custom form field name to use for the request using the `FORM_FIELD_NAME` section (defaults to `file`). You can also specify the file name for the upload using the `FORM_FILE_NAME` section (defaults to `file.data` or the base path of the file name when `FILE_OR_GENERATE_TYPE` points to a local file). The `PROTO` section is used to scope the request to a specific protocol (`http`, `https`, etc). Note that you can also specify an upload command using a JSON record provided with the `--http-probe-cmd-file` flag (see below).
 
 If you only want to use custom HTTP probe command and you don't want the default `GET /` command added to the command list you explicitly provided you'll need to set `--http-probe` to false when you specify your custom HTTP probe command. Note that this inconsistency will be addressed in the future releases to make it less confusing.
 
@@ -992,9 +995,14 @@ Available HTTP command options:
 * `headers` - array of strings with column delimited key/value pairs (e.g., "Content-Type: application/json")
 * `body` - request body as a string
 * `body_file` - request body loaded from the provided file
+* `body_generate` - auto-generate request body using one of the instructions: `generate.text`, `generate.text.json`, `generate.image`, `generate.image.png`, `generate.image.jpeg`, `generate.image.gif`
+* `body_is_form` - request body is a multipart form (request data from `body`, `body_file` or `body_generate` will be form encoded)
+* `form_field_name` - form field name to use (for form submissions)
+* `form_file_name` - form file name to use (for form submissions)
 * `username` - username to use for basic auth
 * `password` - password to use for basic auth
 * `crawl` - boolean to indicate if you want to crawl the target (to visit all referenced resources)
+* `fastcgi` - Fast CGI config params (todo: document sub-fields, see code for details)
 
 Here's a probe command file example:
 

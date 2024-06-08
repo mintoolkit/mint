@@ -111,6 +111,7 @@ const (
 	FlagHTTPProbeOff              = "http-probe-off" //alternative way to disable http probing
 	FlagHTTPProbeCmd              = "http-probe-cmd"
 	FlagHTTPProbeCmdFile          = "http-probe-cmd-file"
+	FlagHTTPProbeCmdUpload        = "http-probe-cmd-upload"
 	FlagHTTPProbeStartWait        = "http-probe-start-wait"
 	FlagHTTPProbeRetryCount       = "http-probe-retry-count"
 	FlagHTTPProbeRetryWait        = "http-probe-retry-wait"
@@ -223,6 +224,7 @@ const (
 	FlagHTTPProbeUsage                 = "Enable or disable HTTP probing"
 	FlagHTTPProbeOffUsage              = "Alternative way to disable HTTP probing"
 	FlagHTTPProbeCmdUsage              = "User defined HTTP probe(s) as [[[[\"crawl\":]PROTO:]METHOD:]PATH]"
+	FlagHTTPProbeCmdUploadUsage        = "User defined HTTP probe(s) to submit form data as [[[[[PROTO:]FORM_FILE_NAME:]FORM_FIELD_NAME:]FILE_OR_GENERATE_TYPE:]PATH]"
 	FlagHTTPProbeCmdFileUsage          = "File with user defined HTTP probes"
 	FlagHTTPProbeStartWaitUsage        = "Number of seconds to wait before starting HTTP probing"
 	FlagHTTPProbeRetryCountUsage       = "Number of retries for each HTTP probe"
@@ -610,6 +612,12 @@ var CommonFlags = map[string]cli.Flag{
 		Usage:   FlagHTTPProbeCmdUsage,
 		EnvVars: []string{"DSLIM_HTTP_PROBE_CMD"},
 	},
+	FlagHTTPProbeCmdUpload: &cli.StringSliceFlag{
+		Name:    FlagHTTPProbeCmdUpload,
+		Value:   cli.NewStringSlice(),
+		Usage:   FlagHTTPProbeCmdUploadUsage,
+		EnvVars: []string{"DSLIM_HTTP_PROBE_CMD_UPLOAD"},
+	},
 	FlagHTTPProbeCmdFile: &cli.StringFlag{
 		Name:    FlagHTTPProbeCmdFile,
 		Value:   "",
@@ -946,6 +954,7 @@ func HTTPProbeFlags() []cli.Flag {
 func HTTPProbeFlagsBasic() []cli.Flag {
 	return []cli.Flag{
 		Cflag(FlagHTTPProbeCmd),
+		Cflag(FlagHTTPProbeCmdUpload),
 		Cflag(FlagHTTPProbeCmdFile),
 		Cflag(FlagHTTPProbeStartWait),
 		Cflag(FlagHTTPProbeRetryCount),

@@ -50,6 +50,7 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		{Text: command.FullFlagName(command.FlagHTTPProbeOff), Description: command.FlagHTTPProbeOffUsage},
 		{Text: command.FullFlagName(command.FlagHTTPProbe), Description: command.FlagHTTPProbeUsage},
 		{Text: command.FullFlagName(command.FlagHTTPProbeCmd), Description: command.FlagHTTPProbeCmdUsage},
+		{Text: command.FullFlagName(command.FlagHTTPProbeCmdUpload), Description: command.FlagHTTPProbeCmdUploadUsage},
 		{Text: command.FullFlagName(command.FlagHTTPProbeCmdFile), Description: command.FlagHTTPProbeCmdFileUsage},
 		{Text: command.FullFlagName(command.FlagHTTPProbeStartWait), Description: command.FlagHTTPProbeStartWaitUsage},
 		{Text: command.FullFlagName(command.FlagHTTPProbeRetryCount), Description: command.FlagHTTPProbeRetryCountUsage},

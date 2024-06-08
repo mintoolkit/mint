@@ -647,6 +647,133 @@ func ParseHTTPProbes(values []string) ([]config.HTTPProbeCmd, error) {
 	return probes, nil
 }
 
+func ParseHTTPProbeUploads(values []string) ([]config.HTTPProbeCmd, error) {
+	// FORMAT:
+	// [[[[[PROTO:]FORM_FILE_NAME:]FORM_FIELD_NAME:]FILE_OR_GENERATE_TYPE:]PATH]
+	probes := []config.HTTPProbeCmd{}
+
+	method := "POST"
+	for _, raw := range values {
+		parts := strings.Split(raw, ":")
+
+		proto := "http"
+		resource := "/"
+		var formFieldName string //use the default from the form processor
+		var formFileName string  //use the default from the form processor
+		var bodyFile string
+		var bodyGenerate string
+
+		switch len(parts) {
+		case 1:
+			// parts[0] - PATH
+			if parts[0] == "" || !isResource(parts[0]) {
+				return nil, fmt.Errorf("invalid HTTP probe command resource: %+v", raw)
+			}
+
+			resource = parts[0]
+		case 2:
+			// parts[0] - FILE_OR_GENERATE_TYPE
+			// parts[1] - PATH
+			if parts[0] != "" {
+				if strings.HasPrefix(parts[0], "generate.") {
+					bodyGenerate = parts[0]
+				} else {
+					bodyFile = parts[0]
+				}
+			}
+
+			if parts[1] == "" || !isResource(parts[1]) {
+				return nil, fmt.Errorf("invalid HTTP probe command resource: %+v", raw)
+			}
+
+			resource = parts[1]
+		case 3:
+			// parts[0] - FORM_FIELD_NAME
+			// parts[1] - FILE_OR_GENERATE_TYPE
+			// parts[2] - PATH
+			formFieldName = parts[0]
+
+			if parts[1] != "" {
+				if strings.HasPrefix(parts[1], "generate.") {
+					bodyGenerate = parts[1]
+				} else {
+					bodyFile = parts[1]
+				}
+			}
+
+			if parts[2] == "" || !isResource(parts[2]) {
+				return nil, fmt.Errorf("invalid HTTP probe command resource: %+v", raw)
+			}
+
+			resource = parts[2]
+		case 4:
+			// parts[0] - FORM_FILE_NAME
+			// parts[1] - FORM_FIELD_NAME
+			// parts[2] - FILE_OR_GENERATE_TYPE
+			// parts[3] - PATH
+			formFileName = parts[0]
+			formFieldName = parts[1]
+
+			if parts[2] != "" {
+				if strings.HasPrefix(parts[2], "generate.") {
+					bodyGenerate = parts[2]
+				} else {
+					bodyFile = parts[2]
+				}
+			}
+
+			if parts[3] == "" || !isResource(parts[3]) {
+				return nil, fmt.Errorf("invalid HTTP probe command resource: %+v", raw)
+			}
+
+			resource = parts[3]
+		case 5:
+			// parts[0] - PROTO
+			// parts[1] - FORM_FILE_NAME
+			// parts[2] - FORM_FIELD_NAME
+			// parts[3] - FILE_OR_GENERATE_TYPE
+			// parts[4] - PATH
+			if parts[0] != "" && !isMethod(parts[0]) {
+				return nil, fmt.Errorf("invalid HTTP probe command method: %+v", raw)
+			}
+
+			formFileName = parts[1]
+			formFieldName = parts[2]
+
+			if parts[3] != "" {
+				if strings.HasPrefix(parts[3], "generate.") {
+					bodyGenerate = parts[3]
+				} else {
+					bodyFile = parts[3]
+				}
+			}
+
+			if parts[4] == "" || !isResource(parts[4]) {
+				return nil, fmt.Errorf("invalid HTTP probe command resource: %+v", raw)
+			}
+
+			resource = parts[4]
+		default:
+			return nil, fmt.Errorf("invalid HTTP probe upload command: %s", raw)
+		}
+
+		cmd := config.HTTPProbeCmd{
+			BodyIsForm:    true,
+			Protocol:      proto,
+			Method:        method,
+			Resource:      resource,
+			BodyFile:      bodyFile,
+			BodyGenerate:  bodyGenerate,
+			FormFieldName: formFieldName,
+			FormFileName:  formFileName,
+		}
+
+		probes = append(probes, cmd)
+	}
+
+	return probes, nil
+}
+
 func ParseHTTPProbesFile(filePath string) ([]config.HTTPProbeCmd, error) {
 	probes := []config.HTTPProbeCmd{}
 

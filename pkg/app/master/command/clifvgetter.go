@@ -158,6 +158,15 @@ func GetHTTPProbes(ctx *cli.Context) ([]config.HTTPProbeCmd, error) {
 		return nil, err
 	}
 
+	httpProbeCmdUploads, err := ParseHTTPProbeUploads(ctx.StringSlice(FlagHTTPProbeCmdUpload))
+	if err != nil {
+		return nil, err
+	}
+
+	if httpProbeCmdUploads != nil {
+		httpProbeCmds = append(httpProbeCmds, httpProbeCmdUploads...)
+	}
+
 	moreHTTPProbeCmds, err := ParseHTTPProbesFile(ctx.String(FlagHTTPProbeCmdFile))
 	if err != nil {
 		return nil, err

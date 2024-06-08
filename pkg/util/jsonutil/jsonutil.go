@@ -5,6 +5,10 @@ import (
 	"encoding/json"
 )
 
+func ToBytes(input interface{}) []byte {
+	return []byte(toString(input, false))
+}
+
 func ToString(input interface{}) string {
 	return toString(input, false)
 }

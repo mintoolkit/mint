@@ -1,13 +1,16 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +22,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/app/master/config"
 	"github.com/mintoolkit/mint/pkg/app/master/inspectors/container"
 	"github.com/mintoolkit/mint/pkg/app/master/inspectors/pod"
+	"github.com/mintoolkit/mint/pkg/app/master/probe/data"
 )
 
 const (
@@ -27,6 +31,13 @@ const (
 	defaultHTTPPortStr    = "80"
 	defaultHTTPSPortStr   = "443"
 	defaultFastCGIPortStr = "9000"
+
+	defaultFormFieldName = "file"
+	defaultFormFileName  = "file.data"
+)
+
+const (
+	HeaderContentType = "Content-Type"
 )
 
 type ovars = app.OutVars
@@ -449,26 +460,96 @@ func (p *CustomProbe) Start() {
 			for _, cmd := range p.opts.Cmds {
 				var reqBody io.Reader
 				var rbSeeker io.Seeker
+				var contentTypeHdr string
 
 				if cmd.BodyFile != "" {
 					_, err := os.Stat(cmd.BodyFile)
 					if err != nil {
 						log.Errorf("http.probe - cmd.BodyFile (%s) check error: %v", cmd.BodyFile, err)
+						continue
 					} else {
 						bodyFile, err := os.Open(cmd.BodyFile)
 						if err != nil {
 							log.Errorf("http.probe - cmd.BodyFile (%s) read error: %v", cmd.BodyFile, err)
+							continue
 						} else {
-							reqBody = bodyFile
-							rbSeeker = bodyFile
+							if cmd.BodyIsForm {
+								if cmd.FormFileName == "" {
+									cmd.FormFileName = filepath.Base(bodyFile.Name())
+								}
+
+								var bodyForm *bytes.Buffer
+								contentTypeHdr, bodyForm, err = newFormData(cmd.FormFieldName, cmd.FormFileName, bodyFile)
+								if err != nil {
+									log.Errorf("http.probe - cmd.BodyFile (%s) newFormData error: %v", cmd.BodyFile, err)
+									continue
+								}
+
+								br := bytes.NewReader(bodyForm.Bytes())
+								reqBody = br
+								rbSeeker = br
+							} else {
+								reqBody = bodyFile
+								rbSeeker = bodyFile
+							}
+
 							//the file will be closed only when the function exits
 							defer bodyFile.Close()
 						}
 					}
 				} else {
-					strBody := strings.NewReader(cmd.Body)
-					reqBody = strBody
-					rbSeeker = strBody
+					if cmd.BodyGenerate != "" {
+						if !data.IsGenerateType(cmd.BodyGenerate) {
+							cmd.BodyGenerate = data.TypeGenerateText
+						}
+
+						if cmd.BodyGenerate == data.TypeGenerateText {
+							cmd.Body = data.DefaultText
+						} else if cmd.BodyGenerate == data.TypeGenerateTextJSON {
+							cmd.Body = data.DefaultTextJSON
+						} else {
+							gd, err := data.GenerateImage(cmd.BodyGenerate)
+							if err != nil {
+								bb := bytes.NewReader(gd)
+								if cmd.BodyIsForm {
+									var bodyForm *bytes.Buffer
+									contentTypeHdr, bodyForm, err = newFormData(cmd.FormFieldName, cmd.FormFileName, bb)
+									if err != nil {
+										log.Errorf("http.probe - cmd.BodyGenerate (%s) newFormData error: %v", cmd.BodyGenerate, err)
+										continue
+									}
+
+									bb = bytes.NewReader(bodyForm.Bytes())
+								}
+
+								reqBody = bb
+								rbSeeker = bb
+							} else {
+								log.Errorf("http.probe - cmd.BodyGenerate (%s) error: %v", cmd.BodyGenerate, err)
+								continue
+							}
+						}
+					}
+
+					if cmd.Body != "" {
+						strBody := strings.NewReader(cmd.Body)
+						if cmd.BodyIsForm {
+							var bodyForm *bytes.Buffer
+							var err error
+							contentTypeHdr, bodyForm, err = newFormData(cmd.FormFieldName, cmd.FormFileName, strBody)
+							if err != nil {
+								log.Errorf("http.probe - cmd.Body newFormData error: %v", err)
+								continue
+							}
+
+							bb := bytes.NewReader(bodyForm.Bytes())
+							reqBody = bb
+							rbSeeker = bb
+						} else {
+							reqBody = strBody
+							rbSeeker = strBody
+						}
+					}
 				}
 
 				// TODO: need a smarter and more dynamic way to determine the actual protocol type
@@ -613,10 +694,16 @@ func (p *CustomProbe) Start() {
 						continue
 					}
 
+					if contentTypeHdr != "" {
+						req.Header.Set(HeaderContentType, contentTypeHdr)
+					}
+
 					for i := 0; i < maxRetryCount; i++ {
 						res, err := client.Do(req.Clone(context.Background()))
 						p.CallCount++
-						rbSeeker.Seek(0, 0)
+						if rbSeeker != nil {
+							rbSeeker.Seek(0, 0)
+						}
 
 						if res != nil {
 							if res.Body != nil {
@@ -770,4 +857,33 @@ func newHTTPRequestFromCmd(cmd config.HTTPProbeCmd, addr string, reqBody io.Read
 	}
 
 	return req, nil
+}
+
+func newFormData(fieldName string, fileName string, inputReader io.Reader) (string, *bytes.Buffer, error) {
+	if fieldName == "" {
+		fieldName = defaultFormFieldName
+	}
+
+	if fileName == "" {
+		fileName = defaultFormFileName
+	}
+
+	var out bytes.Buffer
+	mpw := multipart.NewWriter(&out)
+
+	part, err := mpw.CreateFormFile(fieldName, fileName)
+	if err != nil {
+		return "", nil, err
+	}
+
+	if _, err = io.Copy(part, inputReader); err != nil {
+		return "", nil, err
+	}
+
+	// "finalize" the form data.
+	if err = mpw.Close(); err != nil {
+		return "", nil, err
+	}
+
+	return mpw.FormDataContentType(), &out, nil
 }
