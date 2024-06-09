@@ -1,5 +1,17 @@
 # Releases
 
+## 1.41.3 (6/8/2024)
+
+### New Features
+
+- The `--http-probe-cmd-upload` flag for the `slim` (aka `build`) and `profile` commands to upload files (and enhanced `--http-probe-cmd-file` command schema to support uploads).
+
+### Improvements
+
+- Enhanced API spec probing auto-generating POST data (`--http-probe-apispec` and `--http-probe-apispec-file` flags).
+- Pinned busybox debug image for the `debug` command.
+
+
 ## 1.41.2 (5/28/2024)
 
 ### New Features
