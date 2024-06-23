@@ -158,6 +158,7 @@ var BuildFlags = (append([]cli.Flag{
 	cflag(FlagExcludeMounts),
 	//"EXCLUDE" FLAGS - END
 	cflag(FlagObfuscateMetadata),
+	cflag(FlagObfuscateAppPackageNames),
 	command.Cflag(command.FlagContinueAfter),
 	command.Cflag(command.FlagUseLocalMounts),
 	command.Cflag(command.FlagUseSensorVolume),
@@ -739,6 +740,7 @@ var CLI = &cli.Command{
 		rtaSourcePT := ctx.Bool(command.FlagRTASourcePT)
 
 		doObfuscateMetadata := ctx.Bool(FlagObfuscateMetadata)
+		obfuscateAppPackageNames := ctx.String(FlagObfuscateAppPackageNames)
 
 		imageBuildEngine, err := getImageBuildEngine(ctx)
 		if err != nil {
@@ -842,6 +844,7 @@ var CLI = &cli.Command{
 			rtaOnbuildBaseImage,
 			rtaSourcePT,
 			doObfuscateMetadata,
+			obfuscateAppPackageNames,
 			ctx.String(command.FlagSensorIPCEndpoint),
 			ctx.String(command.FlagSensorIPCMode),
 			kubeOpts,

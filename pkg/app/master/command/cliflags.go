@@ -4,6 +4,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/mintoolkit/mint/pkg/app/master/config"
 )
 
 /////////////////////////////////////////////////////////
@@ -789,7 +791,7 @@ var CommonFlags = map[string]cli.Flag{
 	},
 	FlagContinueAfter: &cli.StringFlag{
 		Name:    FlagContinueAfter,
-		Value:   "probe",
+		Value:   config.CAMProbe,
 		Usage:   FlagContinueAfterUsage,
 		EnvVars: []string{"DSLIM_CONTINUE_AFTER"},
 	},

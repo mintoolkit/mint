@@ -79,77 +79,78 @@ type NetNameInfo struct {
 
 // Inspector is a container execution inspector
 type Inspector struct {
-	ContainerInfo         *dockerapi.Container
-	ContainerPortsInfo    string
-	ContainerPortList     string
-	AvailablePorts        map[dockerapi.Port]dockerapi.PortBinding // Ports found to be available for probing.
-	ContainerID           string
-	ContainerName         string
-	FatContainerCmd       []string
-	LocalVolumePath       string
-	DoUseLocalMounts      bool
-	SensorVolumeName      string
-	DoKeepTmpArtifacts    bool
-	StatePath             string
-	CmdPort               dockerapi.Port
-	EvtPort               dockerapi.Port
-	DockerHostIP          string
-	ImageInspector        *image.Inspector
-	APIClient             *dockerapi.Client
-	Overrides             *config.ContainerOverrides
-	ExplicitVolumeMounts  map[string]config.VolumeMount
-	BaseMounts            []dockerapi.HostMount
-	BaseVolumesFrom       []string
-	DoPublishExposedPorts bool
-	HasClassicLinks       bool
-	Links                 []string
-	EtcHostsMaps          []string
-	DNSServers            []string
-	DNSSearchDomains      []string
-	DoShowContainerLogs   bool
-	DoEnableMondel        bool
-	RunTargetAsUser       bool
-	KeepPerms             bool
-	PathPerms             map[string]*fsutil.AccessInfo
-	ExcludePatterns       map[string]*fsutil.AccessInfo
-	DoExcludeVarLockFiles bool
-	PreservePaths         map[string]*fsutil.AccessInfo
-	IncludePaths          map[string]*fsutil.AccessInfo
-	IncludeBins           map[string]*fsutil.AccessInfo
-	IncludeDirBinsList    map[string]*fsutil.AccessInfo
-	IncludeExes           map[string]*fsutil.AccessInfo
-	DoIncludeShell        bool
-	DoIncludeWorkdir      bool
-	DoIncludeHealthcheck  bool
-	DoIncludeCertAll      bool
-	DoIncludeCertBundles  bool
-	DoIncludeCertDirs     bool
-	DoIncludeCertPKAll    bool
-	DoIncludeCertPKDirs   bool
-	DoIncludeNew          bool
-	DoIncludeSSHClient    bool
-	DoIncludeOSLibsNet    bool
-	DoIncludeZoneInfo     bool
-	SelectedNetworks      map[string]NetNameInfo
-	DoDebug               bool
-	LogLevel              string
-	LogFormat             string
-	PrintState            bool
-	InContainer           bool
-	RTASourcePT           bool
-	DoObfuscateMetadata   bool
-	SensorIPCEndpoint     string
-	SensorIPCMode         string
-	TargetHost            string
-	dockerEventCh         chan *dockerapi.APIEvents
-	dockerEventStopCh     chan struct{}
-	isDone                aflag.Type
-	ipcClient             *ipc.Client
-	logger                *log.Entry
-	xc                    *app.ExecutionContext
-	crOpts                *config.ContainerRunOptions
-	portBindings          map[dockerapi.Port][]dockerapi.PortBinding
-	appNodejsInspectOpts  config.AppNodejsInspectOptions
+	ContainerInfo            *dockerapi.Container
+	ContainerPortsInfo       string
+	ContainerPortList        string
+	AvailablePorts           map[dockerapi.Port]dockerapi.PortBinding // Ports found to be available for probing.
+	ContainerID              string
+	ContainerName            string
+	FatContainerCmd          []string
+	LocalVolumePath          string
+	DoUseLocalMounts         bool
+	SensorVolumeName         string
+	DoKeepTmpArtifacts       bool
+	StatePath                string
+	CmdPort                  dockerapi.Port
+	EvtPort                  dockerapi.Port
+	DockerHostIP             string
+	ImageInspector           *image.Inspector
+	APIClient                *dockerapi.Client
+	Overrides                *config.ContainerOverrides
+	ExplicitVolumeMounts     map[string]config.VolumeMount
+	BaseMounts               []dockerapi.HostMount
+	BaseVolumesFrom          []string
+	DoPublishExposedPorts    bool
+	HasClassicLinks          bool
+	Links                    []string
+	EtcHostsMaps             []string
+	DNSServers               []string
+	DNSSearchDomains         []string
+	DoShowContainerLogs      bool
+	DoEnableMondel           bool
+	RunTargetAsUser          bool
+	KeepPerms                bool
+	PathPerms                map[string]*fsutil.AccessInfo
+	ExcludePatterns          map[string]*fsutil.AccessInfo
+	DoExcludeVarLockFiles    bool
+	PreservePaths            map[string]*fsutil.AccessInfo
+	IncludePaths             map[string]*fsutil.AccessInfo
+	IncludeBins              map[string]*fsutil.AccessInfo
+	IncludeDirBinsList       map[string]*fsutil.AccessInfo
+	IncludeExes              map[string]*fsutil.AccessInfo
+	DoIncludeShell           bool
+	DoIncludeWorkdir         bool
+	DoIncludeHealthcheck     bool
+	DoIncludeCertAll         bool
+	DoIncludeCertBundles     bool
+	DoIncludeCertDirs        bool
+	DoIncludeCertPKAll       bool
+	DoIncludeCertPKDirs      bool
+	DoIncludeNew             bool
+	DoIncludeSSHClient       bool
+	DoIncludeOSLibsNet       bool
+	DoIncludeZoneInfo        bool
+	SelectedNetworks         map[string]NetNameInfo
+	DoDebug                  bool
+	LogLevel                 string
+	LogFormat                string
+	PrintState               bool
+	InContainer              bool
+	RTASourcePT              bool
+	DoObfuscateMetadata      bool
+	ObfuscateAppPackageNames string
+	SensorIPCEndpoint        string
+	SensorIPCMode            string
+	TargetHost               string
+	dockerEventCh            chan *dockerapi.APIEvents
+	dockerEventStopCh        chan struct{}
+	isDone                   aflag.Type
+	ipcClient                *ipc.Client
+	logger                   *log.Entry
+	xc                       *app.ExecutionContext
+	crOpts                   *config.ContainerRunOptions
+	portBindings             map[dockerapi.Port][]dockerapi.PortBinding
+	appNodejsInspectOpts     config.AppNodejsInspectOptions
 }
 
 func pathMapKeys(m map[string]*fsutil.AccessInfo) []string {
@@ -220,6 +221,7 @@ func NewInspector(
 	inContainer bool,
 	rtaSourcePT bool,
 	doObfuscateMetadata bool,
+	obfuscateAppPackageNames string,
 	sensorIPCEndpoint string,
 	sensorIPCMode string,
 	printState bool,
@@ -227,64 +229,65 @@ func NewInspector(
 
 	logger = logger.WithFields(log.Fields{"component": "container.inspector"})
 	inspector := &Inspector{
-		logger:                logger,
-		StatePath:             statePath,
-		LocalVolumePath:       localVolumePath,
-		DoUseLocalMounts:      doUseLocalMounts,
-		SensorVolumeName:      sensorVolumeName,
-		DoKeepTmpArtifacts:    doKeepTmpArtifacts,
-		CmdPort:               cmdPortSpecDefault,
-		EvtPort:               evtPortSpecDefault,
-		ImageInspector:        imageInspector,
-		APIClient:             client,
-		Overrides:             overrides,
-		ExplicitVolumeMounts:  explicitVolumeMounts,
-		BaseMounts:            baseMounts,
-		BaseVolumesFrom:       baseVolumesFrom,
-		DoPublishExposedPorts: doPublishExposedPorts,
-		HasClassicLinks:       hasClassicLinks,
-		Links:                 links,
-		EtcHostsMaps:          etcHostsMaps,
-		DNSServers:            dnsServers,
-		DNSSearchDomains:      dnsSearchDomains,
-		DoShowContainerLogs:   showContainerLogs,
-		DoEnableMondel:        doEnableMondel,
-		RunTargetAsUser:       runTargetAsUser,
-		KeepPerms:             keepPerms,
-		PathPerms:             pathPerms,
-		ExcludePatterns:       excludePatterns,
-		DoExcludeVarLockFiles: doExcludeVarLockFiles,
-		PreservePaths:         preservePaths,
-		IncludePaths:          includePaths,
-		IncludeBins:           includeBins,
-		IncludeDirBinsList:    includeDirBinsList,
-		IncludeExes:           includeExes,
-		DoIncludeShell:        doIncludeShell,
-		DoIncludeWorkdir:      doIncludeWorkdir,
-		DoIncludeHealthcheck:  doIncludeHealthcheck,
-		DoIncludeCertAll:      doIncludeCertAll,
-		DoIncludeCertBundles:  doIncludeCertBundles,
-		DoIncludeCertDirs:     doIncludeCertDirs,
-		DoIncludeCertPKAll:    doIncludeCertPKAll,
-		DoIncludeCertPKDirs:   doIncludeCertPKDirs,
-		DoIncludeNew:          doIncludeNew,
-		DoIncludeSSHClient:    doIncludeSSHClient,
-		DoIncludeOSLibsNet:    doIncludeOSLibsNet,
-		DoIncludeZoneInfo:     doIncludeZoneInfo,
-		SelectedNetworks:      selectedNetworks,
-		DoDebug:               doDebug,
-		LogLevel:              logLevel,
-		LogFormat:             logFormat,
-		PrintState:            printState,
-		InContainer:           inContainer,
-		RTASourcePT:           rtaSourcePT,
-		DoObfuscateMetadata:   doObfuscateMetadata,
-		SensorIPCEndpoint:     sensorIPCEndpoint,
-		SensorIPCMode:         sensorIPCMode,
-		xc:                    xc,
-		crOpts:                crOpts,
-		portBindings:          portBindings,
-		appNodejsInspectOpts:  appNodejsInspectOpts,
+		logger:                   logger,
+		StatePath:                statePath,
+		LocalVolumePath:          localVolumePath,
+		DoUseLocalMounts:         doUseLocalMounts,
+		SensorVolumeName:         sensorVolumeName,
+		DoKeepTmpArtifacts:       doKeepTmpArtifacts,
+		CmdPort:                  cmdPortSpecDefault,
+		EvtPort:                  evtPortSpecDefault,
+		ImageInspector:           imageInspector,
+		APIClient:                client,
+		Overrides:                overrides,
+		ExplicitVolumeMounts:     explicitVolumeMounts,
+		BaseMounts:               baseMounts,
+		BaseVolumesFrom:          baseVolumesFrom,
+		DoPublishExposedPorts:    doPublishExposedPorts,
+		HasClassicLinks:          hasClassicLinks,
+		Links:                    links,
+		EtcHostsMaps:             etcHostsMaps,
+		DNSServers:               dnsServers,
+		DNSSearchDomains:         dnsSearchDomains,
+		DoShowContainerLogs:      showContainerLogs,
+		DoEnableMondel:           doEnableMondel,
+		RunTargetAsUser:          runTargetAsUser,
+		KeepPerms:                keepPerms,
+		PathPerms:                pathPerms,
+		ExcludePatterns:          excludePatterns,
+		DoExcludeVarLockFiles:    doExcludeVarLockFiles,
+		PreservePaths:            preservePaths,
+		IncludePaths:             includePaths,
+		IncludeBins:              includeBins,
+		IncludeDirBinsList:       includeDirBinsList,
+		IncludeExes:              includeExes,
+		DoIncludeShell:           doIncludeShell,
+		DoIncludeWorkdir:         doIncludeWorkdir,
+		DoIncludeHealthcheck:     doIncludeHealthcheck,
+		DoIncludeCertAll:         doIncludeCertAll,
+		DoIncludeCertBundles:     doIncludeCertBundles,
+		DoIncludeCertDirs:        doIncludeCertDirs,
+		DoIncludeCertPKAll:       doIncludeCertPKAll,
+		DoIncludeCertPKDirs:      doIncludeCertPKDirs,
+		DoIncludeNew:             doIncludeNew,
+		DoIncludeSSHClient:       doIncludeSSHClient,
+		DoIncludeOSLibsNet:       doIncludeOSLibsNet,
+		DoIncludeZoneInfo:        doIncludeZoneInfo,
+		SelectedNetworks:         selectedNetworks,
+		DoDebug:                  doDebug,
+		LogLevel:                 logLevel,
+		LogFormat:                logFormat,
+		PrintState:               printState,
+		InContainer:              inContainer,
+		RTASourcePT:              rtaSourcePT,
+		DoObfuscateMetadata:      doObfuscateMetadata,
+		ObfuscateAppPackageNames: obfuscateAppPackageNames,
+		SensorIPCEndpoint:        sensorIPCEndpoint,
+		SensorIPCMode:            sensorIPCMode,
+		xc:                       xc,
+		crOpts:                   crOpts,
+		portBindings:             portBindings,
+		appNodejsInspectOpts:     appNodejsInspectOpts,
 	}
 
 	if overrides == nil {
@@ -872,6 +875,7 @@ func (i *Inspector) RunContainer() error {
 	cmd.IncludeNodePackages = i.appNodejsInspectOpts.IncludePackages
 
 	cmd.ObfuscateMetadata = i.DoObfuscateMetadata
+	cmd.ObfuscateAppPackageNames = i.ObfuscateAppPackageNames
 
 	_, err = i.ipcClient.SendCommand(cmd)
 	if err != nil {

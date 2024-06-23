@@ -527,10 +527,8 @@ func LoadPackage(archivePath string,
 	utf8Detector *UTF8Detector,
 	processorParams *ProcessorParams,
 ) (*Package, error) {
-	imageID = dockerutil.CleanImageID(imageID)
-
 	cpmDumps := hasChangePathMatcherDumps(changePathMatchers)
-	dv1ConfigObjectFileName := fmt.Sprintf("%s.json", imageID)
+	dv1ConfigObjectFileName := fmt.Sprintf("%s.json", dockerutil.CleanImageID(imageID))
 	afile, err := os.Open(archivePath)
 	if err != nil {
 		log.Errorf("dockerimage.LoadPackage: os.Open error - %v", err)

@@ -759,10 +759,10 @@ func ReplaceFileData(target string, replace []ReplaceInfo, preserveTimes bool) e
 	return nil
 }
 
-type DataUpdaterFn func(target string, data []byte) ([]byte, error)
+type DataUpdaterFn func(target string, params map[string]interface{}, data []byte) ([]byte, error)
 
 // UpdateFileData updates all file data in target file using the updater function
-func UpdateFileData(target string, updater DataUpdaterFn, preserveTimes bool) error {
+func UpdateFileData(target string, updater DataUpdaterFn, params map[string]interface{}, preserveTimes bool) error {
 	if target == "" || updater == nil {
 		return nil
 	}
@@ -779,7 +779,7 @@ func UpdateFileData(target string, updater DataUpdaterFn, preserveTimes bool) er
 		return err
 	}
 
-	raw, err = updater(target, raw)
+	raw, err = updater(target, params, raw)
 	if err != nil {
 		return err
 	}

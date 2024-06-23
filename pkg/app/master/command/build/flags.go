@@ -152,7 +152,8 @@ const (
 	FlagCBOCacheFrom        = "cbo-cache-from"
 
 	//Experimenal flags
-	FlagObfuscateMetadata = "obfuscate-metadata"
+	FlagObfuscateMetadata        = "obfuscate-metadata"
+	FlagObfuscateAppPackageNames = "obfuscate-app-package-names"
 )
 
 // Build command flag usage info
@@ -231,7 +232,8 @@ const (
 	FlagCBONetworkUsage          = "Networking mode to use for the RUN instructions at build-time"
 	FlagCBOCacheFromUsage        = "Add an image to the build cache"
 
-	FlagObfuscateMetadataUsage = "Obfuscate the standard system and application metadata to make it more challenging to identify the image components"
+	FlagObfuscateMetadataUsage        = "Obfuscate the standard system and application metadata to make it more challenging to identify the image components"
+	FlagObfuscateAppPackageNamesUsage = "Select app package name obfuscate mode: none | empty | prefix | random"
 )
 
 var Flags = map[string]cli.Flag{
@@ -647,6 +649,12 @@ var Flags = map[string]cli.Flag{
 		Name:    FlagObfuscateMetadata,
 		Usage:   FlagObfuscateMetadataUsage,
 		EnvVars: []string{"DSLIM_OBFUSCATE_METADATA"},
+	},
+	FlagObfuscateAppPackageNames: &cli.StringFlag{
+		Name:    FlagObfuscateAppPackageNames,
+		Value:   config.OAPNNone,
+		Usage:   FlagObfuscateAppPackageNamesUsage,
+		EnvVars: []string{"DSLIM_OBFUSCATE_APN"},
 	},
 }
 

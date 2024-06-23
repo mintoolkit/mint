@@ -346,8 +346,9 @@ func OnCommand(
 	xc.Out.State("image.api.inspection.done")
 	xc.Out.State("image.data.inspection.start")
 
-	imageID := dockerutil.CleanImageID(imageInspector.ImageInfo.ID)
-	iaName := fmt.Sprintf("%s.tar", imageID)
+	//not using dockerutil.CleanImageID() because some container runtime APIs might expect the full image ID with the hash prefix
+	imageID := imageInspector.ImageInfo.ID
+	iaName := fmt.Sprintf("%s.tar", dockerutil.CleanImageID(imageID))
 	iaPath := filepath.Join(localVolumePath, "image", iaName)
 	iaPathReady := fmt.Sprintf("%s.ready", iaPath)
 
@@ -1357,8 +1358,16 @@ func objectHistoryString(history *dockerimage.ObjectHistory) string {
 		return "H=[]"
 	}
 
+	return fmt.Sprintf("H=%s", objectHistoryValue(history))
+}
+
+func objectHistoryValue(history *dockerimage.ObjectHistory) string {
+	if history == nil {
+		return "[]"
+	}
+
 	var builder strings.Builder
-	builder.WriteString("H=[")
+	builder.WriteString("[")
 	if history.Add != nil {
 		builder.WriteString(fmt.Sprintf("A:%d", history.Add.Layer))
 	}
@@ -1386,7 +1395,7 @@ func printObject(xc *app.ExecutionContext, object *dockerimage.ObjectMetadata) {
 	var hashInfo string
 
 	if object.Hash != "" {
-		hashInfo = fmt.Sprintf(" hash=%s", object.Hash)
+		hashInfo = fmt.Sprintf("%s", object.Hash)
 	}
 	ov := ovars{
 		"mode":        object.Mode,
@@ -1395,7 +1404,7 @@ func printObject(xc *app.ExecutionContext, object *dockerimage.ObjectMetadata) {
 		"uid":         object.UID,
 		"gid":         object.GID,
 		"mtime":       object.ModTime.UTC().Format(time.RFC3339),
-		"H":           objectHistoryString(object.History),
+		"H":           objectHistoryValue(object.History),
 		"hash":        hashInfo,
 		"object.name": object.Name,
 	}

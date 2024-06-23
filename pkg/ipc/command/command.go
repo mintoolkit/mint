@@ -42,10 +42,11 @@ const TTContainer = "container"
 
 // StartMonitor contains the start monitor command fields
 type StartMonitor struct {
-	TargetType                   string
-	TargetID                     string
-	ImageID                      string
+	TargetType                   string                        `json:"target_type"`
+	TargetID                     string                        `json:"target_id"`
+	ImageID                      string                        `json:"image_id"`
 	ObfuscateMetadata            bool                          `json:"obfuscate_metadata"`
+	ObfuscateAppPackageNames     string                        `json:"obfuscate_apn"`
 	RTASourcePT                  bool                          `json:"rta_source_ptrace"`
 	AppName                      string                        `json:"app_name"`
 	AppArgs                      []string                      `json:"app_args,omitempty"`

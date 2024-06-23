@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path"
@@ -16,6 +17,7 @@ import (
 	"sort"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/armon/go-radix"
 	"github.com/bmatcuk/doublestar/v3"
@@ -23,6 +25,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/app"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
 	"github.com/mintoolkit/mint/pkg/app/sensor/detector/binfile"
 	"github.com/mintoolkit/mint/pkg/app/sensor/inspector/sodeps"
 	"github.com/mintoolkit/mint/pkg/artifact"
@@ -198,7 +201,7 @@ var appMetadataFileUpdate = map[string]fsutil.DataUpdaterFn{
 	nodePackageFile: nodePackageJSONVerUpdater,
 }
 
-func appMetadataFileUpdater(filePath string) error {
+func appMetadataFileUpdater(filePath string, amFileUpdateParams map[string]interface{}) error {
 	target := filepath.Base(filePath)
 
 	updater, found := appMetadataFileUpdate[target]
@@ -207,26 +210,84 @@ func appMetadataFileUpdater(filePath string) error {
 		return nil
 	}
 
-	return fsutil.UpdateFileData(filePath, updater, true)
+	return fsutil.UpdateFileData(filePath, updater, amFileUpdateParams, true)
 }
 
-func nodePackageJSONVerUpdater(target string, data []byte) ([]byte, error) {
+const (
+	OMPObfuscateAPN = "obfuscate_apn"
+)
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+func simpleRandomString(length int) string {
+	const chars = "abcdefghijklmnopqrstuvwxyz"
+
+	out := make([]byte, length)
+	for i := range out {
+		out[i] = chars[rand.Intn(len(chars))]
+	}
+
+	return string(out)
+}
+
+func nodePackageJSONVerUpdater(target string, params map[string]interface{}, data []byte) ([]byte, error) {
 	var info map[string]interface{}
+	var infoUpdated bool
 
 	err := json.Unmarshal(data, &info)
 	if err != nil {
 		return nil, err
 	}
 
-	version, ok := info["version"].(string)
-	if !ok {
-		log.Tracef("nodePackageJSONVerUpdater - no version field, return as-is")
-		return data, nil
+	if pkgVersionData, found := info["version"]; found {
+		if pkgVersion, ok := pkgVersionData.(string); ok {
+			pkgVersion = fmt.Sprintf("1%s", pkgVersion)
+			log.Tracef("nodePackageJSONVerUpdater(%s) - version='%v'->'%v')", target, info["version"], pkgVersion)
+			info["version"] = pkgVersion
+			infoUpdated = true
+		}
 	}
 
-	version = fmt.Sprintf("1%s", version)
-	log.Tracef("nodePackageJSONVerUpdater(%s) - version='%v'->'%v')\n", target, info["version"], version)
-	info["version"] = version
+	var obfuscateAPN string
+	if params != nil {
+		if val, found := params[OMPObfuscateAPN]; found {
+			if data, ok := val.(string); ok {
+				obfuscateAPN = data
+			}
+		}
+	}
+
+	//note: also should have an option not to change package names globally (scoping it to the app dependencies only)
+	if obfuscateAPN != "" && obfuscateAPN != config.OAPNNone {
+		fmt.Printf("nodePackageJSONVerUpdater(%s) - app target)\n", target)
+		if pkgNameData, found := info["name"]; found {
+			if pkgName, ok := pkgNameData.(string); ok {
+				switch obfuscateAPN {
+				case config.OAPNEmpty:
+					pkgName = ""
+				case config.OAPNPrefix:
+					pkgName = fmt.Sprintf("obfuscated-%s", pkgName)
+				default:
+					pkgName = fmt.Sprintf("%s", simpleRandomString(20))
+				}
+
+				log.Tracef("nodePackageJSONVerUpdater(%s) - name='%v'->'%v')", target, info["name"], pkgName)
+				info["name"] = pkgName
+				infoUpdated = true
+			} else {
+				log.Tracef("nodePackageJSONVerUpdater(%s) - app target - non-string 'name' -> '%v'", target, pkgNameData)
+			}
+		} else {
+			log.Tracef("nodePackageJSONVerUpdater(%s) - app target - no 'name'", target)
+		}
+	}
+
+	if !infoUpdated {
+		log.Tracef("nodePackageJSONVerUpdater - no package info update, return as-is")
+		return data, nil
+	}
 
 	var b bytes.Buffer
 	enc := json.NewEncoder(&b)
@@ -2036,7 +2097,11 @@ copyFiles:
 					log.Debugf("saveArtifacts [%s,%s] - error saving file => %v", srcFileName, filePath, err)
 				}
 
-				if err := appMetadataFileUpdater(filePath); err != nil {
+				amFileUpdateParams := map[string]interface{}{
+					OMPObfuscateAPN: p.cmd.ObfuscateAppPackageNames,
+				}
+
+				if err := appMetadataFileUpdater(filePath, amFileUpdateParams); err != nil {
 					log.Debugf("saveArtifacts [%s,%s] - appMetadataFileUpdater => not updated / err = %v", srcFileName, filePath, err)
 				}
 			} else {

@@ -145,6 +145,7 @@ type DockerClient struct {
 	Env         map[string]string
 }
 
+// ContinueAfter mode enums
 const (
 	CAMContainerProbe = "container-probe"
 	CAMProbe          = "probe"
@@ -207,3 +208,11 @@ type KubernetesTargetOverride struct {
 func (ko KubernetesOptions) HasTargetSet() bool {
 	return ko.Target.Workload != ""
 }
+
+// ObfuscateAppPackageNames mode enums
+const (
+	OAPNNone   = "none"
+	OAPNEmpty  = "empty"
+	OAPNPrefix = "prefix"
+	OAPNRandom = "random"
+)

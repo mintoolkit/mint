@@ -274,6 +274,7 @@ func OnCommand(
 		gparams.InContainer,
 		true,  //rtaSourcePT
 		false, //doObfuscateMetadata
+		"",    //doObfuscateAPN
 		sensorIPCEndpoint,
 		sensorIPCMode,
 		printState,

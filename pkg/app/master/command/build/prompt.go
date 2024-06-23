@@ -1,9 +1,10 @@
 package build
 
 import (
-	"github.com/mintoolkit/mint/pkg/app/master/command"
-
 	"github.com/c-bata/go-prompt"
+
+	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/config"
 )
 
 var CommandSuggestion = prompt.Suggest{
@@ -163,6 +164,7 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		{Text: command.FullFlagName(FlagImageBuildEngine), Description: FlagImageBuildEngineUsage},
 		{Text: command.FullFlagName(FlagImageBuildArch), Description: FlagImageBuildArchUsage},
 		{Text: command.FullFlagName(FlagObfuscateMetadata), Description: FlagObfuscateMetadataUsage},
+		{Text: command.FullFlagName(FlagObfuscateAppPackageNames), Description: FlagObfuscateAppPackageNamesUsage},
 	},
 	Values: map[string]command.CompleteValue{
 		command.FullFlagName(command.FlagCommandParamsFile): command.CompleteFile,
@@ -239,7 +241,19 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		command.FullFlagName(FlagImageBuildArch):               CompleteImageBuildArch,
 		command.FullFlagName(FlagAppImageDockerfile):           command.CompleteFile,
 		command.FullFlagName(FlagObfuscateMetadata):            command.CompleteBool,
+		command.FullFlagName(FlagObfuscateAppPackageNames):     CompleteObfuscateAPN,
 	},
+}
+
+var obfuscateAPNValues = []prompt.Suggest{
+	{Text: config.OAPNNone, Description: "Do no app package name obfuscation"},
+	{Text: config.OAPNEmpty, Description: "Replace the app package names with empty values"},
+	{Text: config.OAPNPrefix, Description: "Prefix app package names with a string"},
+	{Text: config.OAPNRandom, Description: "Replace app package names with random values"},
+}
+
+func CompleteObfuscateAPN(ia *command.InteractiveApp, token string, params prompt.Document) []prompt.Suggest {
+	return prompt.FilterHasPrefix(obfuscateAPNValues, token, true)
 }
 
 var imageBuildEngineValues = []prompt.Suggest{

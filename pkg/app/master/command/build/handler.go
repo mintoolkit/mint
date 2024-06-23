@@ -148,6 +148,7 @@ func OnCommand(
 	rtaOnbuildBaseImage bool,
 	rtaSourcePT bool,
 	doObfuscateMetadata bool,
+	obfuscateAppPackageNames string,
 	sensorIPCEndpoint string,
 	sensorIPCMode string,
 	kubeOpts config.KubernetesOptions,
@@ -641,8 +642,9 @@ func OnCommand(
 				includeLastImageLayers, appImageStartInstGroup, appImageStartInst, len(appImageDockerfileInsts))
 
 			includeLayerPaths := map[string]*fsutil.AccessInfo{}
-			imageID := dockerutil.CleanImageID(imageInspector.ImageInfo.ID)
-			iaName := fmt.Sprintf("%s.tar", imageID)
+			//not using dockerutil.CleanImageID() because some container runtime APIs might expect the full image ID with the hash prefix
+			imageID := imageInspector.ImageInfo.ID
+			iaName := fmt.Sprintf("%s.tar", dockerutil.CleanImageID(imageID))
 			iaPath := filepath.Join(localVolumePath, "image", iaName)
 			iaPathReady := fmt.Sprintf("%s.ready", iaPath)
 
@@ -1109,6 +1111,7 @@ func OnCommand(
 		gparams.InContainer,
 		rtaSourcePT,
 		doObfuscateMetadata,
+		obfuscateAppPackageNames,
 		sensorIPCEndpoint,
 		sensorIPCMode,
 		printState,
