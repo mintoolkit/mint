@@ -1,5 +1,17 @@
 # Releases
 
+## 1.41.4 (6/22/2024)
+
+### New Features
+
+- The `--obfuscate-app-package-names` flag for the `slim` (aka `build`) command to select the obfuscation mode for the application package names (ignored unless the `--obfuscate-metadata` flag is enabled). 
+- The `--include-last-image-layers` flag for the `slim` (aka `build`) command to keep all files from the last number of layers in the image
+
+### Improvements
+
+- Using full image IDs (without stripped hash prefix) when calling the "save image" Docker API to make Orbstack happy
+
+
 ## 1.41.3 (6/8/2024)
 
 ### New Features
