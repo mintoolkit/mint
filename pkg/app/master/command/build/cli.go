@@ -122,6 +122,7 @@ var BuildFlags = (append([]cli.Flag{
 	cflag(FlagIncludeExe),
 	cflag(FlagIncludeShell),
 	cflag(FlagIncludeWorkdir),
+	cflag(FlagIncludeLastImageLayers),
 	cflag(FlagIncludeAppImageAll),
 	cflag(FlagAppImageStartInstGroup),
 	cflag(FlagAppImageStartInst),
@@ -150,7 +151,6 @@ var BuildFlags = (append([]cli.Flag{
 	cflag(FlagIncludeAppNextNodeModulesDir),
 	cflag(FlagIncludeNodePackage),
 	cflag(FlagKeepPerms),
-	cflag(FlagPathPerms),
 	cflag(FlagPathPermsFile),
 	//"EXCLUDE" FLAGS - START
 	cflag(FlagExcludePattern),
@@ -685,7 +685,7 @@ var CLI = &cli.Command{
 		doIncludeShell := ctx.Bool(FlagIncludeShell)
 
 		doIncludeWorkdir := ctx.Bool(FlagIncludeWorkdir)
-		includeLastImageLayers := uint(0)
+		includeLastImageLayers := ctx.Uint(FlagIncludeLastImageLayers)
 		doIncludeAppImageAll := ctx.Bool(FlagIncludeAppImageAll)
 		appImageStartInstGroup := ctx.Int(FlagAppImageStartInstGroup)
 		appImageStartInst := ctx.String(FlagAppImageStartInst)

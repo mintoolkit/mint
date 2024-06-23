@@ -47,6 +47,9 @@ const (
 	FlagWorkdirExclude      = "workdir-exclude"
 	FlagWorkdirExcludeUsage = "Exclude filter for artifacts when working directory is included"
 
+	FlagIncludeLastImageLayers      = "include-last-image-layers"
+	FlagIncludeLastImageLayersUsage = "Keep all files from the last number of layers in the image"
+
 	FlagIncludeAppImageAddCopyAll = "include-app-image-addcopy-all" //TBD
 	FlagIncludeAppImageRun        = "include-app-image-run"         //TBD
 
@@ -456,6 +459,12 @@ var Flags = map[string]cli.Flag{
 		Value:   cli.NewStringSlice(),
 		Usage:   FlagIncludeNodePackageUsage,
 		EnvVars: []string{"DSLIM_INCLUDE_NODE_PKG"},
+	},
+	FlagIncludeLastImageLayers: &cli.UintFlag{
+		Name:    FlagIncludeLastImageLayers,
+		Value:   0,
+		Usage:   FlagIncludeLastImageLayersUsage,
+		EnvVars: []string{"DSLIM_INCLUDE_LAST_IMAGE_LAYERS"},
 	},
 	FlagKeepPerms: &cli.BoolFlag{
 		Name:    FlagKeepPerms,
