@@ -235,8 +235,8 @@ const (
 	FlagCBONetworkUsage          = "Networking mode to use for the RUN instructions at build-time"
 	FlagCBOCacheFromUsage        = "Add an image to the build cache"
 
-	FlagObfuscateMetadataUsage        = "Obfuscate the standard system and application metadata to make it more challenging to identify the image components"
-	FlagObfuscateAppPackageNamesUsage = "Select app package name obfuscate mode: none | empty | prefix | random"
+	FlagObfuscateMetadataUsage        = "Obfuscate the operating system and application metadata to make it hard or impossible to identify the target image components. Using this flag will hide vulnerabilities from vulnerability scanners that rely on the OS and programming language specific package metadata to identify vulnerabilities in container images. This flag can be used to prevent vulnerability scanners from detecting vulnerabilities. This flag also prevents some SBOM generation tools from detecting operating system and application packages."
+	FlagObfuscateAppPackageNamesUsage = "Select app package name obfuscate mode: none | empty | prefix | random. This flag changes package names, so the packages can't be recognized by vulnerability scanning and SBOM generation tools. The 'empty' mode completely hides the packages from vulnerability scanners and from SBOM tools."
 )
 
 var Flags = map[string]cli.Flag{

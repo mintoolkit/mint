@@ -286,7 +286,8 @@ func SaveImage(dclient *dockerapi.Client, imageRef, local string, extract, remov
 		}
 	}
 
-	imageRef = CleanImageID(imageRef)
+	//don't strip the hash prefix (alternative ExportImage API call implementations want full image IDs)
+	//imageRef = CleanImageID(imageRef)
 
 	//todo: 'pull' the image if it's not available locally yet
 	//note: HasImage() doesn't work with image IDs
