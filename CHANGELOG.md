@@ -1,5 +1,16 @@
 # Releases
 
+## 1.41.5 (6/30/2024)
+
+### New Features
+
+- The `--include-distro-info` flag for the `slim` (aka `build`) command to keep the OS distro metadata in the minified image. 
+
+### Improvements
+
+- Using full image IDs (without stripped hash prefix) when calling the "save image" Docker API to make Orbstack happy (more improvements)
+
+
 ## 1.41.4 (6/22/2024)
 
 ### New Features
