@@ -476,6 +476,7 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--include-cert-pk-all` - Keep all discovered cert private keys
 - `--include-cert-pk-dirs` - Keep known cert private key directories and all files in them
 - `--include-new` - Keep new files created by target during dynamic analysis (default value: true)
+- `--include-distro-info` - Keep OS distro metadata (default value: false)
 - `--include-oslibs-net` - Keep the common networking OS libraries (default value: true)
 - `--include-ssh-client` - Keep the common SSH client components and configs
 - `--include-zoneinfo` - Keep the OS/libc zoneinfo data (default value: false)
