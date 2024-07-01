@@ -43,6 +43,9 @@ const (
 	FlagIncludeHealthcheck      = "include-healthcheck"
 	FlagIncludeHealthcheckUsage = "Keep the HEALTHCHECK related artifacts"
 
+	FlagIncludeDistroInfo      = "include-distro-info"
+	FlagIncludeDistroInfoUsage = "Keep OS distro metadata"
+
 	//TBD
 	FlagWorkdirExclude      = "workdir-exclude"
 	FlagWorkdirExcludeUsage = "Exclude filter for artifacts when working directory is included"
@@ -350,6 +353,12 @@ var Flags = map[string]cli.Flag{
 		Value:   true, //enabled by default
 		Usage:   FlagIncludeHealthcheckUsage,
 		EnvVars: []string{"DSLIM_INCLUDE_HEALTHCHECK"},
+	},
+	FlagIncludeDistroInfo: &cli.BoolFlag{
+		Name:    FlagIncludeDistroInfo,
+		Value:   false,
+		Usage:   FlagIncludeDistroInfoUsage,
+		EnvVars: []string{"DSLIM_INCLUDE_DISTRO_INFO"},
 	},
 	////
 	FlagIncludeSSHClient: &cli.BoolFlag{

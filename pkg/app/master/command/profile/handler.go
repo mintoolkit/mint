@@ -258,6 +258,7 @@ func OnCommand(
 		false, //doIncludeShell,
 		false, //doIncludeWorkdir,
 		false, //doIncludeHealthcheck
+		false, //doIncludeDistroInfo
 		false, //doIncludeCertAll
 		false, //doIncludeCertBundles
 		false, //doIncludeCertDirs

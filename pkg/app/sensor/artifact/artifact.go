@@ -34,6 +34,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/report"
 	"github.com/mintoolkit/mint/pkg/sysidentity"
 	"github.com/mintoolkit/mint/pkg/system"
+	"github.com/mintoolkit/mint/pkg/system/osdistro"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
 	"github.com/mintoolkit/mint/pkg/util/jsonutil"
 )
@@ -610,7 +611,10 @@ func saveResults(
 	peReport *report.PeMonitorReport,
 	seReport *report.SensorReport,
 ) error {
-	log.Debugf("saveResults(%v,...)", len(fileNames))
+	logger := log.WithField("op", "sensor.saveResults")
+	logger.Trace("call")
+	defer logger.Trace("exit")
+	logger.Debugf("params(origPathMap=%v, fileNames=%v,...)", len(origPathMap), len(fileNames))
 
 	artifactStore := newStore(origPathMap,
 		artifactsDirName,
@@ -813,30 +817,33 @@ func (p *store) prepareArtifact(artifactFileName string) {
 }
 
 func (p *store) prepareArtifacts() {
-	log.Debugf("p.prepareArtifacts() p.rawNames=%v", len(p.rawNames))
+	logger := log.WithField("op", "sensor.store.prepareArtifacts")
+	logger.Trace("call")
+	defer logger.Trace("exit")
+	logger.Debugf("p.rawNames=%v", len(p.rawNames))
 
 	for artifactFileName := range p.rawNames {
-		log.Debugf("prepareArtifacts - artifact => %v", artifactFileName)
+		logger.Debugf("artifact => %v", artifactFileName)
 		p.prepareArtifact(artifactFileName)
 	}
 
 	if p.ptMonReport.Enabled {
-		log.Debug("prepareArtifacts - ptMonReport.Enabled")
+		logger.Debug("ptMonReport.Enabled")
 		for artifactFileName, fsaInfo := range p.ptMonReport.FSActivity {
 			artifactInfo, found := p.rawNames[artifactFileName]
 			if found && artifactInfo != nil {
 				artifactInfo.FSActivity = fsaInfo
 			} else {
-				log.Debugf("prepareArtifacts [%v] - fsa artifact => %v", found, artifactFileName)
+				logger.Debugf("[%v] - fsa artifact => %v", found, artifactFileName)
 				if found && artifactInfo == nil {
-					log.Debugf("prepareArtifacts - fsa artifact (found, but no info) => %v", artifactFileName)
+					logger.Debugf("fsa artifact (found, but no info) => %v", artifactFileName)
 				}
 				p.prepareArtifact(artifactFileName)
 				artifactInfo, found := p.rawNames[artifactFileName]
 				if found && artifactInfo != nil {
 					artifactInfo.FSActivity = fsaInfo
 				} else {
-					log.Debugf("[warn] prepareArtifacts - fsa artifact - missing in rawNames => %v", artifactFileName)
+					logger.Debugf("[warn] fsa artifact - missing in rawNames => %v", artifactFileName)
 				}
 			}
 		}
@@ -851,9 +858,9 @@ func (p *store) prepareArtifacts() {
 		binArtifacts, err := sodeps.AllDependencies(artifactFileName)
 		if err != nil {
 			if err == sodeps.ErrDepResolverNotFound {
-				log.Debug("prepareArtifacts.binArtifacts[bsa] - no static bin dep resolver")
+				logger.Debug("binArtifacts[bsa] - no static bin dep resolver")
 			} else {
-				log.Debugf("prepareArtifacts.binArtifacts[bsa] - %v - error getting bin artifacts => %v\n", artifactFileName, err)
+				logger.Debugf("binArtifacts[bsa] - %v - error getting bin artifacts => %v\n", artifactFileName, err)
 			}
 			continue
 		}
@@ -865,13 +872,13 @@ func (p *store) prepareArtifacts() {
 
 			_, found := p.rawNames[bpath]
 			if found {
-				log.Debugf("prepareArtifacts.binArtifacts[bsa] - known file path (%s)", bpath)
+				logger.Debugf("binArtifacts[bsa] - known file path (%s)", bpath)
 				continue
 			}
 
 			bpathFileInfo, err := os.Lstat(bpath)
 			if err != nil {
-				log.Debugf("prepareArtifacts.binArtifacts[bsa] - artifact doesn't exist: %v (%v)", bpath, os.IsNotExist(err))
+				logger.Debugf("binArtifacts[bsa] - artifact doesn't exist: %v (%v)", bpath, os.IsNotExist(err))
 				continue
 			}
 
@@ -906,10 +913,10 @@ func (p *store) prepareArtifacts() {
 				p.rawNames[bpath] = bprops
 			default:
 				fsType = report.UnexpectedArtifactTypeName
-				log.Debugf("prepareArtifacts.binArtifacts[bsa] - unexpected ft - %s", bpath)
+				logger.Debugf("binArtifacts[bsa] - unexpected ft - %s", bpath)
 			}
 
-			log.Debugf("prepareArtifacts.binArtifacts[bsa] - bin artifact (%s) fsType=%s [%d]bdep=%s", artifactFileName, fsType, idx, bpath)
+			logger.Debugf("binArtifacts[bsa] - bin artifact (%s) fsType=%s [%d]bdep=%s", artifactFileName, fsType, idx, bpath)
 		}
 	}
 
@@ -917,19 +924,22 @@ func (p *store) prepareArtifacts() {
 }
 
 func (p *store) resolveLinks() {
+	logger := log.WithField("op", "sensor.store.resolveLinks")
+	logger.Trace("call")
+	defer logger.Trace("exit")
 	//note:
 	//the links should be resolved in findSymlinks, but
 	//the current design needs to be improved to catch all symlinks
 	//this is a backup to catch the root level symlinks
 	files, err := os.ReadDir("/")
 	if err != nil {
-		log.Debug("resolveLinks - os.ReadDir error: ", err)
+		logger.Debug("os.ReadDir error: ", err)
 		return
 	}
 
 	for _, file := range files {
 		fpath := fmt.Sprintf("/%s", file.Name())
-		log.Debugf("resolveLinks.files - fpath='%s'", fpath)
+		logger.Debugf("files - fpath='%s'", fpath)
 
 		if fpath == "/proc" ||
 			fpath == "/sys" ||
@@ -939,37 +949,37 @@ func (p *store) resolveLinks() {
 
 		fileInfo, err := os.Lstat(fpath)
 		if err != nil {
-			log.Debugf("resolveLinks.files - os.Lstat(%s) error: %v", fpath, err)
+			logger.Debugf("files - os.Lstat(%s) error: %v", fpath, err)
 			continue
 		}
 
 		if fileInfo.Mode()&os.ModeSymlink == 0 {
-			log.Debug("resolveLinks.files - skipping non-symlink")
+			logger.Debug("files - skipping non-symlink")
 			continue
 		}
 
 		linkRef, err := os.Readlink(fpath)
 		if err != nil {
-			log.Debugf("resolveLinks.files - os.Readlink(%s) error: %v", fpath, err)
+			logger.Debugf("files - os.Readlink(%s) error: %v", fpath, err)
 			continue
 		}
 
 		var absLinkRef string
 		if !filepath.IsAbs(linkRef) {
 			linkDir := filepath.Dir(fpath)
-			log.Debugf("resolveLinks.files - relative linkRef %v -> %v +/+ %v", fpath, linkDir, linkRef)
+			logger.Debugf("files - relative linkRef %v -> %v +/+ %v", fpath, linkDir, linkRef)
 			fullLinkRef := filepath.Join(linkDir, linkRef)
 			var err error
 			absLinkRef, err = filepath.Abs(fullLinkRef)
 			if err != nil {
-				log.Debugf("resolveLinks.files - error getting absolute path for symlink ref (1) (%v) -> %v => %v", err, fpath, fullLinkRef)
+				logger.Debugf("files - error getting absolute path for symlink ref (1) (%v) -> %v => %v", err, fpath, fullLinkRef)
 				continue
 			}
 		} else {
 			var err error
 			absLinkRef, err = filepath.Abs(linkRef)
 			if err != nil {
-				log.Debugf("resolveLinks.files - error getting absolute path for symlink ref (2) (%v) -> %v => %v", err, fpath, linkRef)
+				logger.Debugf("files - error getting absolute path for symlink ref (2) (%v) -> %v => %v", err, fpath, linkRef)
 				continue
 			}
 		}
@@ -977,7 +987,7 @@ func (p *store) resolveLinks() {
 		//todo: skip "/proc/..." references
 		evalLinkRef, err := filepath.EvalSymlinks(absLinkRef)
 		if err != nil {
-			log.Debugf("resolveLinks.files - error evaluating symlink (%v) -> %v => %v", err, fpath, absLinkRef)
+			logger.Debugf("files - error evaluating symlink (%v) -> %v => %v", err, fpath, absLinkRef)
 		}
 
 		//detecting intermediate dir symlinks
@@ -987,10 +997,10 @@ func (p *store) resolveLinks() {
 		for rawName := range p.rawNames {
 			if strings.HasPrefix(rawName, symlinkPrefix) {
 				if _, found := p.rawNames[fpath]; found {
-					log.Debugf("resolveLinks.files - rawNames - known symlink: name=%s target=%s", fpath, symlinkPrefix)
+					logger.Debugf("files - rawNames - known symlink: name=%s target=%s", fpath, symlinkPrefix)
 				} else {
 					p.rawNames[fpath] = nil
-					log.Debugf("resolveLinks.files - added path symlink to p.rawNames (0) -> %v", fpath)
+					logger.Debugf("files - added path symlink to p.rawNames (0) -> %v", fpath)
 					p.prepareArtifact(fpath)
 				}
 				break
@@ -998,10 +1008,10 @@ func (p *store) resolveLinks() {
 
 			if strings.HasPrefix(rawName, absPrefix) {
 				if _, found := p.rawNames[fpath]; found {
-					log.Debugf("resolveLinks.files - rawNames - known symlink: name=%s target=%s", fpath, absPrefix)
+					logger.Debugf("files - rawNames - known symlink: name=%s target=%s", fpath, absPrefix)
 				} else {
 					p.rawNames[fpath] = nil
-					log.Debugf("resolveLinks.files - added path symlink to p.rawNames (1) -> %v", fpath)
+					logger.Debugf("files - added path symlink to p.rawNames (1) -> %v", fpath)
 					p.prepareArtifact(fpath)
 				}
 				break
@@ -1011,10 +1021,10 @@ func (p *store) resolveLinks() {
 				absPrefix != evalPrefix &&
 				strings.HasPrefix(rawName, evalPrefix) {
 				if _, found := p.rawNames[fpath]; found {
-					log.Debugf("resolveLinks.files - rawNames - known symlink: name=%s target=%s", fpath, evalPrefix)
+					logger.Debugf("files - rawNames - known symlink: name=%s target=%s", fpath, evalPrefix)
 				} else {
 					p.rawNames[fpath] = nil
-					log.Debugf("resolveLinks.files - added path symlink to p.rawNames (2) -> %v", fpath)
+					logger.Debugf("files - added path symlink to p.rawNames (2) -> %v", fpath)
 					p.prepareArtifact(fpath)
 				}
 				break
@@ -1024,7 +1034,7 @@ func (p *store) resolveLinks() {
 
 	//note: resolve these extra symlinks after the root level symlinks
 	for name := range p.resolve {
-		log.Debug("resolveLinks - resolving: ", name)
+		logger.Debug("resolving: ", name)
 		p.prepareArtifact(name)
 	}
 }
@@ -1092,37 +1102,40 @@ func linkTargetToFullPath(fullPath, target string) string {
 }
 
 func (p *store) saveWorkdir(excludePatterns []string) {
+	logger := log.WithField("op", "sensor.store.saveWorkdir")
+	logger.Trace("call")
+	defer logger.Trace("exit")
 	if p.cmd.IncludeWorkdir == "" {
 		return
 	}
 
 	if artifact.IsFilteredPath(p.cmd.IncludeWorkdir) {
-		log.Debug("sensor.store.saveWorkdir(): skipping filtered workdir")
+		logger.Debug("skipping filtered workdir")
 		return
 	}
 
 	if !fsutil.DirExists(p.cmd.IncludeWorkdir) {
-		log.Debugf("sensor.store.saveWorkdir: workdir does not exist %s", p.cmd.IncludeWorkdir)
+		logger.Debugf("workdir does not exist %s", p.cmd.IncludeWorkdir)
 		return
 	}
 
 	dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, p.cmd.IncludeWorkdir)
 	if fsutil.Exists(dstPath) {
-		log.Debug("sensor.store.saveWorkdir: workdir dst path already exists")
+		logger.Debug("workdir dst path already exists")
 		//it's possible that some of the files in the work dir are already copied
 		//the copy logic will improve when we copy the files separately
 		//for now just copy the whole workdir
 	}
 
-	log.Debugf("sensor.store.saveWorkdir: workdir=%s", p.cmd.IncludeWorkdir)
+	logger.Debugf("workdir=%s", p.cmd.IncludeWorkdir)
 
 	err, errs := fsutil.CopyDir(p.cmd.KeepPerms, p.cmd.IncludeWorkdir, dstPath, true, true, excludePatterns, nil, nil)
 	if err != nil {
-		log.Debugf("sensor.store.saveWorkdir: CopyDir(%v,%v) error: %v", p.cmd.IncludeWorkdir, dstPath, err)
+		logger.Debugf("CopyDir(%v,%v) error: %v", p.cmd.IncludeWorkdir, dstPath, err)
 	}
 
 	if len(errs) > 0 {
-		log.Debugf("sensor.store.saveWorkdir: CopyDir(%v,%v) copy errors: %+v", p.cmd.IncludeWorkdir, dstPath, errs)
+		logger.Debugf("CopyDir(%v,%v) copy errors: %+v", p.cmd.IncludeWorkdir, dstPath, errs)
 	}
 
 	//todo:
@@ -1136,6 +1149,9 @@ func (p *store) saveHealthcheck(excludePatterns []string,
 	bins map[string]struct{},
 	dirs map[string]struct{},
 	includes map[string]bool) {
+	logger := log.WithField("op", "sensor.store.saveHealthcheck")
+	logger.Trace("call")
+	defer logger.Trace("exit")
 	//note: needs to be called before the copy include exe, bin and path sections
 	if len(p.cmd.IncludeHealthcheck) == 0 {
 		return
@@ -1154,7 +1170,7 @@ func (p *store) saveHealthcheck(excludePatterns []string,
 		artifactSet[part] = struct{}{}
 		pparts, err := shlex.Split(part)
 		if err != nil {
-			log.Debugf("saveHealthcheck: part='%s' - parse error: %v", part, err)
+			logger.Debugf("part='%s' - parse error: %v", part, err)
 		} else {
 			pparts = strings.Split(part, " ")
 		}
@@ -1164,22 +1180,22 @@ func (p *store) saveHealthcheck(excludePatterns []string,
 		}
 	}
 
-	log.Tracef("saveHealthcheck: artifactSet(%d)", len(artifactSet))
+	logger.Tracef("artifactSet(%d)", len(artifactSet))
 	for k := range artifactSet {
-		log.Tracef("saveHealthcheck: artifact - '%s'", k)
+		logger.Tracef("artifact - '%s'", k)
 		var tp string
 		if strings.HasPrefix(k, "/") {
 			if fsutil.Exists(k) {
 				if fsutil.IsDir(k) {
 					dirs[k] = struct{}{}
-					log.Debugf("saveHealthcheck: artifact='%s' - dirs", k)
+					logger.Debugf("artifact='%s' - dirs", k)
 				} else {
 					if binProps, _ := binfile.Detected(k); binProps != nil && binProps.IsBin {
 						bins[k] = struct{}{}
-						log.Debugf("saveHealthcheck: artifact='%s' - bins", k)
+						logger.Debugf("artifact='%s' - bins", k)
 					} else {
 						includes[k] = false
-						log.Debugf("saveHealthcheck: artifact='%s' - includes", k)
+						logger.Debugf("artifact='%s' - includes", k)
 					}
 				}
 			}
@@ -1187,7 +1203,7 @@ func (p *store) saveHealthcheck(excludePatterns []string,
 			execPath := sodeps.LookupExecPath(k)
 			if execPath != "" {
 				exes[execPath] = struct{}{}
-				log.Debugf("saveHealthcheck: artifact='%s' - exes[%s]", k, execPath)
+				logger.Debugf("artifact='%s' - exes[%s]", k, execPath)
 			} else {
 				cwd, err := os.Getwd()
 				if err == nil {
@@ -1195,19 +1211,19 @@ func (p *store) saveHealthcheck(excludePatterns []string,
 					if fsutil.Exists(tp) {
 						if fsutil.IsDir(tp) {
 							dirs[tp] = struct{}{}
-							log.Debugf("saveHealthcheck: artifact='%s' - dirs[%s]", k, tp)
+							logger.Debugf("artifact='%s' - dirs[%s]", k, tp)
 						} else {
 							if binProps, _ := binfile.Detected(tp); binProps != nil && binProps.IsBin {
 								bins[tp] = struct{}{}
-								log.Debugf("saveHealthcheck: artifact='%s' - bins[%s]", k, tp)
+								logger.Debugf("artifact='%s' - bins[%s]", k, tp)
 							} else {
 								includes[tp] = false
-								log.Debugf("saveHealthcheck: artifact='%s' - includes[%s]", k, tp)
+								logger.Debugf("artifact='%s' - includes[%s]", k, tp)
 							}
 						}
 					}
 				} else {
-					log.Debugf("saveHealthcheck: artifact='%s' - os.Getwd error - %v", k, err)
+					logger.Debugf("artifact='%s' - os.Getwd error - %v", k, err)
 				}
 			}
 		}
@@ -1237,45 +1253,47 @@ var ziFiles = []string{
 }
 
 func (p *store) saveZoneInfo() {
+	logger := log.WithField("op", "sensor.store.saveZoneInfo")
+	logger.Trace("call")
+	defer logger.Trace("exit")
 	if !p.cmd.IncludeZoneInfo {
 		return
 	}
 
-	log.Trace("sensor.store.saveZoneInfo")
 	for _, fp := range ziFiles {
 		if !fsutil.Exists(fp) {
-			log.Debugf("sensor.store.saveZoneInfo: no target file '%s' (skipping...)", fp)
+			logger.Debugf("no target file '%s' (skipping...)", fp)
 			continue
 		}
 
-		log.Tracef("sensor.store.saveZoneInfo: copy %s", fp)
+		logger.Tracef("copy %s", fp)
 		dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, fp)
 		if fsutil.Exists(dstPath) {
-			log.Debugf("sensor.store.saveZoneInfo: already copied target file '%s' (skipping...)", dstPath)
+			logger.Debugf("already copied target file '%s' (skipping...)", dstPath)
 			continue
 		}
 
 		if err := fsutil.CopyFile(p.cmd.KeepPerms, fp, dstPath, true); err != nil {
-			log.Debugf("sensor.store.saveZoneInfo: fsutil.CopyFile(%v,%v) error - %v", fp, dstPath, err)
+			logger.Debugf("fsutil.CopyFile(%v,%v) error - %v", fp, dstPath, err)
 		}
 	}
 
 	for _, dp := range ziDirs {
 		if !fsutil.DirExists(dp) {
-			log.Debugf("sensor.store.saveZoneInfo: no target directory '%s' (skipping...)", dp)
+			logger.Debugf("no target directory '%s' (skipping...)", dp)
 			continue
 		}
 
-		log.Tracef("sensor.store.saveZoneInfo: copy dir %s", dp)
+		logger.Tracef("copy dir %s", dp)
 		dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, dp)
 
 		err, errs := fsutil.CopyDir(p.cmd.KeepPerms, dp, dstPath, true, true, nil, nil, nil)
 		if err != nil {
-			log.Debugf("sensor.store.saveZoneInfo: fsutil.CopyDir(%s,%s) error: %v", dp, dstPath, err)
+			logger.Debugf("fsutil.CopyDir(%s,%s) error: %v", dp, dstPath, err)
 		}
 
 		if len(errs) > 0 {
-			log.Debugf("sensor.store.saveZoneInfo: fsutil.CopyDir(%v,%v) copy errors: %+v", dp, dstPath, errs)
+			logger.Debugf("fsutil.CopyDir(%v,%v) copy errors: %+v", dp, dstPath, errs)
 		}
 	}
 }
@@ -1366,11 +1384,13 @@ func homeDirs() []string {
 }
 
 func (ref *store) saveSSHClient() {
+	logger := log.WithField("op", "sensor.store.saveSSHClient")
+	logger.Trace("call")
+	defer logger.Trace("exit")
 	if !ref.cmd.IncludeSSHClient {
 		return
 	}
 
-	log.Trace("sensor.store.saveSSHClient")
 	configDirs := append([]string{}, sshConfigDirs...)
 
 	// copy user config dirs
@@ -1386,20 +1406,20 @@ func (ref *store) saveSSHClient() {
 	// copy config dirs
 	for _, dp := range configDirs {
 		if !fsutil.DirExists(dp) {
-			log.Debugf("sensor.store.saveSSHClient: no target directory '%s' (skipping...)", dp)
+			logger.Debugf("no target directory '%s' (skipping...)", dp)
 			continue
 		}
 
-		log.Tracef("sensor.store.saveSSHClient: copy dir %s", dp)
+		logger.Tracef("copy dir %s", dp)
 		dstPath := fmt.Sprintf("%s/files%s", ref.storeLocation, dp)
 
 		err, errs := fsutil.CopyDir(ref.cmd.KeepPerms, dp, dstPath, true, true, nil, nil, nil)
 		if err != nil {
-			log.Debugf("sensor.store.saveSSHClient: fsutil.CopyDir(%s,%s) error: %v", dp, dstPath, err)
+			logger.Debugf("fsutil.CopyDir(%s,%s) error: %v", dp, dstPath, err)
 		}
 
 		if len(errs) > 0 {
-			log.Debugf("sensor.store.saveSSHClient: fsutil.CopyDir(%v,%v) copy errors: %+v", dp, dstPath, errs)
+			logger.Debugf("fsutil.CopyDir(%v,%v) copy errors: %+v", dp, dstPath, errs)
 		}
 	}
 
@@ -1408,18 +1428,18 @@ func (ref *store) saveSSHClient() {
 	for _, name := range sshExeNames {
 		exePath, err := exec.LookPath(name)
 		if err != nil {
-			log.Debugf("sensor.store.saveSSHClient - checking '%s' exe (not found: %s)", name, err)
+			logger.Debugf("checking '%s' exe (not found: %s)", name, err)
 			exePath = filepath.Join(sshDefaultExeDir, name)
 		}
 
 		if !fsutil.Exists(exePath) {
-			log.Debugf("sensor.store.saveSSHClient - exe bin file not found - '%s' (skipping)", exePath)
+			logger.Debugf("exe bin file not found - '%s' (skipping)", exePath)
 			continue
 		}
 
 		artifacts, err := sodeps.AllDependencies(exePath)
 		if err != nil {
-			log.Debugf("sensor.store.saveSSHClient - %s - error getting bin artifacts => %v", exePath, err)
+			logger.Debugf("%s - error getting bin artifacts => %v", exePath, err)
 			// still add the bin path itself even if we had problems locating its deps
 			allDepsMap[exePath] = struct{}{}
 			continue
@@ -1434,27 +1454,27 @@ func (ref *store) saveSSHClient() {
 	// copy bin dirs and identify bin deps
 	for _, dp := range sshBinDirs {
 		if !fsutil.DirExists(dp) {
-			log.Debugf("sensor.store.saveSSHClient: no target directory '%s' (skipping...)", dp)
+			logger.Debugf("no target directory '%s' (skipping...)", dp)
 			continue
 		}
 
-		log.Tracef("sensor.store.saveSSHClient: copy dir %s", dp)
+		logger.Tracef("copy dir %s", dp)
 		dstPath := fmt.Sprintf("%s/files%s", ref.storeLocation, dp)
 
 		err, errs := fsutil.CopyDir(ref.cmd.KeepPerms, dp, dstPath, true, true, nil, nil, nil)
 		if err != nil {
-			log.Debugf("sensor.store.saveSSHClient: fsutil.CopyDir(%s,%s) error: %v", dp, dstPath, err)
+			logger.Debugf("fsutil.CopyDir(%s,%s) error: %v", dp, dstPath, err)
 		}
 
 		if len(errs) > 0 {
-			log.Debugf("sensor.store.saveSSHClient: fsutil.CopyDir(%v,%v) copy errors: %+v", dp, dstPath, errs)
+			logger.Debugf("fsutil.CopyDir(%v,%v) copy errors: %+v", dp, dstPath, errs)
 		}
 
 		dirFiles := map[string]struct{}{}
 		err = filepath.Walk(dp,
 			func(p string, info os.FileInfo, err error) error {
 				if err != nil {
-					log.Debugf("sensor.store.saveSSHClient: [bin dir path - %s] skipping %s with error: %v", dp, p, err)
+					logger.Debugf("[bin dir path - %s] skipping %s with error: %v", dp, p, err)
 					return nil
 				}
 
@@ -1468,12 +1488,12 @@ func (ref *store) saveSSHClient() {
 			})
 
 		if err != nil {
-			log.Debugf("sensor.store.saveSSHClient: error enumerating %s: %v", dp, err)
+			logger.Debugf("error enumerating %s: %v", dp, err)
 		}
 
 		for fp := range dirFiles {
 			if !fsutil.Exists(fp) {
-				log.Debugf("sensor.store.saveSSHClient - bin dir (%s) file not found - '%s' (skipping)", dp, fp)
+				logger.Debugf("bin dir (%s) file not found - '%s' (skipping)", dp, fp)
 				continue
 			}
 
@@ -1488,7 +1508,7 @@ func (ref *store) saveSSHClient() {
 				for _, bpath := range binArtifacts {
 					bfpaths, err := resloveLink(bpath)
 					if err != nil {
-						log.Debugf("sensor.store.saveSSHClient: error resolving link - %s (%v)", bpath, err)
+						logger.Debugf("error resolving link - %s (%v)", bpath, err)
 						// still add the path...
 						allDepsMap[bpath] = struct{}{}
 						continue
@@ -1513,7 +1533,7 @@ func (ref *store) saveSSHClient() {
 	}
 
 	// copy bin files and their deps
-	log.Tracef("sensor.store.saveSSHClient: - paths.len(%d) = %+v", len(allDepsMap), allDepsMap)
+	logger.Tracef("paths.len(%d) = %+v", len(allDepsMap), allDepsMap)
 	for fp := range allDepsMap {
 		if !fsutil.Exists(fp) {
 			continue
@@ -1525,7 +1545,53 @@ func (ref *store) saveSSHClient() {
 		}
 
 		if err := fsutil.CopyFile(ref.cmd.KeepPerms, fp, dstPath, true); err != nil {
-			log.Debugf("sensor.store.saveSSHClient: fsutil.CopyFile(%v,%v) error - %v", fp, dstPath, err)
+			logger.Debugf("fsutil.CopyFile(%v,%v) error - %v", fp, dstPath, err)
+		}
+	}
+}
+
+func (p *store) saveDistroInfo() {
+	logger := log.WithField("op", "sensor.store.saveDistroInfo")
+	logger.Trace("call")
+	defer logger.Trace("exit")
+	if !p.cmd.IncludeDistroInfo {
+		return
+	}
+
+	pathMap := map[string]struct{}{}
+	for fp := range osdistro.AllFiles {
+		if !fsutil.Exists(fp) {
+			continue
+		}
+
+		pathMap[fp] = struct{}{}
+		fpaths, err := resloveLink(fp)
+		if err != nil {
+			logger.Debugf("error resolving link - %s", fp)
+			continue
+		}
+
+		for _, rfp := range fpaths {
+			if rfp == "" {
+				continue
+			}
+
+			if !fsutil.Exists(rfp) {
+				continue
+			}
+			pathMap[rfp] = struct{}{}
+		}
+	}
+
+	for fp := range pathMap {
+		logger.Debugf("copy %s", fp)
+		dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, fp)
+		if fsutil.Exists(dstPath) {
+			continue
+		}
+
+		if err := fsutil.CopyFile(p.cmd.KeepPerms, fp, dstPath, true); err != nil {
+			logger.Debugf("fsutil.CopyFile(%v,%v) error - %v", fp, dstPath, err)
 		}
 	}
 }
@@ -1550,29 +1616,31 @@ var osLibsNetFiles = []string{
 }
 
 func (p *store) saveOSLibsNetwork() {
+	logger := log.WithField("op", "sensor.store.saveOSLibsNetwork")
+	logger.Trace("call")
+	defer logger.Trace("exit")
 	if !p.cmd.IncludeOSLibsNet {
 		return
 	}
 
-	log.Trace("sensor.store.saveOSLibsNetwork")
 	for _, fp := range osLibsNetFiles {
 		if !fsutil.Exists(fp) {
 			continue
 		}
 
-		log.Debugf("sensor.store.saveOSLibsNetwork: copy %s", fp)
+		logger.Debugf("copy %s", fp)
 		dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, fp)
 		if fsutil.Exists(dstPath) {
 			continue
 		}
 
 		if err := fsutil.CopyFile(p.cmd.KeepPerms, fp, dstPath, true); err != nil {
-			log.Debugf("sensor.store.saveOSLibsNetwork: fsutil.CopyFile(%v,%v) error - %v", fp, dstPath, err)
+			logger.Debugf("fsutil.CopyFile(%v,%v) error - %v", fp, dstPath, err)
 		}
 	}
 
 	if len(p.origPathMap) == 0 {
-		log.Debug("sensor.store.saveOSLibsNetwork: no origPathMap")
+		logger.Debug("no origPathMap")
 		return
 	}
 
@@ -1585,7 +1653,7 @@ func (p *store) saveOSLibsNetwork() {
 				strings.Contains(fileName, osUsrLibDir) ||
 				strings.Contains(fileName, osUsrLib64Dir)) &&
 			strings.Contains(fileName, osLibSO) {
-			log.Debugf("sensor.store.saveOSLibsNetwork: match - %s", fileName)
+			logger.Debugf("match - %s", fileName)
 			pathMap[fileName] = struct{}{}
 		}
 	}
@@ -1598,7 +1666,7 @@ func (p *store) saveOSLibsNetwork() {
 
 		fpaths, err := resloveLink(fpath)
 		if err != nil {
-			log.Debugf("sensor.store.saveOSLibsNetwork: error resolving link - %s", fpath)
+			logger.Debugf("error resolving link - %s", fpath)
 			continue
 		}
 
@@ -1617,9 +1685,9 @@ func (p *store) saveOSLibsNetwork() {
 				binArtifacts, err := sodeps.AllDependencies(fp)
 				if err != nil {
 					if err == sodeps.ErrDepResolverNotFound {
-						log.Debug("sensor.store.saveOSLibsNetwork[bsa] - no static bin dep resolver")
+						logger.Debug("[bsa] - no static bin dep resolver")
 					} else {
-						log.Debugf("sensor.store.saveOSLibsNetwork[bsa] - %v - error getting bin artifacts => %v\n", fp, err)
+						logger.Debugf("[bsa] - %v - error getting bin artifacts => %v\n", fp, err)
 					}
 					continue
 				}
@@ -1627,7 +1695,7 @@ func (p *store) saveOSLibsNetwork() {
 				for _, bpath := range binArtifacts {
 					bfpaths, err := resloveLink(bpath)
 					if err != nil {
-						log.Debugf("sensor.store.saveOSLibsNetwork: error resolving link - %s", bpath)
+						logger.Debugf("error resolving link - %s", bpath)
 						continue
 					}
 
@@ -1646,7 +1714,7 @@ func (p *store) saveOSLibsNetwork() {
 		}
 	}
 
-	log.Debugf("sensor.store.saveOSLibsNetwork: - allPathMap(%v) = %+v", len(allPathMap), allPathMap)
+	logger.Debugf("allPathMap(%v) = %+v", len(allPathMap), allPathMap)
 	for fp := range allPathMap {
 		if !fsutil.Exists(fp) {
 			continue
@@ -1658,7 +1726,7 @@ func (p *store) saveOSLibsNetwork() {
 		}
 
 		if err := fsutil.CopyFile(p.cmd.KeepPerms, fp, dstPath, true); err != nil {
-			log.Debugf("sensor.store.saveOSLibsNetwork: fsutil.CopyFile(%v,%v) error - %v", fp, dstPath, err)
+			logger.Debugf("fsutil.CopyFile(%v,%v) error - %v", fp, dstPath, err)
 		}
 	}
 }
@@ -1703,20 +1771,24 @@ func resloveLink(fpath string) ([]string, error) {
 }
 
 func (p *store) saveCertsData() {
+	logger := log.WithField("op", "sensor.store.saveCertsData")
+	logger.Trace("call")
+	defer logger.Trace("exit")
+
 	copyCertFiles := func(list []string) {
-		log.Debugf("sensor.store.saveCertsData.copyCertFiles(list=%+v)", list)
+		logger.Debugf("copyCertFiles(list=%+v)", list)
 		for _, fname := range list {
 			if fsutil.Exists(fname) {
 				dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, fname)
 				if err := fsutil.CopyFile(p.cmd.KeepPerms, fname, dstPath, true); err != nil {
-					log.Debugf("sensor.store.saveCertsData.copyCertFiles: fsutil.CopyFile(%v,%v) error - %v", fname, dstPath, err)
+					logger.Debugf("copyCertFiles: fsutil.CopyFile(%v,%v) error - %v", fname, dstPath, err)
 				}
 			}
 		}
 	}
 
 	copyDirs := func(list []string, copyLinkTargets bool) {
-		log.Debugf("sensor.store.saveCertsData.copyDirs(list=%+v,copyLinkTargets=%v)", list, copyLinkTargets)
+		logger.Debugf("copyDirs(list=%+v,copyLinkTargets=%v)", list, copyLinkTargets)
 		for _, fname := range list {
 			if fsutil.Exists(fname) {
 				dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, fname)
@@ -1724,52 +1796,52 @@ func (p *store) saveCertsData() {
 				if fsutil.IsDir(fname) {
 					err, errs := fsutil.CopyDir(p.cmd.KeepPerms, fname, dstPath, true, true, nil, nil, nil)
 					if err != nil {
-						log.Debugf("sensor.store.saveCertsData.copyDirs: fsutil.CopyDir(%v,%v) error: %v", fname, dstPath, err)
+						logger.Debugf("copyDirs: fsutil.CopyDir(%v,%v) error: %v", fname, dstPath, err)
 					} else if copyLinkTargets {
 						foList, err := os.ReadDir(fname)
 						if err == nil {
-							log.Debugf("sensor.store.saveCertsData.copyDirs(): dir=%v fcount=%v", fname, len(foList))
+							logger.Debugf("copyDirs(): dir=%v fcount=%v", fname, len(foList))
 							for _, fo := range foList {
 								fullPath := filepath.Join(fname, fo.Name())
-								log.Debugf("sensor.store.saveCertsData.copyDirs(): dir=%v fullPath=%v", fname, fullPath)
+								logger.Debugf("copyDirs(): dir=%v fullPath=%v", fname, fullPath)
 								if fsutil.IsSymlink(fullPath) {
 									linkRef, err := os.Readlink(fullPath)
 									if err != nil {
-										log.Debugf("sensor.store.saveCertsData.copyDirs: os.Readlink(%v) error - %v", fullPath, err)
+										logger.Debugf("copyDirs: os.Readlink(%v) error - %v", fullPath, err)
 										continue
 									}
 
-									log.Debugf("sensor.store.saveCertsData.copyDirs(): dir=%v fullPath=%v linkRef=%v",
+									logger.Debugf("copyDirs(): dir=%v fullPath=%v linkRef=%v",
 										fname, fullPath, linkRef)
 									if strings.Contains(linkRef, "/") {
 										targetFilePath := linkTargetToFullPath(fullPath, linkRef)
 										if targetFilePath != "" && fsutil.Exists(targetFilePath) {
-											log.Debugf("sensor.store.saveCertsData.copyDirs(): dir=%v fullPath=%v linkRef=%v targetFilePath=%v",
+											logger.Debugf("copyDirs(): dir=%v fullPath=%v linkRef=%v targetFilePath=%v",
 												fname, fullPath, linkRef, targetFilePath)
 											dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, targetFilePath)
 											if err := fsutil.CopyFile(p.cmd.KeepPerms, targetFilePath, dstPath, true); err != nil {
-												log.Debugf("sensor.store.saveCertsData.copyDirs: fsutil.CopyFile(%v,%v) error - %v", targetFilePath, dstPath, err)
+												logger.Debugf("copyDirs: fsutil.CopyFile(%v,%v) error - %v", targetFilePath, dstPath, err)
 											}
 										} else {
-											log.Debugf("sensor.store.saveCertsData.copyDirs: targetFilePath does not exist - %v", targetFilePath)
+											logger.Debugf("copyDirs: targetFilePath does not exist - %v", targetFilePath)
 										}
 									}
 								}
 							}
 						} else {
-							log.Debugf("sensor.store.saveCertsData.copyDirs: os.ReadDir(%v) error - %v", fname, err)
+							logger.Debugf("copyDirs: os.ReadDir(%v) error - %v", fname, err)
 						}
 					}
 
 					if len(errs) > 0 {
-						log.Debugf("sensor.store.saveCertsData.copyDirs: fsutil.CopyDir(%v,%v) copy errors: %+v", fname, dstPath, errs)
+						logger.Debugf("copyDirs: fsutil.CopyDir(%v,%v) copy errors: %+v", fname, dstPath, errs)
 					}
 				} else if fsutil.IsSymlink(fname) {
 					if err := fsutil.CopySymlinkFile(p.cmd.KeepPerms, fname, dstPath, true); err != nil {
-						log.Debugf("sensor.store.saveCertsData.copyDirs: fsutil.CopySymlinkFile(%v,%v) error - %v", fname, dstPath, err)
+						logger.Debugf("copyDirs: fsutil.CopySymlinkFile(%v,%v) error - %v", fname, dstPath, err)
 					}
 				} else {
-					log.Debugf("store.saveCertsData.copyDir: unexpected obect type - %s", fname)
+					logger.Debugf("copyDir: unexpected obect type - %s", fname)
 				}
 			}
 		}
@@ -1777,13 +1849,13 @@ func (p *store) saveCertsData() {
 
 	copyAppCertFiles := func(suffix string, dirs []string, subdirPrefix string) {
 		//NOTE: dirs end with "/" (need to revisit the formatting to make it consistent)
-		log.Debugf("sensor.store.saveCertsData.copyAppCertFiles(suffix=%v,dirs=%+v,subdirPrefix=%v)",
+		logger.Debugf("copyAppCertFiles(suffix=%v,dirs=%+v,subdirPrefix=%v)",
 			suffix, dirs, subdirPrefix)
 		for _, dirName := range dirs {
 			if subdirPrefix != "" {
 				foList, err := os.ReadDir(dirName)
 				if err != nil {
-					log.Debugf("sensor.store.saveCertsData.copyAppCertFiles: os.ReadDir(%v) error - %v", dirName, err)
+					logger.Debugf("copyAppCertFiles: os.ReadDir(%v) error - %v", dirName, err)
 					continue
 				}
 
@@ -1799,7 +1871,7 @@ func (p *store) saveCertsData() {
 			if fsutil.Exists(srcFilePath) {
 				dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, srcFilePath)
 				if err := fsutil.CopyFile(p.cmd.KeepPerms, srcFilePath, dstPath, true); err != nil {
-					log.Debugf("sensor.store.saveCertsData.copyAppCertFiles: fsutil.CopyFile(%v,%v) error - %v", srcFilePath, dstPath, err)
+					logger.Debugf("copyAppCertFiles: fsutil.CopyFile(%v,%v) error - %v", srcFilePath, dstPath, err)
 				}
 			}
 		}
@@ -1884,6 +1956,10 @@ func (p *store) saveCertsData() {
 }
 
 func (p *store) saveArtifacts() {
+	logger := log.WithField("op", "sensor.store.saveArtifacts")
+	logger.Trace("call")
+	defer logger.Trace("exit")
+
 	var includePaths map[string]bool
 	var includeDirBinsList map[string]bool
 	var newPerms map[string]*fsutil.AccessInfo
@@ -1898,28 +1974,28 @@ func (p *store) saveArtifacts() {
 		excludePatterns = append(excludePatterns, "/run/lock/**")
 	}
 
-	log.Debugf("saveArtifacts - excludePatterns(%v): %+v", len(excludePatterns), excludePatterns)
+	logger.Debugf("excludePatterns(%v): %+v", len(excludePatterns), excludePatterns)
 
 	includePaths = preparePaths(getKeys(p.cmd.Includes))
-	log.Debugf("saveArtifacts - includePaths(%v): %+v", len(includePaths), includePaths)
+	logger.Debugf("includePaths(%v): %+v", len(includePaths), includePaths)
 
 	if includePaths == nil {
 		includePaths = map[string]bool{}
 	}
 
 	includeDirBinsList = preparePaths(getKeys(p.cmd.IncludeDirBinsList))
-	log.Debugf("saveArtifacts - includeDirBinsList(%d): %+v", len(includeDirBinsList), includeDirBinsList)
+	logger.Debugf("includeDirBinsList(%d): %+v", len(includeDirBinsList), includeDirBinsList)
 	if includeDirBinsList == nil {
 		includeDirBinsList = map[string]bool{}
 	}
 
 	newPerms = getRecordsWithPerms(p.cmd.Includes)
-	log.Debugf("saveArtifacts - newPerms(%v): %+v", len(newPerms), newPerms)
+	logger.Debugf("newPerms(%v): %+v", len(newPerms), newPerms)
 
 	for pk, pv := range p.cmd.Perms {
 		newPerms[pk] = pv
 	}
-	log.Debugf("saveArtifacts - merged newPerms(%v): %+v", len(newPerms), newPerms)
+	logger.Debugf("merged newPerms(%v): %+v", len(newPerms), newPerms)
 
 	//moved to prepareEnv
 	//dstRootPath := filepath.Join(p.storeLocation, app.ArtifactFilesDirName)
@@ -1930,7 +2006,7 @@ func (p *store) saveArtifacts() {
 	extraDirs := map[string]struct{}{}
 	symlinkFailed := map[string]*report.ArtifactProps{}
 
-	log.Debugf("saveArtifacts - copy links (%v)", len(p.linkMap))
+	logger.Debugf("copy links (%v)", len(p.linkMap))
 	//copyLinks:
 	//NOTE: MUST copy the links FIRST, so the dir symlinks get created before their files are copied
 	symlinkMap := radix.New()
@@ -1941,19 +2017,19 @@ func (p *store) saveArtifacts() {
 	symlinkWalk := func(linkName string, val interface{}) bool {
 		linkProps, ok := val.(*report.ArtifactProps)
 		if !ok {
-			log.Debugf("saveArtifacts.symlinkWalk: could not convert data - %s\n", linkName)
+			logger.Debugf("symlinkWalk: could not convert data - %s\n", linkName)
 			return false
 		}
 
 		for _, xpattern := range excludePatterns {
 			found, err := doublestar.Match(xpattern, linkName)
 			if err != nil {
-				log.Debugf("saveArtifacts.symlinkWalk - copy links - [%v] excludePatterns Match error - %v\n", linkName, err)
+				logger.Debugf("symlinkWalk - copy links - [%v] excludePatterns Match error - %v\n", linkName, err)
 				//should only happen when the pattern is malformed
 				return false
 			}
 			if found {
-				log.Debugf("saveArtifacts.symlinkWalk - copy links - [%v] - excluding (%s) ", linkName, xpattern)
+				logger.Debugf("symlinkWalk - copy links - [%v] - excluding (%s) ", linkName, xpattern)
 				return false
 			}
 		}
@@ -1972,7 +2048,7 @@ func (p *store) saveArtifacts() {
 		//log.Debugf("saveArtifacts.symlinkWalk - saving symlink - create subdir: linkName=%s linkDir=%s linkPath=%s", linkName, linkDir, linkPath)
 		err := os.MkdirAll(linkDir, 0777)
 		if err != nil {
-			log.Debugf("saveArtifacts.symlinkWalk - dir error (linkName=%s linkDir=%s linkPath=%s) => error=%v", linkName, linkDir, linkPath, err)
+			logger.Debugf("symlinkWalk - dir error (linkName=%s linkDir=%s linkPath=%s) => error=%v", linkName, linkDir, linkPath, err)
 			//save it and try again later
 			symlinkFailed[linkName] = linkProps
 			return false
@@ -1981,16 +2057,16 @@ func (p *store) saveArtifacts() {
 		if linkProps != nil &&
 			linkProps.FSActivity != nil &&
 			linkProps.FSActivity.OpsCheckFile > 0 {
-			log.Debug("saveArtifacts.symlinkWalk - saving 'checked' symlink => ", linkName)
+			logger.Debug("symlinkWalk - saving 'checked' symlink => ", linkName)
 		}
 
 		//log.Debugf("saveArtifacts.symlinkWalk - saving symlink: name=%s target=%s", linkName, linkProps.LinkRef)
 		err = os.Symlink(linkProps.LinkRef, linkPath)
 		if err != nil {
 			if os.IsExist(err) {
-				log.Debug("saveArtifacts.symlinkWalk - symlink already exists")
+				logger.Debug("symlinkWalk - symlink already exists")
 			} else {
-				log.Debugf("saveArtifacts.symlinkWalk - symlink create error: %v", err)
+				logger.Debugf("symlinkWalk - symlink create error: %v", err)
 			}
 		}
 
@@ -2006,14 +2082,14 @@ func (p *store) saveArtifacts() {
 		//log.Debugf("saveArtifacts.symlinkFailed - saving symlink - create subdir: linkName=%s linkDir=%s linkPath=%s", linkName, linkDir, linkPath)
 		err := os.MkdirAll(linkDir, 0777)
 		if err != nil {
-			log.Debugf("saveArtifacts.symlinkFailed - dir error (linkName=%s linkDir=%s linkPath=%s) => error=%v", linkName, linkDir, linkPath, err)
+			logger.Debugf("symlinkFailed - dir error (linkName=%s linkDir=%s linkPath=%s) => error=%v", linkName, linkDir, linkPath, err)
 			continue
 		}
 
 		if linkProps != nil &&
 			linkProps.FSActivity != nil &&
 			linkProps.FSActivity.OpsCheckFile > 0 {
-			log.Debug("saveArtifacts.symlinkFailed - saving 'checked' symlink => ", linkName)
+			logger.Debug("symlinkFailed - saving 'checked' symlink => ", linkName)
 		}
 
 		//log.Debugf("saveArtifacts.symlinkFailed - saving symlink: name=%s target=%s", linkName, linkProps.LinkRef)
@@ -2021,15 +2097,15 @@ func (p *store) saveArtifacts() {
 		err = os.Symlink(linkProps.LinkRef, linkPath)
 		if err != nil {
 			if os.IsExist(err) {
-				log.Debug("saveArtifacts.symlinkFailed - symlink already exists")
+				logger.Debug("symlinkFailed - symlink already exists")
 			} else {
-				log.Debugf("saveArtifacts.symlinkFailed - symlink create error ==> %v", err)
+				logger.Debugf("symlinkFailed - symlink create error ==> %v", err)
 			}
 		}
 	}
 
 	//NOTE: need to copy the files after the links are copied
-	log.Debugf("saveArtifacts - copy files (%v) and copy additional files checked at runtime...", len(p.fileMap))
+	logger.Debugf("copy files (%v) and copy additional files checked at runtime...", len(p.fileMap))
 	ngxEnsured := false
 
 	exeMap := map[string]struct{}{}
@@ -2049,14 +2125,14 @@ copyFiles:
 	for srcFileName, artifactInfo := range p.fileMap {
 		//need to make sure we don't filter out something we need
 		if artifact.IsFilteredPath(srcFileName) {
-			log.Debugf("saveArtifacts - skipping filtered copy file - %s", srcFileName)
+			logger.Debugf("skipping filtered copy file - %s", srcFileName)
 			continue
 		}
 
 		for _, xpattern := range excludePatterns {
 			found, err := doublestar.Match(xpattern, srcFileName)
 			if err != nil {
-				log.Debugf("saveArtifacts - copy files - [%v] excludePatterns Match error - %v\n", srcFileName, err)
+				logger.Debugf("copy files - [%v] excludePatterns Match error - %v\n", srcFileName, err)
 				//should only happen when the pattern is malformed
 				continue
 			}
@@ -2068,33 +2144,33 @@ copyFiles:
 
 		//filter out pid files (todo: have a flag to enable/disable these capabilities)
 		if isKnownPidFilePath(srcFileName) {
-			log.Debugf("saveArtifacts - copy files - skipping known pid file (%v)", srcFileName)
+			logger.Debugf("copy files - skipping known pid file (%v)", srcFileName)
 			extraDirs[fsutil.FileDir(srcFileName)] = struct{}{}
 			continue
 		}
 
 		if hasPidFileSuffix(srcFileName) {
-			log.Debugf("saveArtifacts - copy files - skipping a pid file (%v)", srcFileName)
+			logger.Debugf("copy files - skipping a pid file (%v)", srcFileName)
 			extraDirs[fsutil.FileDir(srcFileName)] = struct{}{}
 			continue
 		}
 
 		filePath := fmt.Sprintf("%s/files%s", p.storeLocation, srcFileName)
-		log.Debug("saveArtifacts - saving file data => ", filePath)
+		logger.Debug("saving file data => ", filePath)
 
 		if artifactInfo != nil &&
 			artifactInfo.FSActivity != nil &&
 			artifactInfo.FSActivity.OpsCheckFile > 0 {
-			log.Debugf("saveArtifacts - saving 'checked' file => %v", srcFileName)
+			logger.Debugf("saving 'checked' file => %v", srcFileName)
 			//NOTE: later have an option to save 'checked' only files without data
 		}
 
 		if p.cmd.ObfuscateMetadata {
 			if isAppMetadataFile(srcFileName) {
-				log.Tracef("saveArtifacts - isAppMetadataFile - src(%s)->dst(%s)", srcFileName, filePath)
+				logger.Tracef("isAppMetadataFile - src(%s)->dst(%s)", srcFileName, filePath)
 				err := fsutil.CopyAndObfuscateFile(p.cmd.KeepPerms, srcFileName, filePath, true)
 				if err != nil {
-					log.Debugf("saveArtifacts [%s,%s] - error saving file => %v", srcFileName, filePath, err)
+					logger.Debugf("[%s,%s] - error saving file => %v", srcFileName, filePath, err)
 				}
 
 				amFileUpdateParams := map[string]interface{}{
@@ -2102,24 +2178,24 @@ copyFiles:
 				}
 
 				if err := appMetadataFileUpdater(filePath, amFileUpdateParams); err != nil {
-					log.Debugf("saveArtifacts [%s,%s] - appMetadataFileUpdater => not updated / err = %v", srcFileName, filePath, err)
+					logger.Debugf("[%s,%s] - appMetadataFileUpdater => not updated / err = %v", srcFileName, filePath, err)
 				}
 			} else {
 				err := fsutil.CopyRegularFile(p.cmd.KeepPerms, srcFileName, filePath, true)
 				if err != nil {
-					log.Debugf("saveArtifacts [%s,%s] - error saving file => %v", srcFileName, filePath, err)
+					logger.Debugf("[%s,%s] - error saving file => %v", srcFileName, filePath, err)
 				} else {
 					//NOTE: this covers the main file set (doesn't cover the extra includes)
 					binProps, err := binfile.Detected(filePath)
 					if err == nil && binProps != nil && binProps.IsBin && binProps.IsExe {
 						if err := fsutil.AppendToFile(filePath, []byte("KCQ"), true); err != nil {
-							log.Debugf("saveArtifacts [%s,%s] - fsutil.AppendToFile error => %v", srcFileName, filePath, err)
+							logger.Debugf("[%s,%s] - fsutil.AppendToFile error => %v", srcFileName, filePath, err)
 						} else {
-							log.Tracef("saveArtifacts - binfile.Detected[IsExe]/fsutil.AppendToFile - %s", filePath)
+							logger.Tracef("binfile.Detected[IsExe]/fsutil.AppendToFile - %s", filePath)
 
 							err := fsutil.ReplaceFileData(filePath, binDataReplace, true)
 							if err != nil {
-								log.Debugf("saveArtifacts [%s,%s] - fsutil.ReplaceFileData error => %v", srcFileName, filePath, err)
+								logger.Debugf("[%s,%s] - fsutil.ReplaceFileData error => %v", srcFileName, filePath, err)
 							}
 						}
 					}
@@ -2128,7 +2204,7 @@ copyFiles:
 		} else {
 			err := fsutil.CopyRegularFile(p.cmd.KeepPerms, srcFileName, filePath, true)
 			if err != nil {
-				log.Debugf("saveArtifacts - error saving file => %v", err)
+				logger.Debugf("error saving file => %v", err)
 			}
 		}
 
@@ -2144,11 +2220,11 @@ copyFiles:
 			if isNuxtConfigFile(fileName) {
 				nuxtConfig, err := getNuxtConfig(fileName)
 				if err != nil {
-					log.Debugf("saveArtifacts: failed to get nuxt config: %v", err)
+					logger.Debugf("failed to get nuxt config: %v", err)
 					continue
 				}
 				if nuxtConfig == nil {
-					log.Debugf("saveArtifacts: nuxt config not found: %v", fileName)
+					logger.Debugf("nuxt config not found: %v", fileName)
 					continue
 				}
 
@@ -2159,20 +2235,20 @@ copyFiles:
 				nuxtAppDirPrefix := fmt.Sprintf("%s/", nuxtAppDir)
 				if p.cmd.IncludeAppNuxtDir {
 					includePaths[nuxtAppDir] = true
-					log.Tracef("saveArtifacts[nuxt] - including app dir - %s", nuxtAppDir)
+					logger.Tracef("[nuxt] - including app dir - %s", nuxtAppDir)
 				}
 
 				if p.cmd.IncludeAppNuxtStaticDir {
 					srcPath := filepath.Join(nuxtAppDir, nuxtStaticDir)
 					if fsutil.DirExists(srcPath) {
 						if p.cmd.IncludeAppNuxtDir && strings.HasPrefix(srcPath, nuxtAppDirPrefix) {
-							log.Debugf("saveArtifacts[nuxt] - static dir is already included (%s)", srcPath)
+							logger.Debugf("[nuxt] - static dir is already included (%s)", srcPath)
 						} else {
 							includePaths[srcPath] = true
-							log.Tracef("saveArtifacts[nuxt] - including static dir - %s", srcPath)
+							logger.Tracef("[nuxt] - including static dir - %s", srcPath)
 						}
 					} else {
-						log.Debugf("saveArtifacts[nuxt] - static dir does not exists (%s)", srcPath)
+						logger.Debugf("[nuxt] - static dir does not exists (%s)", srcPath)
 					}
 				}
 
@@ -2185,13 +2261,13 @@ copyFiles:
 					srcPath := filepath.Join(basePath, nuxtConfig.Build)
 					if fsutil.DirExists(srcPath) {
 						if p.cmd.IncludeAppNuxtDir && strings.HasPrefix(srcPath, nuxtAppDirPrefix) {
-							log.Debugf("saveArtifacts[nuxt] - build dir is already included (%s)", srcPath)
+							logger.Debugf("[nuxt] - build dir is already included (%s)", srcPath)
 						} else {
 							includePaths[srcPath] = true
-							log.Tracef("saveArtifacts[nuxt] - including build dir - %s", srcPath)
+							logger.Tracef("[nuxt] - including build dir - %s", srcPath)
 						}
 					} else {
-						log.Debugf("saveArtifacts[nuxt] - build dir does not exists (%s)", srcPath)
+						logger.Debugf("[nuxt] - build dir does not exists (%s)", srcPath)
 					}
 				}
 
@@ -2204,13 +2280,13 @@ copyFiles:
 					srcPath := filepath.Join(basePath, nuxtConfig.Dist)
 					if fsutil.DirExists(srcPath) {
 						if p.cmd.IncludeAppNuxtDir && strings.HasPrefix(srcPath, nuxtAppDirPrefix) {
-							log.Debugf("saveArtifacts[nuxt] - dist dir is already included (%s)", srcPath)
+							logger.Debugf("[nuxt] - dist dir is already included (%s)", srcPath)
 						} else {
 							includePaths[srcPath] = true
-							log.Tracef("saveArtifacts[nuxt] - including dist dir - %s", srcPath)
+							logger.Tracef("[nuxt] - including dist dir - %s", srcPath)
 						}
 					} else {
-						log.Debugf("saveArtifacts[nuxt] - dist dir does not exists (%s)", srcPath)
+						logger.Debugf("[nuxt] - dist dir does not exists (%s)", srcPath)
 					}
 				}
 
@@ -2218,13 +2294,13 @@ copyFiles:
 					srcPath := filepath.Join(nuxtAppDir, nodePackageDirName)
 					if fsutil.DirExists(srcPath) {
 						if p.cmd.IncludeAppNuxtDir && strings.HasPrefix(srcPath, nuxtAppDirPrefix) {
-							log.Debugf("saveArtifacts[nuxt] - node_modules dir is already included (%s)", srcPath)
+							logger.Debugf("[nuxt] - node_modules dir is already included (%s)", srcPath)
 						} else {
 							includePaths[srcPath] = true
-							log.Tracef("saveArtifacts[nuxt] - including node_modules dir - %s", srcPath)
+							logger.Tracef("[nuxt] - including node_modules dir - %s", srcPath)
 						}
 					} else {
-						log.Debugf("saveArtifacts[nuxt] - node_modules dir does not exists (%s)", srcPath)
+						logger.Debugf("[nuxt] - node_modules dir does not exists (%s)", srcPath)
 					}
 				}
 
@@ -2242,20 +2318,20 @@ copyFiles:
 				nextAppDirPrefix := fmt.Sprintf("%s/", nextAppDir)
 				if p.cmd.IncludeAppNextDir {
 					includePaths[nextAppDir] = true
-					log.Tracef("saveArtifacts[next] - including app dir - %s", nextAppDir)
+					logger.Tracef("[next] - including app dir - %s", nextAppDir)
 				}
 
 				if p.cmd.IncludeAppNextStaticDir {
 					srcPath := filepath.Join(nextAppDir, nextStaticDir)
 					if fsutil.DirExists(srcPath) {
 						if p.cmd.IncludeAppNextDir && strings.HasPrefix(srcPath, nextAppDirPrefix) {
-							log.Debugf("saveArtifacts[next] - static public dir is already included (%s)", srcPath)
+							logger.Debugf("[next] - static public dir is already included (%s)", srcPath)
 						} else {
 							includePaths[srcPath] = true
-							log.Tracef("saveArtifacts[next] - including static public dir - %s", srcPath)
+							logger.Tracef("[next] - including static public dir - %s", srcPath)
 						}
 					} else {
-						log.Debugf("saveArtifacts[next] - static public dir does not exists (%s)", srcPath)
+						logger.Debugf("[next] - static public dir does not exists (%s)", srcPath)
 					}
 				}
 
@@ -2263,13 +2339,13 @@ copyFiles:
 					srcPath := filepath.Join(nextAppDir, nextDefaultBuildDir)
 					if fsutil.DirExists(srcPath) {
 						if p.cmd.IncludeAppNextDir && strings.HasPrefix(srcPath, nextAppDirPrefix) {
-							log.Debugf("saveArtifacts[next] - build dir is already included (%s)", srcPath)
+							logger.Debugf("[next] - build dir is already included (%s)", srcPath)
 						} else {
 							includePaths[srcPath] = true
-							log.Tracef("saveArtifacts[next] - including build dir - %s", srcPath)
+							logger.Tracef("[next] - including build dir - %s", srcPath)
 						}
 					} else {
-						log.Debugf("saveArtifacts[next] - build dir does not exists (%s)", srcPath)
+						logger.Debugf("[next] - build dir does not exists (%s)", srcPath)
 					}
 				}
 
@@ -2277,13 +2353,13 @@ copyFiles:
 					srcPath := filepath.Join(nextAppDir, nextDefaultStaticSpaDir)
 					if fsutil.DirExists(srcPath) {
 						if p.cmd.IncludeAppNextDir && strings.HasPrefix(srcPath, nextAppDirPrefix) {
-							log.Debugf("saveArtifacts[next] - dist dir is already included (%s)", srcPath)
+							logger.Debugf("[next] - dist dir is already included (%s)", srcPath)
 						} else {
 							includePaths[srcPath] = true
-							log.Tracef("saveArtifacts[next] - including dist dir - %s", srcPath)
+							logger.Tracef("[next] - including dist dir - %s", srcPath)
 						}
 					} else {
-						log.Debugf("saveArtifacts[next] - dist dir does not exists (%s)", srcPath)
+						logger.Debugf("[next] - dist dir does not exists (%s)", srcPath)
 					}
 				}
 
@@ -2291,13 +2367,13 @@ copyFiles:
 					srcPath := filepath.Join(nextAppDir, nodePackageDirName)
 					if fsutil.DirExists(srcPath) {
 						if p.cmd.IncludeAppNextDir && strings.HasPrefix(srcPath, nextAppDirPrefix) {
-							log.Debugf("saveArtifacts[next] - node_modules dir is already included (%s)", srcPath)
+							logger.Debugf("[next] - node_modules dir is already included (%s)", srcPath)
 						} else {
 							includePaths[srcPath] = true
-							log.Tracef("saveArtifacts[next] - including node_modules dir - %s", srcPath)
+							logger.Tracef("[next] - including node_modules dir - %s", srcPath)
 						}
 					} else {
-						log.Debugf("saveArtifacts[next] - node_modules dir does not exists (%s)", srcPath)
+						logger.Debugf("[next] - node_modules dir does not exists (%s)", srcPath)
 					}
 				}
 
@@ -2306,16 +2382,16 @@ copyFiles:
 		}
 
 		if isRbGemSpecFile(fileName) {
-			log.Debug("saveArtifacts - processing ruby gem spec ==>", fileName)
+			logger.Debug("processing ruby gem spec ==>", fileName)
 			err := rbEnsureGemFiles(fileName, p.storeLocation, "/files")
 			if err != nil {
-				log.Debugf("saveArtifacts - error ensuring ruby gem files => %v", err)
+				logger.Debugf("error ensuring ruby gem files => %v", err)
 			}
 		} else if isNodePackageFile(fileName) {
-			log.Debug("saveArtifacts - processing node package file ==>", fileName)
+			logger.Debug("processing node package file ==>", fileName)
 			err := nodeEnsurePackageFiles(p.cmd.KeepPerms, fileName, p.storeLocation, "/files")
 			if err != nil {
-				log.Debugf("saveArtifacts - error ensuring node package files => %v", err)
+				logger.Debugf("error ensuring node package files => %v", err)
 			}
 
 			if len(p.cmd.IncludeNodePackages) > 0 {
@@ -2326,64 +2402,64 @@ copyFiles:
 						if pkgName != "" && pkgName == nodePackageInfo.Name {
 							nodeAppDir := filepath.Dir(fileName)
 							includePaths[nodeAppDir] = true
-							log.Tracef("saveArtifacts[node] - including app(%s) dir - %s", nodePackageInfo.Name, nodeAppDir)
+							logger.Tracef("[node] - including app(%s) dir - %s", nodePackageInfo.Name, nodeAppDir)
 							break
 						}
 					}
 				} else {
-					log.Debugf("saveArtifacts - error getting node package config file => %v", err)
+					logger.Debugf("error getting node package config file => %v", err)
 				}
 			}
 
 		} else if isNgxArtifact(fileName) && !ngxEnsured {
-			log.Debug("saveArtifacts - ensuring ngx artifacts....")
+			logger.Debug("ensuring ngx artifacts....")
 			ngxEnsure(p.storeLocation)
 			ngxEnsured = true
 		} else {
 			err := fixPy3CacheFile(fileName, filePath)
 			if err != nil {
-				log.Debugf("saveArtifacts - error fixing py3 cache file => %v", err)
+				logger.Debugf("error fixing py3 cache file => %v", err)
 			}
 		}
 		///////////////////
 	}
 
-	log.Debugf("saveArtifacts[bsa] - copy files (%v)", len(p.saFileMap))
+	logger.Debugf("[bsa] - copy files (%v)", len(p.saFileMap))
 copyBsaFiles:
 	for srcFileName := range p.saFileMap {
 		for _, xpattern := range excludePatterns {
 			found, err := doublestar.Match(xpattern, srcFileName)
 			if err != nil {
-				log.Debugf("saveArtifacts[bsa] - copy files - [%v] excludePatterns Match error - %v\n", srcFileName, err)
+				logger.Debugf("[bsa] - copy files - [%v] excludePatterns Match error - %v\n", srcFileName, err)
 				//should only happen when the pattern is malformed
 				continue
 			}
 			if found {
-				log.Debugf("saveArtifacts[bsa] - copy files - [%v] - excluding (%s) ", srcFileName, xpattern)
+				logger.Debugf("[bsa] - copy files - [%v] - excluding (%s) ", srcFileName, xpattern)
 				continue copyBsaFiles
 			}
 		}
 
 		dstFilePath := fmt.Sprintf("%s/files%s", p.storeLocation, srcFileName)
-		log.Debug("saveArtifacts[bsa] - saving file data => ", dstFilePath)
+		logger.Debug("[bsa] - saving file data => ", dstFilePath)
 		if fsutil.Exists(dstFilePath) {
 			//we might already have the target file
 			//when we have intermediate symlinks in the path
-			log.Debugf("saveArtifacts[bsa] - target file already exists (%s)", dstFilePath)
+			logger.Debugf("[bsa] - target file already exists (%s)", dstFilePath)
 		} else {
 			if p.cmd.ObfuscateMetadata && isAppMetadataFile(srcFileName) {
 				err := fsutil.CopyAndObfuscateFile(p.cmd.KeepPerms, srcFileName, dstFilePath, true)
 				if err != nil {
-					log.Debugf("saveArtifacts[bsa] - error saving file => %v", err)
+					logger.Debugf("[bsa] - error saving file => %v", err)
 				} else {
-					log.Debugf("saveArtifacts[bsa] - saved file (%s)", dstFilePath)
+					logger.Debugf("[bsa] - saved file (%s)", dstFilePath)
 				}
 			} else {
 				err := fsutil.CopyRegularFile(p.cmd.KeepPerms, srcFileName, dstFilePath, true)
 				if err != nil {
-					log.Debugf("saveArtifacts[bsa] - error saving file => %v", err)
+					logger.Debugf("[bsa] - error saving file => %v", err)
 				} else {
-					log.Debugf("saveArtifacts[bsa] - saved file (%s)", dstFilePath)
+					logger.Debugf("[bsa] - saved file (%s)", dstFilePath)
 				}
 			}
 		}
@@ -2401,13 +2477,13 @@ copyBsaFiles:
 		if _, err := os.Stat(sysidentity.PasswdFilePath); err == nil {
 			//if err := cpFile(passwdFilePath, passwdFileTargetPath); err != nil {
 			if err := fsutil.CopyRegularFile(p.cmd.KeepPerms, sysidentity.PasswdFilePath, dstPasswdFilePath, true); err != nil {
-				log.Debugf("sensor: monitor - error copying user info file => %v", err)
+				logger.Debugf("copyBasicUserInfo: fsutil.CopyRegularFile - error copying user info file => %v", err)
 			}
 		} else {
 			if os.IsNotExist(err) {
-				log.Debug("sensor: monitor - no user info file")
+				logger.Debug("copyBasicUserInfo: no user info file")
 			} else {
-				log.Debug("sensor: monitor - could not save user info file =>", err)
+				logger.Debug("copyBasicUserInfo: could not save user info file =>", err)
 			}
 		}
 	}
@@ -2417,19 +2493,19 @@ copyBsaFiles:
 copyIncludes:
 	for inPath, isDir := range includePaths {
 		if artifact.IsFilteredPath(inPath) {
-			log.Debugf("saveArtifacts - skipping filtered include path [isDir=%v] %s", isDir, inPath)
+			logger.Debugf("skipping filtered include path [isDir=%v] %s", isDir, inPath)
 			continue
 		}
 
 		for _, xpattern := range excludePatterns {
 			found, err := doublestar.Match(xpattern, inPath)
 			if err != nil {
-				log.Debugf("saveArtifacts - copy includes - [%v] excludePatterns Match error - %v\n", inPath, err)
+				logger.Debugf("copy includes - [%v] excludePatterns Match error - %v\n", inPath, err)
 				//should only happen when the pattern is malformed
 				continue
 			}
 			if found {
-				log.Debugf("saveArtifacts - copy includes - [%v] - excluding (%s) ", inPath, xpattern)
+				logger.Debugf("copy includes - [%v] - excluding (%s) ", inPath, xpattern)
 				continue copyIncludes
 			}
 		}
@@ -2438,15 +2514,15 @@ copyIncludes:
 		if isDir {
 			err, errs := fsutil.CopyDir(p.cmd.KeepPerms, inPath, dstPath, true, true, excludePatterns, nil, nil)
 			if err != nil {
-				log.Debugf("CopyDir(%v,%v) error: %v", inPath, dstPath, err)
+				logger.Debugf("CopyDir(%v,%v) error: %v", inPath, dstPath, err)
 			}
 
 			if len(errs) > 0 {
-				log.Debugf("CopyDir(%v,%v) copy errors: %+v", inPath, dstPath, errs)
+				logger.Debugf("CopyDir(%v,%v) copy errors: %+v", inPath, dstPath, errs)
 			}
 		} else {
 			if err := fsutil.CopyFile(p.cmd.KeepPerms, inPath, dstPath, true); err != nil {
-				log.Debugf("CopyFile(%v,%v) error: %v", inPath, dstPath, err)
+				logger.Debugf("CopyFile(%v,%v) error: %v", inPath, dstPath, err)
 			}
 		}
 	}
@@ -2454,17 +2530,17 @@ copyIncludes:
 	for exePath := range exeMap {
 		exeArtifacts, err := sodeps.AllExeDependencies(exePath, true)
 		if err != nil {
-			log.Debugf("saveArtifacts - %v - error getting exe artifacts => %v", exePath, err)
+			logger.Debugf("%v - error getting exe artifacts => %v", exePath, err)
 			continue
 		}
 
-		log.Debugf("saveArtifacts - include exe [%s]: artifacts (%d):\n%v\n",
+		logger.Debugf("include exe [%s]: artifacts (%d):\n%v\n",
 			exePath, len(exeArtifacts), strings.Join(exeArtifacts, "\n"))
 
 		for _, apath := range exeArtifacts {
 			dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, apath)
 			if err := fsutil.CopyFile(p.cmd.KeepPerms, apath, dstPath, true); err != nil {
-				log.Debugf("CopyFile(%v,%v) error: %v", apath, dstPath, err)
+				logger.Debugf("CopyFile(%v,%v) error: %v", apath, dstPath, err)
 			}
 		}
 	}
@@ -2472,24 +2548,24 @@ copyIncludes:
 addExtraBinIncludes:
 	for inPath, isDir := range includeDirBinsList {
 		if !isDir {
-			log.Debugf("saveArtifacts - skipping non-directory in includeDirBinsList - %s", inPath)
+			logger.Debugf("skipping non-directory in includeDirBinsList - %s", inPath)
 			continue
 		}
 
 		if artifact.IsFilteredPath(inPath) {
-			log.Debugf("saveArtifacts - skipping filtered path in includeDirBinsList - %s", inPath)
+			logger.Debugf("skipping filtered path in includeDirBinsList - %s", inPath)
 			continue
 		}
 
 		for _, xpattern := range excludePatterns {
 			found, err := doublestar.Match(xpattern, inPath)
 			if err != nil {
-				log.Debugf("saveArtifacts - includeDirBinsList - [%s] excludePatterns Match error - %v\n", inPath, err)
+				logger.Debugf("includeDirBinsList - [%s] excludePatterns Match error - %v\n", inPath, err)
 				//should only happen when the pattern is malformed
 				continue
 			}
 			if found {
-				log.Debugf("saveArtifacts - includeDirBinsList - [%s] - excluding (%s) ", inPath, xpattern)
+				logger.Debugf("includeDirBinsList - [%s] - excluding (%s) ", inPath, xpattern)
 				continue addExtraBinIncludes
 			}
 		}
@@ -2497,17 +2573,17 @@ addExtraBinIncludes:
 		err := filepath.Walk(inPath,
 			func(pth string, info os.FileInfo, err error) error {
 				if strings.HasPrefix(pth, "/proc/") {
-					log.Debugf("skipping /proc file system objects... - '%s'", pth)
+					logger.Debugf("skipping /proc file system objects... - '%s'", pth)
 					return filepath.SkipDir
 				}
 
 				if strings.HasPrefix(pth, "/sys/") {
-					log.Debugf("skipping /sys file system objects... - '%s'", pth)
+					logger.Debugf("skipping /sys file system objects... - '%s'", pth)
 					return filepath.SkipDir
 				}
 
 				if strings.HasPrefix(pth, "/dev/") {
-					log.Debugf("skipping /dev file system objects... - '%s'", pth)
+					logger.Debugf("skipping /dev file system objects... - '%s'", pth)
 					return filepath.SkipDir
 				}
 
@@ -2524,7 +2600,7 @@ addExtraBinIncludes:
 				}
 
 				if err != nil {
-					log.Debugf("skipping %s with error: %v", pth, err)
+					logger.Debugf("skipping %s with error: %v", pth, err)
 					return nil
 				}
 
@@ -2551,43 +2627,43 @@ addExtraBinIncludes:
 			})
 
 		if err != nil {
-			log.Errorf("saveArtifacts - error enumerating includeDirBinsList dir (%s) - %v", inPath, err)
+			logger.Errorf("error enumerating includeDirBinsList dir (%s) - %v", inPath, err)
 		}
 	}
 
 copyBinIncludes:
 	for binPath := range binPathMap {
 		if artifact.IsFilteredPath(binPath) {
-			log.Debugf("saveArtifacts - skipping filtered include bin - %s", binPath)
+			logger.Debugf("skipping filtered include bin - %s", binPath)
 			continue
 		}
 
 		for _, xpattern := range excludePatterns {
 			found, err := doublestar.Match(xpattern, binPath)
 			if err != nil {
-				log.Debugf("saveArtifacts - copy bin includes - [%v] excludePatterns Match error - %v\n", binPath, err)
+				logger.Debugf("copy bin includes - [%v] excludePatterns Match error - %v\n", binPath, err)
 				//should only happen when the pattern is malformed
 				continue
 			}
 			if found {
-				log.Debugf("saveArtifacts - copy bin includes - [%v] - excluding (%s) ", binPath, xpattern)
+				logger.Debugf("copy bin includes - [%v] - excluding (%s) ", binPath, xpattern)
 				continue copyBinIncludes
 			}
 		}
 
 		binArtifacts, err := sodeps.AllDependencies(binPath)
 		if err != nil {
-			log.Debugf("saveArtifacts - %v - error getting bin artifacts => %v", binPath, err)
+			logger.Debugf("%v - error getting bin artifacts => %v", binPath, err)
 			continue
 		}
 
-		log.Debugf("saveArtifacts - include bin [%s]: artifacts (%d):\n%v",
+		logger.Debugf("include bin [%s]: artifacts (%d):\n%v",
 			binPath, len(binArtifacts), strings.Join(binArtifacts, "\n"))
 
 		for _, bpath := range binArtifacts {
 			dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, bpath)
 			if err := fsutil.CopyFile(p.cmd.KeepPerms, bpath, dstPath, true); err != nil {
-				log.Debugf("CopyFile(%v,%v) error: %v", bpath, dstPath, err)
+				logger.Debugf("CopyFile(%v,%v) error: %v", bpath, dstPath, err)
 			}
 		}
 	}
@@ -2595,37 +2671,38 @@ copyBinIncludes:
 	if p.cmd.IncludeShell {
 		shellArtifacts, err := shellDependencies()
 		if err == nil {
-			log.Debugf("saveArtifacts - include shell: artifacts (%d):\n%v\n",
+			logger.Debugf("include shell: artifacts (%d):\n%v\n",
 				len(shellArtifacts), strings.Join(shellArtifacts, "\n"))
 
 			for _, spath := range shellArtifacts {
 				dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, spath)
 				if err := fsutil.CopyFile(p.cmd.KeepPerms, spath, dstPath, true); err != nil {
-					log.Debugf("CopyFile(%v,%v) error: %v", spath, dstPath, err)
+					logger.Debugf("CopyFile(%v,%v) error: %v", spath, dstPath, err)
 				}
 			}
 		} else {
-			log.Debugf("saveArtifacts - error getting shell artifacts => %v", err)
+			logger.Debugf("error getting shell artifacts => %v", err)
 		}
 
 	}
 
 	p.saveWorkdir(excludePatterns)
 
-	p.saveSSHClient()
+	p.saveDistroInfo()
+	p.saveZoneInfo()
 	p.saveOSLibsNetwork()
 	p.saveCertsData()
-	p.saveZoneInfo()
+	p.saveSSHClient()
 
 	if fsutil.DirExists("/tmp") {
 		tdTargetPath := fmt.Sprintf("%s/files/tmp", p.storeLocation)
 		if !fsutil.DirExists(tdTargetPath) {
 			if err := os.MkdirAll(tdTargetPath, os.ModeSticky|os.ModeDir|0777); err != nil {
-				log.Debugf("saveArtifacts - error creating tmp directory => %v", err)
+				logger.Debugf("error creating tmp directory => %v", err)
 			}
 		} else {
 			if err := os.Chmod(tdTargetPath, os.ModeSticky|os.ModeDir|0777); err != nil {
-				log.Debugf("saveArtifacts - error setting tmp directory permission ==> %v", err)
+				logger.Debugf("error setting tmp directory permission ==> %v", err)
 			}
 		}
 	}
@@ -2635,7 +2712,7 @@ copyBinIncludes:
 		if !fsutil.DirExists(tdTargetPath) {
 			//should use perms from source
 			if err := os.MkdirAll(tdTargetPath, 0755); err != nil {
-				log.Debugf("saveArtifacts - error creating run directory => %v", err)
+				logger.Debugf("error creating run directory => %v", err)
 			}
 		}
 	}
@@ -2644,7 +2721,7 @@ copyBinIncludes:
 		tdTargetPath := fmt.Sprintf("%s/files%s", p.storeLocation, extraDir)
 		if fsutil.DirExists(extraDir) && !fsutil.DirExists(tdTargetPath) {
 			if err := fsutil.CopyDirOnly(p.cmd.KeepPerms, extraDir, tdTargetPath); err != nil {
-				log.Debugf("CopyDirOnly(%v,%v) error: %v", extraDir, tdTargetPath, err)
+				logger.Debugf("CopyDirOnly(%v,%v) error: %v", extraDir, tdTargetPath, err)
 			}
 		}
 	}
@@ -2653,13 +2730,13 @@ copyBinIncludes:
 		dstPath := fmt.Sprintf("%s/files%s", p.storeLocation, inPath)
 		if fsutil.Exists(dstPath) {
 			if err := fsutil.SetAccess(dstPath, perms); err != nil {
-				log.Debugf("SetPerms(%v,%v) error: %v", dstPath, perms, err)
+				logger.Debugf("SetPerms(%v,%v) error: %v", dstPath, perms, err)
 			}
 		}
 	}
 
 	if len(p.cmd.Preserves) > 0 {
-		log.Debugf("saveArtifacts: restoring preserved paths - %d", len(p.cmd.Preserves))
+		logger.Debugf("restoring preserved paths - %d", len(p.cmd.Preserves))
 
 		preservedDirPath := filepath.Join(p.storeLocation, preservedDirName)
 		if fsutil.Exists(preservedDirPath) {
@@ -2667,7 +2744,7 @@ copyBinIncludes:
 			preservePaths := preparePaths(getKeys(p.cmd.Preserves))
 			for inPath, isDir := range preservePaths {
 				if artifact.IsFilteredPath(inPath) {
-					log.Debugf("saveArtifacts: skipping filtered preserved path [isDir=%v] %s", isDir, inPath)
+					logger.Debugf("skipping filtered preserved path [isDir=%v] %s", isDir, inPath)
 					continue
 				}
 
@@ -2677,20 +2754,20 @@ copyBinIncludes:
 				if isDir {
 					err, errs := fsutil.CopyDir(p.cmd.KeepPerms, srcPath, dstPath, true, true, nil, nil, nil)
 					if err != nil {
-						log.Debugf("saveArtifacts.CopyDir(%v,%v) error: %v", srcPath, dstPath, err)
+						logger.Debugf("CopyDir(%v,%v) error: %v", srcPath, dstPath, err)
 					}
 
 					if len(errs) > 0 {
-						log.Debugf("saveArtifacts.CopyDir(%v,%v) copy errors: %+v", srcPath, dstPath, errs)
+						logger.Debugf("CopyDir(%v,%v) copy errors: %+v", srcPath, dstPath, errs)
 					}
 				} else {
 					if err := fsutil.CopyFile(p.cmd.KeepPerms, srcPath, dstPath, true); err != nil {
-						log.Debugf("saveArtifacts.CopyFile(%v,%v) error: %v", srcPath, dstPath, err)
+						logger.Debugf("CopyFile(%v,%v) error: %v", srcPath, dstPath, err)
 					}
 				}
 			}
 		} else {
-			log.Debug("saveArtifacts(): preserved root path doesnt exist")
+			logger.Debug("preserved root path doesnt exist")
 		}
 	}
 

@@ -121,6 +121,7 @@ type Inspector struct {
 	DoIncludeShell           bool
 	DoIncludeWorkdir         bool
 	DoIncludeHealthcheck     bool
+	DoIncludeDistroInfo      bool
 	DoIncludeCertAll         bool
 	DoIncludeCertBundles     bool
 	DoIncludeCertDirs        bool
@@ -204,6 +205,7 @@ func NewInspector(
 	doIncludeShell bool,
 	doIncludeWorkdir bool,
 	doIncludeHealthcheck bool,
+	doIncludeDistroInfo bool,
 	doIncludeCertAll bool,
 	doIncludeCertBundles bool,
 	doIncludeCertDirs bool,
@@ -264,6 +266,7 @@ func NewInspector(
 		DoIncludeShell:           doIncludeShell,
 		DoIncludeWorkdir:         doIncludeWorkdir,
 		DoIncludeHealthcheck:     doIncludeHealthcheck,
+		DoIncludeDistroInfo:      doIncludeDistroInfo,
 		DoIncludeCertAll:         doIncludeCertAll,
 		DoIncludeCertBundles:     doIncludeCertBundles,
 		DoIncludeCertDirs:        doIncludeCertDirs,
@@ -842,6 +845,7 @@ func (i *Inspector) RunContainer() error {
 		}
 	}
 
+	cmd.IncludeDistroInfo = i.DoIncludeDistroInfo
 	cmd.IncludeCertAll = i.DoIncludeCertAll
 	cmd.IncludeCertBundles = i.DoIncludeCertBundles
 	cmd.IncludeCertDirs = i.DoIncludeCertDirs

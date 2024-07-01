@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"syscall"
+
+	"github.com/mintoolkit/mint/pkg/system/osdistro"
 )
 
 func newSystemInfo() SystemInfo {
@@ -39,12 +41,12 @@ func distroInfo() DistroInfo {
 		DisplayName: "unknown",
 	}
 
-	bdata, err := os.ReadFile(OSReleaseFile)
+	bdata, err := os.ReadFile(osdistro.OSReleaseFile)
 	if err != nil {
 		return distro
 	}
 
-	if osr, err := NewOsRelease(bdata); err == nil {
+	if osr, err := osdistro.NewOsRelease(bdata); err == nil {
 		var nameMain, nameVersion string
 
 		distro.Name = osr.Name

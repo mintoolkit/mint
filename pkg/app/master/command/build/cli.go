@@ -129,6 +129,7 @@ var BuildFlags = (append([]cli.Flag{
 	cflag(FlagAppImageDockerfile),
 	cflag(FlagIncludePathsCreportFile),
 	cflag(FlagIncludeHealthcheck),
+	cflag(FlagIncludeDistroInfo),
 	cflag(FlagIncludeOSLibsNet),
 	cflag(FlagIncludeSSHClient),
 	cflag(FlagIncludeZoneInfo),
@@ -701,6 +702,7 @@ var CLI = &cli.Command{
 			xc.Exit(-1)
 		}
 
+		doIncludeDistroInfo := ctx.Bool(FlagIncludeDistroInfo)
 		doIncludeHealthcheck := ctx.Bool(FlagIncludeHealthcheck)
 
 		doIncludeSSHClient := ctx.Bool(FlagIncludeSSHClient)
@@ -820,6 +822,7 @@ var CLI = &cli.Command{
 			doIncludeShell,
 			doIncludeWorkdir,
 			doIncludeHealthcheck,
+			doIncludeDistroInfo,
 			includeLastImageLayers,
 			doIncludeAppImageAll,
 			appImageStartInstGroup,

@@ -27,6 +27,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
 	"github.com/mintoolkit/mint/pkg/sysidentity"
 	"github.com/mintoolkit/mint/pkg/system"
+	"github.com/mintoolkit/mint/pkg/system/osdistro"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
 	"github.com/mintoolkit/mint/pkg/util/jsonutil"
 )
@@ -1749,7 +1750,7 @@ func inspectFile(
 
 	if (processorParams.DetectIdentities.Enabled &&
 		sysidentity.IsSourceFile(fullPath)) ||
-		system.IsOSReleaseFile(fullPath) ||
+		osdistro.IsOSReleaseFile(fullPath) ||
 		system.IsOSShellsFile(fullPath) ||
 		len(changeDataMatchers) > 0 ||
 		cpmDumps ||
@@ -1804,8 +1805,8 @@ func inspectFile(
 			}
 		}
 
-		if system.IsOSReleaseFile(fullPath) {
-			osr, err := system.NewOsRelease(data)
+		if osdistro.IsOSReleaseFile(fullPath) {
+			osr, err := osdistro.NewOsRelease(data)
 			if err != nil {
 				return err
 			}
