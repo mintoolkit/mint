@@ -17,9 +17,9 @@ import (
 	vinfo "github.com/mintoolkit/mint/pkg/version"
 
 	"github.com/c4milo/unpackit"
+	"github.com/mintoolkit/go-update"
+	"github.com/mintoolkit/uiprogress"
 	log "github.com/sirupsen/logrus"
-	"github.com/slimtoolkit/go-update"
-	"github.com/slimtoolkit/uiprogress"
 )
 
 const (

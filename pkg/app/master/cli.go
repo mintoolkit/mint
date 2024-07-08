@@ -10,7 +10,6 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
-	"github.com/mintoolkit/mint/pkg/app/master/command/appbom"
 	"github.com/mintoolkit/mint/pkg/app/master/command/build"
 	//"github.com/mintoolkit/mint/pkg/app/master/command/containerize"
 	//"github.com/mintoolkit/mint/pkg/app/master/command/convert"
@@ -19,7 +18,6 @@ import (
 	//"github.com/mintoolkit/mint/pkg/app/master/command/edit"
 	"github.com/mintoolkit/mint/pkg/app/master/command/help"
 	"github.com/mintoolkit/mint/pkg/app/master/command/images"
-	"github.com/mintoolkit/mint/pkg/app/master/command/install"
 	"github.com/mintoolkit/mint/pkg/app/master/command/lint"
 	"github.com/mintoolkit/mint/pkg/app/master/command/merge"
 	"github.com/mintoolkit/mint/pkg/app/master/command/probe"
@@ -27,8 +25,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/app/master/command/registry"
 	"github.com/mintoolkit/mint/pkg/app/master/command/run"
 	//"github.com/mintoolkit/mint/pkg/app/master/command/server"
-	"github.com/mintoolkit/mint/pkg/app/master/command/update"
-	"github.com/mintoolkit/mint/pkg/app/master/command/version"
+	appcmd "github.com/mintoolkit/mint/pkg/app/master/command/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command/vulnerability"
 	"github.com/mintoolkit/mint/pkg/app/master/command/xray"
 	"github.com/mintoolkit/mint/pkg/app/master/config"
@@ -56,11 +53,7 @@ func registerCommands() {
 	registry.RegisterCommand()
 	vulnerability.RegisterCommand()
 	profile.RegisterCommand()
-	version.RegisterCommand()
-	appbom.RegisterCommand()
 	help.RegisterCommand()
-	update.RegisterCommand()
-	install.RegisterCommand()
 	//edit.RegisterCommand() - not doing anything yet
 	probe.RegisterCommand()
 	//convert.RegisterCommand() - not doing anything yet
@@ -68,6 +61,7 @@ func registerCommands() {
 	//server.RegisterCommand() - not doing anything yet
 	//containerize.RegisterCommand() - not doing anything yet
 	dockerclipm.RegisterCommand()
+	appcmd.RegisterCommand()
 }
 
 func newCLI() *cli.App {

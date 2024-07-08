@@ -437,6 +437,15 @@ func (i *Inspector) RunContainer() error {
 	if !i.DoUseLocalMounts {
 		volumeName, err = ensureSensorVolume(i.logger, i.APIClient, sensorPath, i.SensorVolumeName)
 		errutil.FailOn(err)
+		if i.PrintState {
+			i.xc.Out.Info("sensor",
+				ovars{
+					"volume":   volumeName,
+					"location": sensorPath,
+					"filemode": fsutil.FileMode(sensorPath),
+					"version":  v.Current(),
+				})
+		}
 	}
 
 	//var artifactsMountInfo string
