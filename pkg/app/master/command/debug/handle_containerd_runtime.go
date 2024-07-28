@@ -29,6 +29,7 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/crt"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
 	"github.com/mintoolkit/mint/pkg/util/jsonutil"
 	v "github.com/mintoolkit/mint/pkg/version"
@@ -37,7 +38,7 @@ import (
 const cdSocket = "/run/containerd/containerd.sock"
 
 func hasContainerDSocket() bool {
-	return hasSocket(cdSocket)
+	return crt.HasSocket(cdSocket)
 }
 
 // HandleContainerdRuntime implements support for the ContainerD runtime

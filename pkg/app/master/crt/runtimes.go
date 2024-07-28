@@ -1,4 +1,4 @@
-package debug
+package crt
 
 import (
 	"os"
@@ -26,8 +26,6 @@ const (
 	PodmanRuntime     = "podman"
 	PodmanRuntimeDesc = "Podman runtime"
 )
-
-//todo: refactor when the "debuggers" are refactored in their own packages
 
 const (
 	ContainerdRuntimeSocket = "/var/run/containerd/containerd.sock"
@@ -63,12 +61,12 @@ var runtimeDefaultConnections = []RuntimeInfo{
 		Description: PodmanRuntimeDesc,
 	},
 	{
-		Socket:      getPodmanSocketPath(),
+		Socket:      GetPodmanSocketPath(),
 		Name:        PodmanRuntime,
 		Description: PodmanRuntimeDesc,
 	},
 	{
-		Socket:      getPodmanRemotePath(), //only reads configs (no REST calls)
+		Socket:      GetPodmanRemotePath(), //only reads configs (no REST calls)
 		Name:        PodmanRuntime,
 		Description: PodmanRuntimeDesc,
 	},
@@ -82,7 +80,7 @@ func AvailableRuntimes() []string {
 		}
 
 		if strings.HasPrefix(info.Socket, "/") {
-			if hasSocket(info.Socket) {
+			if HasSocket(info.Socket) {
 				usable[info.Name] = struct{}{}
 			}
 		} else {
@@ -115,7 +113,7 @@ func AutoSelectRuntime() string {
 	return DockerRuntime
 }
 
-func hasSocket(name string) bool {
+func HasSocket(name string) bool {
 	_, err := os.Stat(name)
 	if err == nil || !os.IsNotExist(err) {
 		return true

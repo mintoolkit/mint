@@ -8,6 +8,7 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/crt"
 )
 
 //Debug container
@@ -136,7 +137,7 @@ var CLI = &cli.Command{
 	Aliases: []string{Alias},
 	Usage:   Usage,
 	Flags: []cli.Flag{
-		cflag(FlagRuntime),
+		crt.Cflag(crt.FlagRuntime),
 		cflag(FlagTarget),
 		cflag(FlagNamespace),
 		cflag(FlagPod),
@@ -183,7 +184,7 @@ var CLI = &cli.Command{
 		}
 
 		commandParams := &CommandParams{
-			Runtime:                        ctx.String(FlagRuntime),
+			Runtime:                        ctx.String(crt.FlagRuntime),
 			TargetRef:                      ctx.String(FlagTarget),
 			TargetNamespace:                ctx.String(FlagNamespace),
 			TargetPod:                      ctx.String(FlagPod),
@@ -211,12 +212,12 @@ var CLI = &cli.Command{
 		}
 
 		if commandParams.ActionListNamespaces &&
-			commandParams.Runtime == DockerRuntime {
+			commandParams.Runtime == crt.DockerRuntime {
 			xc.Out.Error("param", "unsupported runtime flag")
 			xc.Out.State("exited",
 				ovars{
 					"runtime.provided": commandParams.Runtime,
-					"runtime.required": fmt.Sprintf("%s|%s", KubernetesRuntime, ContainerdRuntime),
+					"runtime.required": fmt.Sprintf("%s|%s", crt.KubernetesRuntime, crt.ContainerdRuntime),
 					"action":           commandParams.ActionListNamespaces,
 					"exit.code":        -1,
 				})
@@ -225,12 +226,12 @@ var CLI = &cli.Command{
 		}
 
 		if commandParams.ActionListPods &&
-			commandParams.Runtime != KubernetesRuntime {
+			commandParams.Runtime != crt.KubernetesRuntime {
 			xc.Out.Error("param", "unsupported runtime flag")
 			xc.Out.State("exited",
 				ovars{
 					"runtime.provided": commandParams.Runtime,
-					"runtime.required": KubernetesRuntime,
+					"runtime.required": crt.KubernetesRuntime,
 					"action":           commandParams.ActionListPods,
 					"exit.code":        -1,
 				})
@@ -279,7 +280,7 @@ var CLI = &cli.Command{
 			!commandParams.ActionConnectSession &&
 			commandParams.TargetRef == "" {
 			if ctx.Args().Len() < 1 {
-				if commandParams.Runtime != KubernetesRuntime {
+				if commandParams.Runtime != crt.KubernetesRuntime {
 					xc.Out.Error("param.target", "missing target")
 					cli.ShowCommandHelp(ctx, Name)
 					return nil

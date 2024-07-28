@@ -7,6 +7,7 @@ import (
 	"github.com/c-bata/go-prompt"
 
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/crt"
 )
 
 var CommandSuggestion = prompt.Suggest{
@@ -16,7 +17,7 @@ var CommandSuggestion = prompt.Suggest{
 
 var CommandFlagSuggestions = &command.FlagSuggestions{
 	Names: []prompt.Suggest{
-		{Text: command.FullFlagName(FlagRuntime), Description: FlagRuntimeUsage},
+		{Text: command.FullFlagName(crt.FlagRuntime), Description: crt.FlagRuntimeUsage},
 		{Text: command.FullFlagName(FlagTarget), Description: FlagTargetUsage},
 		{Text: command.FullFlagName(FlagNamespace), Description: FlagNamespaceUsage},
 		{Text: command.FullFlagName(FlagPod), Description: FlagPodUsage},
@@ -47,7 +48,7 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		{Text: command.FullFlagName(FlagKubeconfig), Description: FlagKubeconfigUsage},
 	},
 	Values: map[string]command.CompleteValue{
-		command.FullFlagName(FlagRuntime):                   completeRuntime,
+		command.FullFlagName(crt.FlagRuntime):               crt.CompleteRuntime,
 		command.FullFlagName(FlagTarget):                    completeTarget,
 		command.FullFlagName(FlagDebugImage):                completeDebugImage,
 		command.FullFlagName(FlagTerminal):                  command.CompleteTBool,
@@ -84,39 +85,19 @@ func completeDebugImage(ia *command.InteractiveApp, token string, params prompt.
 	return prompt.FilterHasPrefix(getDebugImageValues(), token, true)
 }
 
-var runtimeValues = []prompt.Suggest{
-	{Text: DockerRuntime, Description: DockerRuntimeDesc},
-	{Text: KubernetesRuntime, Description: KubernetesRuntimeDesc},
-	{Text: ContainerdRuntime, Description: ContainerdRuntimeDesc},
-	{Text: PodmanRuntime, Description: PodmanRuntimeDesc},
-	{Text: AutoRuntime, Description: AutoRuntimeDesc},
-}
-
-func completeRuntime(ia *command.InteractiveApp, token string, params prompt.Document) []prompt.Suggest {
-	return prompt.FilterHasPrefix(runtimeValues, token, true)
-}
-
-func resolveAutoRuntime(val string) string {
-	if val != AutoRuntime {
-		return val
-	}
-
-	return AutoSelectRuntime()
-}
-
 func completeNamespace(ia *command.InteractiveApp, token string, params prompt.Document) []prompt.Suggest {
 	var values []prompt.Suggest
 	ccs := command.GetCurrentCommandState()
 	if ccs != nil && ccs.Command == Name {
-		runtimeFlag := command.FullFlagName(FlagRuntime)
+		runtimeFlag := command.FullFlagName(crt.FlagRuntime)
 		if rtFlagVals, found := ccs.CommandFlags[runtimeFlag]; found {
 			if len(rtFlagVals) > 0 {
-				runtime := resolveAutoRuntime(rtFlagVals[0])
+				runtime := crt.ResolveAutoRuntime(rtFlagVals[0])
 
 				var names []string
 				switch runtime {
-				case KubernetesRuntime:
-					kubeconfig := KubeconfigDefault
+				case crt.KubernetesRuntime:
+					kubeconfig := crt.KubeconfigDefault
 					kubeconfigFlag := command.FullFlagName(FlagKubeconfig)
 					kcFlagVals, found := ccs.CommandFlags[kubeconfigFlag]
 					if found && len(kcFlagVals) > 0 {
@@ -124,7 +105,7 @@ func completeNamespace(ia *command.InteractiveApp, token string, params prompt.D
 					}
 
 					names, _ = listNamespacesWithConfig(kubeconfig)
-				case ContainerdRuntime:
+				case crt.ContainerdRuntime:
 					names, _ = cdListNamespaces()
 				}
 
@@ -143,17 +124,17 @@ func completePod(ia *command.InteractiveApp, token string, params prompt.Documen
 	var values []prompt.Suggest
 	ccs := command.GetCurrentCommandState()
 	if ccs != nil && ccs.Command == Name {
-		runtimeFlag := command.FullFlagName(FlagRuntime)
+		runtimeFlag := command.FullFlagName(crt.FlagRuntime)
 		if rtFlagVals, found := ccs.CommandFlags[runtimeFlag]; found {
-			if len(rtFlagVals) > 0 && resolveAutoRuntime(rtFlagVals[0]) == KubernetesRuntime {
-				kubeconfig := KubeconfigDefault
+			if len(rtFlagVals) > 0 && crt.ResolveAutoRuntime(rtFlagVals[0]) == crt.KubernetesRuntime {
+				kubeconfig := crt.KubeconfigDefault
 				kubeconfigFlag := command.FullFlagName(FlagKubeconfig)
 				kcFlagVals, found := ccs.CommandFlags[kubeconfigFlag]
 				if found && len(kcFlagVals) > 0 {
 					kubeconfig = kcFlagVals[0]
 				}
 
-				namespace := NamespaceDefault
+				namespace := crt.NamespaceDefault
 				namespaceFlag := command.FullFlagName(FlagNamespace)
 				nsFlagVals, found := ccs.CommandFlags[namespaceFlag]
 				if found && len(nsFlagVals) > 0 {
@@ -176,24 +157,24 @@ func completeTarget(ia *command.InteractiveApp, token string, params prompt.Docu
 	var values []prompt.Suggest
 	ccs := command.GetCurrentCommandState()
 	if ccs != nil && ccs.Command == Name {
-		runtimeFlag := command.FullFlagName(FlagRuntime)
+		runtimeFlag := command.FullFlagName(crt.FlagRuntime)
 		rtFlagVals, found := ccs.CommandFlags[runtimeFlag]
-		runtime := AutoRuntime
+		runtime := crt.AutoRuntime
 		if found && len(rtFlagVals) > 0 {
 			runtime = rtFlagVals[0]
 		}
 
-		runtime = resolveAutoRuntime(runtime)
+		runtime = crt.ResolveAutoRuntime(runtime)
 		switch runtime {
-		case KubernetesRuntime:
-			kubeconfig := KubeconfigDefault
+		case crt.KubernetesRuntime:
+			kubeconfig := crt.KubeconfigDefault
 			kubeconfigFlag := command.FullFlagName(FlagKubeconfig)
 			kcFlagVals, found := ccs.CommandFlags[kubeconfigFlag]
 			if found && len(kcFlagVals) > 0 {
 				kubeconfig = kcFlagVals[0]
 			}
 
-			namespace := NamespaceDefault
+			namespace := crt.NamespaceDefault
 			namespaceFlag := command.FullFlagName(FlagNamespace)
 			nsFlagVals, found := ccs.CommandFlags[namespaceFlag]
 			if found && len(nsFlagVals) > 0 {
@@ -217,7 +198,7 @@ func completeTarget(ia *command.InteractiveApp, token string, params prompt.Docu
 					values = append(values, value)
 				}
 			}
-		case ContainerdRuntime:
+		case crt.ContainerdRuntime:
 			conts, _ := cdListDebuggableContainers(context.Background(), nil)
 
 			for _, c := range conts {
@@ -227,12 +208,12 @@ func completeTarget(ia *command.InteractiveApp, token string, params prompt.Docu
 				}
 				values = append(values, value)
 			}
-		case PodmanRuntime:
+		case crt.PodmanRuntime:
 			var connCtx context.Context
 			if ccs.CRTConnection != "" {
-				connCtx = getPodmanConnContextWithConn(ccs.CRTConnection)
+				connCtx = crt.GetPodmanConnContextWithConn(ccs.CRTConnection)
 			} else {
-				connCtx = getPodmanConnContext()
+				connCtx = crt.GetPodmanConnContext()
 			}
 
 			if connCtx != nil {
@@ -270,21 +251,21 @@ func completeSession(ia *command.InteractiveApp, token string, params prompt.Doc
 	if ccs != nil && ccs.Command == Name {
 		csessValStr := ccs.GetCFValue(FlagConnectSession)
 
-		runtimeFlag := command.FullFlagName(FlagRuntime)
+		runtimeFlag := command.FullFlagName(crt.FlagRuntime)
 		rtFlagVals, found := ccs.CommandFlags[runtimeFlag]
 		handleDockerRuntime := true
 		if found && len(rtFlagVals) > 0 {
 			handleDockerRuntime = false
-			switch resolveAutoRuntime(rtFlagVals[0]) {
-			case KubernetesRuntime:
-				kubeconfig := KubeconfigDefault
+			switch crt.ResolveAutoRuntime(rtFlagVals[0]) {
+			case crt.KubernetesRuntime:
+				kubeconfig := crt.KubeconfigDefault
 				kubeconfigFlag := command.FullFlagName(FlagKubeconfig)
 				kcFlagVals, found := ccs.CommandFlags[kubeconfigFlag]
 				if found && len(kcFlagVals) > 0 {
 					kubeconfig = kcFlagVals[0]
 				}
 
-				namespace := ccs.GetCFValueWithDefault(FlagNamespace, NamespaceDefault)
+				namespace := ccs.GetCFValueWithDefault(FlagNamespace, crt.NamespaceDefault)
 
 				var pod string
 				podFlag := command.FullFlagName(FlagPod)
@@ -316,7 +297,7 @@ func completeSession(ia *command.InteractiveApp, token string, params prompt.Doc
 						values = append(values, value)
 					}
 				}
-			case ContainerdRuntime:
+			case crt.ContainerdRuntime:
 				var target string
 				targetFlag := command.FullFlagName(FlagTarget)
 				targetFlagVals, found := ccs.CommandFlags[targetFlag]
@@ -338,7 +319,7 @@ func completeSession(ia *command.InteractiveApp, token string, params prompt.Doc
 						values = append(values, value)
 					}
 				}
-			case PodmanRuntime:
+			case crt.PodmanRuntime:
 				var target string
 				targetFlag := command.FullFlagName(FlagTarget)
 				targetFlagVals, found := ccs.CommandFlags[targetFlag]
@@ -348,9 +329,9 @@ func completeSession(ia *command.InteractiveApp, token string, params prompt.Doc
 
 				var connCtx context.Context
 				if ccs.CRTConnection != "" {
-					connCtx = getPodmanConnContextWithConn(ccs.CRTConnection)
+					connCtx = crt.GetPodmanConnContextWithConn(ccs.CRTConnection)
 				} else {
-					connCtx = getPodmanConnContext()
+					connCtx = crt.GetPodmanConnContext()
 				}
 
 				if connCtx != nil {

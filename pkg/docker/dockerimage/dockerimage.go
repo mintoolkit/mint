@@ -747,6 +747,8 @@ func LoadPackage(archivePath string,
 	layerFileNames := map[string]struct{}{}
 	ociLayerFileNames := map[string]struct{}{}
 	nonLayerFileNames := map[string]string{}
+	layerDataFiles := map[string]string{}
+
 	if pkg.Manifest != nil {
 		if pkg.Manifest.Config != "" &&
 			pkg.Manifest.Config != dv1ConfigObjectFileName {
@@ -763,7 +765,7 @@ func LoadPackage(archivePath string,
 				if parts[0] == ociBlobDirName {
 					layerID = parts[2]
 				} else {
-					layerID = parts[0]
+					layerID = parts[0] //for Podman/Buildah diffid.tar, not layer ID
 				}
 
 				layerSequence = append(layerSequence, LayerLocation{
@@ -825,6 +827,10 @@ func LoadPackage(archivePath string,
 			}
 
 			hdr.Name = filepath.Clean(hdr.Name)
+			if hdr.Name == "" {
+				log.Debugf("dockerimage.LoadPackage: ignoring tar header with empty names (%d)", tarFileCount)
+				continue
+			}
 
 			if configObjectFileName != "" &&
 				hdr.Name == configObjectFileName {
@@ -847,6 +853,16 @@ func LoadPackage(archivePath string,
 				pkg.Config = &imageConfig
 				configObjectFileName = ""
 				continue
+			}
+
+			if strings.HasSuffix(hdr.Name, dockerV1LayerSuffix) &&
+				hdr.Typeflag == tar.TypeSymlink {
+				parts := strings.Split(hdr.Name, "/")
+				layerID := parts[0]
+				tparts := strings.Split(hdr.Linkname, "/")
+				if len(tparts) == 2 && strings.HasSuffix(tparts[1], ".tar") {
+					layerDataFiles[tparts[1]] = layerID
+				}
 			}
 
 			if pkg.ManifestOCI == nil &&
@@ -997,6 +1013,11 @@ func LoadPackage(archivePath string,
 		}
 
 		hdr.Name = filepath.Clean(hdr.Name)
+		if hdr.Name == "" {
+			log.Debugf("dockerimage.LoadPackage: ignoring tar header with empty name")
+			continue
+		}
+
 		if configObjectFileName != "" &&
 			hdr.Name == configObjectFileName {
 			var imageConfig ConfigObject
@@ -1029,12 +1050,12 @@ func LoadPackage(archivePath string,
 
 				var layer *Layer
 				if hdr.Typeflag == tar.TypeSymlink {
-					layer = newLayer(layerID, topChangesMax)
-					layer.Path = hdr.Name
-					layer.MetadataChangesOnly = true
-
 					parts := strings.Split(hdr.Linkname, "/")
-					if len(parts) == 3 && parts[2] == "layer.tar" {
+					if len(parts) == 3 && parts[2] == dockerV1LayerBaseName {
+						layer = newLayer(layerID, topChangesMax)
+						layer.Path = hdr.Name
+						layer.MetadataChangesOnly = true
+
 						layer.LayerDataSource = parts[1]
 
 						if srcLayer, ok := layers[layer.LayerDataSource]; ok {
@@ -1054,6 +1075,9 @@ func LoadPackage(archivePath string,
 						} else {
 							log.Debugf("dockerimage.LoadPackage: could not find source layer - %v", layer.LayerDataSource)
 						}
+					} else if len(parts) == 2 && strings.HasSuffix(parts[1], ".tar") {
+						//Looks like a Buildah/Podman image layer
+						layerDataFiles[parts[1]] = layerID
 					}
 				} else {
 					layer, err = layerFromStream(
@@ -1077,15 +1101,35 @@ func LoadPackage(archivePath string,
 					}
 				}
 
-				layers[layerID] = layer
-				log.Debugf("dockerimage.LoadPackage: saved v1 layer '%s' from archive - %s",
-					layerID, archivePath)
+				if layer != nil {
+					layers[layerID] = layer
+					log.Debugf("dockerimage.LoadPackage: saved v1 layer '%s' from archive - %s",
+						layerID, archivePath)
+				}
 
 			default:
 				if _, found := layerFileNames[hdr.Name]; found {
 					// todo: test if we can get symlinks...
-					parts := strings.SplitN(hdr.Name, "/", 3)
-					layerID := parts[2]
+					var layerID string
+					if strings.Contains(hdr.Name, "/") {
+						parts := strings.SplitN(hdr.Name, "/", 3)
+						if len(parts) == 3 {
+							layerID = parts[2]
+						}
+					}
+
+					if layerID == "" {
+						//could be a Buildah/Podman image
+						if lid, found := layerDataFiles[hdr.Name]; found {
+							layerID = lid
+						}
+					}
+
+					if layerID == "" {
+						log.Debugf("dockerimage.LoadPackage: could not figure out layer ID, using layer file name '%s' (archive - %s)", hdr.Name, archivePath)
+						layerID = hdr.Name
+					}
+
 					layer, err := layerFromStream(
 						pkg,
 						hdr.Name,

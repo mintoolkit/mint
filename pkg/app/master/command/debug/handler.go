@@ -7,6 +7,7 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/crt"
 	"github.com/mintoolkit/mint/pkg/app/master/version"
 	cmd "github.com/mintoolkit/mint/pkg/command"
 	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
@@ -43,7 +44,7 @@ func OnCommand(
 	xc.AddCleanupHandler(cmdReportOnExit)
 
 	xc.Out.State("started")
-	rr := resolveAutoRuntime(commandParams.Runtime)
+	rr := crt.ResolveAutoRuntime(commandParams.Runtime)
 	if rr != commandParams.Runtime {
 		rr = fmt.Sprintf("%s/%s", commandParams.Runtime, rr)
 	}
@@ -60,12 +61,12 @@ func OnCommand(
 		"fallback-to-target-user": commandParams.DoFallbackToTargetUser,
 	}
 
-	if resolveAutoRuntime(commandParams.Runtime) == KubernetesRuntime {
+	if crt.ResolveAutoRuntime(commandParams.Runtime) == crt.KubernetesRuntime {
 		paramVars["namespace"] = commandParams.TargetNamespace
 		paramVars["pod"] = commandParams.TargetPod
 	}
 
-	if resolveAutoRuntime(commandParams.Runtime) == ContainerdRuntime {
+	if crt.ResolveAutoRuntime(commandParams.Runtime) == crt.ContainerdRuntime {
 		paramVars["namespace"] = commandParams.TargetNamespace
 	}
 
@@ -79,10 +80,10 @@ func OnCommand(
 			"debug.container.name": debugContainerName,
 		})
 
-	resolved := resolveAutoRuntime(commandParams.Runtime)
+	resolved := crt.ResolveAutoRuntime(commandParams.Runtime)
 	logger.Tracef("runtime.handler: rt=%s resolved=%s", commandParams.Runtime, resolved)
 	switch resolved {
-	case DockerRuntime:
+	case crt.DockerRuntime:
 		client, err := dockerclient.New(gparams.ClientConfig)
 		if err == dockerclient.ErrNoDockerInfo {
 			exitMsg := "missing Docker connection info"
@@ -111,7 +112,7 @@ func OnCommand(
 		}
 
 		HandleDockerRuntime(logger, xc, gparams, commandParams, client, sid, debugContainerName)
-	case KubernetesRuntime:
+	case crt.KubernetesRuntime:
 		//hacky v1... using docker client to lookup image info
 		//todo: use another way to get k8s container image info
 		client, err := dockerclient.New(gparams.ClientConfig)
@@ -124,13 +125,13 @@ func OnCommand(
 		}
 
 		HandleKubernetesRuntime(logger, xc, gparams, commandParams, client, sid, debugContainerName)
-	case ContainerdRuntime:
+	case crt.ContainerdRuntime:
 		if gparams.Debug {
 			version.Print(xc, Name, logger, nil, false, gparams.InContainer, gparams.IsDSImage)
 		}
 
 		HandleContainerdRuntime(logger, xc, gparams, commandParams, sid, debugContainerName)
-	case PodmanRuntime:
+	case crt.PodmanRuntime:
 		if gparams.Debug {
 			version.Print(xc, Name, logger, nil, false, gparams.InContainer, gparams.IsDSImage)
 		}

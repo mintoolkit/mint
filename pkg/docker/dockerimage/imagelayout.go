@@ -5,7 +5,8 @@ const (
 	dockerReposFileName    = "repositories"
 
 	//dockerV1 config object file name: <IMAGE_ID>.json
-	dockerV1LayerSuffix = "/layer.tar"
+	dockerV1LayerSuffix   = "/layer.tar"
+	dockerV1LayerBaseName = "layer.tar"
 )
 
 const (

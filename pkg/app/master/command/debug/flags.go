@@ -3,13 +3,12 @@ package debug
 import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+
+	"github.com/mintoolkit/mint/pkg/app/master/crt"
 )
 
 // Debug command flag names and usage descriptions
 const (
-	FlagRuntime      = "runtime"
-	FlagRuntimeUsage = "Runtime environment type"
-
 	FlagTarget      = "target"
 	FlagTargetUsage = "Target container (name or ID)"
 
@@ -102,12 +101,6 @@ const (
 )
 
 var Flags = map[string]cli.Flag{
-	FlagRuntime: &cli.StringFlag{
-		Name:    FlagRuntime,
-		Value:   AutoRuntime,
-		Usage:   FlagRuntimeUsage,
-		EnvVars: []string{"DSLIM_DBG_RT"},
-	},
 	FlagTarget: &cli.StringFlag{
 		Name:    FlagTarget,
 		Value:   "",
@@ -116,7 +109,7 @@ var Flags = map[string]cli.Flag{
 	},
 	FlagNamespace: &cli.StringFlag{
 		Name:    FlagNamespace,
-		Value:   NamespaceDefault,
+		Value:   crt.NamespaceDefault,
 		Usage:   FlagNamespaceUsage,
 		EnvVars: []string{"DSLIM_DBG_TARGET_NS"},
 	},
@@ -242,7 +235,7 @@ var Flags = map[string]cli.Flag{
 	},
 	FlagKubeconfig: &cli.StringFlag{
 		Name:    FlagKubeconfig,
-		Value:   KubeconfigDefault,
+		Value:   crt.KubeconfigDefault,
 		Usage:   FlagKubeconfigUsage,
 		EnvVars: []string{"DSLIM_DBG_KUBECONFIG"},
 	},

@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 
 	"github.com/moby/term"
 	terminal "golang.org/x/term"
@@ -15,7 +14,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/bindings/containers"
 	"github.com/containers/podman/v5/pkg/bindings/images"
 	lsignal "github.com/containers/podman/v5/pkg/signal"
@@ -24,6 +22,7 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/crt"
 	"github.com/mintoolkit/mint/pkg/util/errutil"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
 	"github.com/mintoolkit/mint/pkg/util/jsonutil"
@@ -31,133 +30,6 @@ import (
 )
 
 var trueVal = true
-
-var podmanSocketPathInit sync.Once
-var podmanSocketPath string
-
-var podmanRemotePathInit sync.Once
-var podmanRemotePath string
-
-var podmanConnCtxInit sync.Once
-var podmanConnCtx context.Context
-var podmanConnErr error
-
-func podmanIsRemote() bool {
-
-	return false
-}
-
-func getPodmanSocketPath() string {
-	podmanSocketPathInit.Do(func() {
-		dcURI, dcIdentity := podmanGetDefaultConnection()
-		log.Tracef("HandlePodmanRuntime: URI=%s Identity=%s", dcURI, dcIdentity)
-		podmanRemotePath = dcURI
-		if dcURI == "" {
-			sockDir := os.Getenv("XDG_RUNTIME_DIR")
-			if sockDir != "" {
-				podmanSocketPath = fmt.Sprintf("%s/podman/podman.sock", sockDir)
-				if !hasSocket(podmanSocketPath) {
-					podmanSocketPath = ""
-				} else {
-					return
-				}
-			}
-
-			//we might have $XDG_RUNTIME_DIR,
-			//but the actual Podman socket might still be /var/run/podman/podman.sock
-			sockDir = "/var/run"
-			podmanSocketPath = fmt.Sprintf("%s/podman/podman.sock", sockDir)
-			if !hasSocket(podmanSocketPath) {
-				podmanSocketPath = ""
-			}
-		}
-	})
-	return podmanSocketPath
-}
-
-func getPodmanRemotePath() string {
-	podmanRemotePathInit.Do(func() {
-		dcURI, dcIdentity := podmanGetDefaultConnection()
-		log.Tracef("HandlePodmanRuntime: URI=%s Identity=%s", dcURI, dcIdentity)
-		podmanRemotePath = dcURI
-
-	})
-	return podmanRemotePath
-}
-
-func getPodmanConnContext() context.Context {
-	podmanConnCtxInit.Do(func() {
-		dcURI, dcIdentity := podmanGetDefaultConnection()
-		log.Tracef("HandlePodmanRuntime: URI=%s Identity=%s", dcURI, dcIdentity)
-		podmanRemotePath = dcURI
-		if dcURI == "" {
-			var foundSock bool
-			sockDir := os.Getenv("XDG_RUNTIME_DIR")
-			if sockDir != "" {
-				podmanSocketPath = fmt.Sprintf("%s/podman/podman.sock", sockDir)
-				if !hasSocket(podmanSocketPath) {
-					podmanSocketPath = ""
-				} else {
-					dcURI = fmt.Sprintf("unix://%s/podman/podman.sock", sockDir)
-					foundSock = true
-				}
-			}
-
-			if !foundSock {
-				//we might have $XDG_RUNTIME_DIR,
-				//but the actual Podman socket might still be /var/run/podman/podman.sock
-				sockDir = "/var/run"
-				podmanSocketPath = fmt.Sprintf("%s/podman/podman.sock", sockDir)
-				if !hasSocket(podmanSocketPath) {
-					podmanSocketPath = ""
-					return
-				}
-
-				dcURI = fmt.Sprintf("unix://%s/podman/podman.sock", sockDir)
-			}
-		}
-
-		if dcURI == "" {
-			podmanConnCtx = nil
-			return
-		}
-
-		ctx := context.Background()
-		connCtx, err := bindings.NewConnectionWithIdentity(ctx, dcURI, dcIdentity, false)
-		if err != nil {
-			podmanConnErr = err
-			log.WithError(err).Trace("getPodmanConnContext:bindings.NewConnectionWithIdentity")
-		}
-
-		podmanConnCtx = connCtx
-	})
-	return podmanConnCtx
-}
-
-func getPodmanConnContextWithConn(connURI string) context.Context {
-	podmanConnCtxInit.Do(func() {
-		if strings.HasPrefix(connURI, "/") {
-			connURI = fmt.Sprintf("unix://%s", connURI)
-		}
-
-		log.Tracef("getPodmanConnContextWithConn: URI=%s", connURI)
-		podmanRemotePath = connURI
-		if connURI == "" {
-			getPodmanConnContext()
-			return
-		}
-
-		ctx := context.Background()
-		connCtx, err := bindings.NewConnectionWithIdentity(ctx, connURI, "", false)
-		if err != nil {
-			podmanConnErr = err
-			log.WithError(err).Tracef("getPodmanConnContextWithConn(%s):bindings.NewConnectionWithIdentity", connURI)
-		}
-
-		podmanConnCtx = connCtx
-	})
-	return podmanConnCtx
-}
 
 // HandlePodmanRuntime implements support for the Podman runtime
 func HandlePodmanRuntime(
@@ -169,9 +41,9 @@ func HandlePodmanRuntime(
 	debugContainerName string) {
 	var connCtx context.Context
 	if gparams.CRTConnection != "" {
-		connCtx = getPodmanConnContextWithConn(gparams.CRTConnection)
+		connCtx = crt.GetPodmanConnContextWithConn(gparams.CRTConnection)
 	} else {
-		connCtx = getPodmanConnContext()
+		connCtx = crt.GetPodmanConnContext()
 	}
 
 	if connCtx == nil {
@@ -185,7 +57,7 @@ func HandlePodmanRuntime(
 				"exit.code":    -1,
 				"version":      v.Current(),
 				"location":     fsutil.ExeDir(),
-				"podman.error": podmanConnErr,
+				"podman.error": crt.PodmanConnErr,
 			})
 		xc.Exit(-1)
 	}
