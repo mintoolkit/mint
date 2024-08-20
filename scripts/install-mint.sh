@@ -14,7 +14,7 @@ function get_mint() {
     VER=$1
   else
     # Get the current released tag_name
-    VER=$(curl -sL https://api.github.com/repos/slimtoolkit/slim/releases \
+    VER=$(curl -sL https://api.github.com/repos/mintoolkit/mint/releases \
         | grep tag_name | head -n1 | cut -d'"' -f4)
   fi
 
