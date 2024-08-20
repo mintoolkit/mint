@@ -330,17 +330,9 @@ type Store interface {
 	// successfully applied with ApplyDiffFromStagingDirectory.
 	ApplyDiffWithDiffer(to string, options *drivers.ApplyDiffWithDifferOpts, differ drivers.Differ) (*drivers.DriverWithDifferOutput, error)
 
-	// ApplyDiffFromStagingDirectory uses stagingDirectory to create the diff.
-	// Deprecated: it will be removed soon.  Use ApplyStagedLayer instead.
-	ApplyDiffFromStagingDirectory(to, stagingDirectory string, diffOutput *drivers.DriverWithDifferOutput, options *drivers.ApplyDiffWithDifferOpts) error
-
-	// CleanupStagingDirectory cleanups the staging directory.  It can be used to cleanup the staging directory on errors
-	// Deprecated: it will be removed soon.  Use CleanupStagedLayer instead.
-	CleanupStagingDirectory(stagingDirectory string) error
-
-	// ApplyStagedLayer combines the functions of CreateLayer and ApplyDiffFromStagingDirectory,
-	// marking the layer for automatic removal if applying the diff fails
-	// for any reason.
+	// ApplyStagedLayer combines the functions of creating a layer and using the staging
+	// directory to populate it.
+	// It marks the layer for automatic removal if applying the diff fails for any reason.
 	ApplyStagedLayer(args ApplyStagedLayerOptions) (*Layer, error)
 
 	// CleanupStagedLayer cleanups the staging directory.  It can be used to cleanup the staging directory on errors
@@ -549,14 +541,14 @@ type Store interface {
 	GetDigestLock(digest.Digest) (Locker, error)
 
 	// LayerFromAdditionalLayerStore searches the additional layer store and returns an object
-	// which can create a layer with the specified digest associated with the specified image
+	// which can create a layer with the specified TOC digest associated with the specified image
 	// reference. Note that this hasn't been stored to this store yet: the actual creation of
 	// a usable layer is done by calling the returned object's PutAs() method.  After creating
 	// a layer, the caller must then call the object's Release() method to free any temporary
 	// resources which were allocated for the object by this method or the object's PutAs()
 	// method.
 	// This API is experimental and can be changed without bumping the major version number.
-	LookupAdditionalLayer(d digest.Digest, imageref string) (AdditionalLayer, error)
+	LookupAdditionalLayer(tocDigest digest.Digest, imageref string) (AdditionalLayer, error)
 
 	// Tries to clean up remainders of previous containers or layers that are not
 	// references in the json files. These can happen in the case of unclean
@@ -578,8 +570,8 @@ type AdditionalLayer interface {
 	// layer store.
 	PutAs(id, parent string, names []string) (*Layer, error)
 
-	// UncompressedDigest returns the uncompressed digest of this layer
-	UncompressedDigest() digest.Digest
+	// TOCDigest returns the digest of TOC of this layer. Returns "" if unknown.
+	TOCDigest() digest.Digest
 
 	// CompressedSize returns the compressed size of this layer
 	CompressedSize() int64
@@ -1096,8 +1088,6 @@ func (s *store) createGraphDriverLocked() (drivers.Driver, error) {
 		RunRoot:        s.runRoot,
 		DriverPriority: s.graphDriverPriority,
 		DriverOptions:  s.graphOptions,
-		UIDMaps:        s.uidMap,
-		GIDMaps:        s.gidMap,
 	}
 	return drivers.New(s.graphDriverName, config)
 }
@@ -1445,20 +1435,10 @@ func (s *store) canUseShifting(uidmap, gidmap []idtools.IDMap) bool {
 	return true
 }
 
-func (s *store) putLayer(id, parent string, names []string, mountLabel string, writeable bool, lOptions *LayerOptions, diff io.Reader, slo *stagedLayerOptions) (*Layer, int64, error) {
-	rlstore, rlstores, err := s.bothLayerStoreKinds()
-	if err != nil {
-		return nil, -1, err
-	}
-	if err := rlstore.startWriting(); err != nil {
-		return nil, -1, err
-	}
-	defer rlstore.stopWriting()
-	if err := s.containerStore.startWriting(); err != nil {
-		return nil, -1, err
-	}
-	defer s.containerStore.stopWriting()
-
+// On entry:
+// - rlstore must be locked for writing
+// - rlstores MUST NOT be locked
+func (s *store) putLayer(rlstore rwLayerStore, rlstores []roLayerStore, id, parent string, names []string, mountLabel string, writeable bool, lOptions *LayerOptions, diff io.Reader, slo *stagedLayerOptions) (*Layer, int64, error) {
 	var parentLayer *Layer
 	var options LayerOptions
 	if lOptions != nil {
@@ -1494,6 +1474,11 @@ func (s *store) putLayer(id, parent string, names []string, mountLabel string, w
 			return nil, -1, ErrLayerUnknown
 		}
 		parentLayer = ilayer
+
+		if err := s.containerStore.startWriting(); err != nil {
+			return nil, -1, err
+		}
+		defer s.containerStore.stopWriting()
 		containers, err := s.containerStore.Containers()
 		if err != nil {
 			return nil, -1, err
@@ -1510,6 +1495,13 @@ func (s *store) putLayer(id, parent string, names []string, mountLabel string, w
 			gidMap = ilayer.GIDMap
 		}
 	} else {
+		// FIXME? It’s unclear why we are holding containerStore locked here at all
+		// (and because we are not modifying it, why it is a write lock, not a read lock).
+		if err := s.containerStore.startWriting(); err != nil {
+			return nil, -1, err
+		}
+		defer s.containerStore.stopWriting()
+
 		if !options.HostUIDMapping && len(options.UIDMap) == 0 {
 			uidMap = s.uidMap
 		}
@@ -1517,27 +1509,29 @@ func (s *store) putLayer(id, parent string, names []string, mountLabel string, w
 			gidMap = s.gidMap
 		}
 	}
-	layerOptions := LayerOptions{
-		OriginalDigest:     options.OriginalDigest,
-		OriginalSize:       options.OriginalSize,
-		UncompressedDigest: options.UncompressedDigest,
-		Flags:              options.Flags,
-	}
 	if s.canUseShifting(uidMap, gidMap) {
-		layerOptions.IDMappingOptions = types.IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}
+		options.IDMappingOptions = types.IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}
 	} else {
-		layerOptions.IDMappingOptions = types.IDMappingOptions{
+		options.IDMappingOptions = types.IDMappingOptions{
 			HostUIDMapping: options.HostUIDMapping,
 			HostGIDMapping: options.HostGIDMapping,
 			UIDMap:         copyIDMap(uidMap),
 			GIDMap:         copyIDMap(gidMap),
 		}
 	}
-	return rlstore.create(id, parentLayer, names, mountLabel, nil, &layerOptions, writeable, diff, slo)
+	return rlstore.create(id, parentLayer, names, mountLabel, nil, &options, writeable, diff, slo)
 }
 
 func (s *store) PutLayer(id, parent string, names []string, mountLabel string, writeable bool, lOptions *LayerOptions, diff io.Reader) (*Layer, int64, error) {
-	return s.putLayer(id, parent, names, mountLabel, writeable, lOptions, diff, nil)
+	rlstore, rlstores, err := s.bothLayerStoreKinds()
+	if err != nil {
+		return nil, -1, err
+	}
+	if err := rlstore.startWriting(); err != nil {
+		return nil, -1, err
+	}
+	defer rlstore.stopWriting()
+	return s.putLayer(rlstore, rlstores, id, parent, names, mountLabel, writeable, lOptions, diff, nil)
 }
 
 func (s *store) CreateLayer(id, parent string, names []string, mountLabel string, writeable bool, options *LayerOptions) (*Layer, error) {
@@ -2820,22 +2814,42 @@ func (s *store) mount(id string, options drivers.MountOpts) (string, error) {
 	}
 	defer s.stopUsingGraphDriver()
 
-	rlstore, err := s.getLayerStoreLocked()
+	rlstore, lstores, err := s.bothLayerStoreKindsLocked()
 	if err != nil {
 		return "", err
 	}
-	if err := rlstore.startWriting(); err != nil {
-		return "", err
-	}
-	defer rlstore.stopWriting()
-
 	if options.UidMaps != nil || options.GidMaps != nil {
 		options.DisableShifting = !s.canUseShifting(options.UidMaps, options.GidMaps)
 	}
 
-	if rlstore.Exists(id) {
-		return rlstore.Mount(id, options)
+	// function used to have a scope for rlstore.StopWriting()
+	tryMount := func() (string, error) {
+		if err := rlstore.startWriting(); err != nil {
+			return "", err
+		}
+		defer rlstore.stopWriting()
+		if rlstore.Exists(id) {
+			return rlstore.Mount(id, options)
+		}
+		return "", nil
 	}
+	mountPoint, err := tryMount()
+	if mountPoint != "" || err != nil {
+		return mountPoint, err
+	}
+
+	// check if the layer is in a read-only store, and return a better error message
+	for _, store := range lstores {
+		if err := store.startReading(); err != nil {
+			return "", err
+		}
+		exists := store.Exists(id)
+		store.stopReading()
+		if exists {
+			return "", fmt.Errorf("mounting read/only store images is not allowed: %w", ErrStoreIsReadOnly)
+		}
+	}
+
 	return "", ErrLayerUnknown
 }
 
@@ -2916,14 +2930,40 @@ func (s *store) Unmount(id string, force bool) (bool, error) {
 }
 
 func (s *store) Changes(from, to string) ([]archive.Change, error) {
-	if res, done, err := readAllLayerStores(s, func(store roLayerStore) ([]archive.Change, bool, error) {
+	// NaiveDiff could cause mounts to happen without a lock, so be safe
+	// and treat the .Diff operation as a Mount.
+	// We need to make sure the home mount is present when the Mount is done, which happens by possibly reinitializing the graph driver
+	// in startUsingGraphDriver().
+	if err := s.startUsingGraphDriver(); err != nil {
+		return nil, err
+	}
+	defer s.stopUsingGraphDriver()
+
+	rlstore, lstores, err := s.bothLayerStoreKindsLocked()
+	if err != nil {
+		return nil, err
+	}
+	if err := rlstore.startWriting(); err != nil {
+		return nil, err
+	}
+	if rlstore.Exists(to) {
+		res, err := rlstore.Changes(from, to)
+		rlstore.stopWriting()
+		return res, err
+	}
+	rlstore.stopWriting()
+
+	for _, s := range lstores {
+		store := s
+		if err := store.startReading(); err != nil {
+			return nil, err
+		}
 		if store.Exists(to) {
 			res, err := store.Changes(from, to)
-			return res, true, err
+			store.stopReading()
+			return res, err
 		}
-		return nil, false, nil
-	}); done {
-		return res, err
+		store.stopReading()
 	}
 	return nil, ErrLayerUnknown
 }
@@ -2954,12 +2994,30 @@ func (s *store) Diff(from, to string, options *DiffOptions) (io.ReadCloser, erro
 	}
 	defer s.stopUsingGraphDriver()
 
-	layerStores, err := s.allLayerStoresLocked()
+	rlstore, lstores, err := s.bothLayerStoreKindsLocked()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, s := range layerStores {
+	if err := rlstore.startWriting(); err != nil {
+		return nil, err
+	}
+	if rlstore.Exists(to) {
+		rc, err := rlstore.Diff(from, to, options)
+		if rc != nil && err == nil {
+			wrapped := ioutils.NewReadCloserWrapper(rc, func() error {
+				err := rc.Close()
+				rlstore.stopWriting()
+				return err
+			})
+			return wrapped, nil
+		}
+		rlstore.stopWriting()
+		return rc, err
+	}
+	rlstore.stopWriting()
+
+	for _, s := range lstores {
 		store := s
 		if err := store.startReading(); err != nil {
 			return nil, err
@@ -2982,34 +3040,35 @@ func (s *store) Diff(from, to string, options *DiffOptions) (io.ReadCloser, erro
 	return nil, ErrLayerUnknown
 }
 
-func (s *store) ApplyDiffFromStagingDirectory(to, stagingDirectory string, diffOutput *drivers.DriverWithDifferOutput, options *drivers.ApplyDiffWithDifferOpts) error {
-	if stagingDirectory != diffOutput.Target {
-		return fmt.Errorf("invalid value for staging directory, it must be the same as the differ target directory")
-	}
-	_, err := writeToLayerStore(s, func(rlstore rwLayerStore) (struct{}, error) {
-		if !rlstore.Exists(to) {
-			return struct{}{}, ErrLayerUnknown
-		}
-		return struct{}{}, rlstore.applyDiffFromStagingDirectory(to, diffOutput, options)
-	})
-	return err
-}
-
 func (s *store) ApplyStagedLayer(args ApplyStagedLayerOptions) (*Layer, error) {
+	rlstore, rlstores, err := s.bothLayerStoreKinds()
+	if err != nil {
+		return nil, err
+	}
+	if err := rlstore.startWriting(); err != nil {
+		return nil, err
+	}
+	defer rlstore.stopWriting()
+
+	layer, err := rlstore.Get(args.ID)
+	if err != nil && !errors.Is(err, ErrLayerUnknown) {
+		return layer, err
+	}
+	if err == nil {
+		// This code path exists only for cmd/containers/storage.applyDiffUsingStagingDirectory; we have tests that
+		// assume layer creation and applying a staged layer are separate steps. Production pull code always uses the
+		// other path, where layer creation is atomic.
+		return layer, rlstore.applyDiffFromStagingDirectory(args.ID, args.DiffOutput, args.DiffOptions)
+	}
+
+	// if the layer doesn't exist yet, try to create it.
+
 	slo := stagedLayerOptions{
 		DiffOutput:  args.DiffOutput,
 		DiffOptions: args.DiffOptions,
 	}
-
-	layer, _, err := s.putLayer(args.ID, args.ParentLayer, args.Names, args.MountLabel, args.Writeable, args.LayerOptions, nil, &slo)
+	layer, _, err = s.putLayer(rlstore, rlstores, args.ID, args.ParentLayer, args.Names, args.MountLabel, args.Writeable, args.LayerOptions, nil, &slo)
 	return layer, err
-}
-
-func (s *store) CleanupStagingDirectory(stagingDirectory string) error {
-	_, err := writeToLayerStore(s, func(rlstore rwLayerStore) (struct{}, error) {
-		return struct{}{}, rlstore.CleanupStagingDirectory(stagingDirectory)
-	})
-	return err
 }
 
 func (s *store) CleanupStagedLayer(diffOutput *drivers.DriverWithDifferOutput) error {
@@ -3193,7 +3252,7 @@ func (s *store) Layer(id string) (*Layer, error) {
 	return nil, ErrLayerUnknown
 }
 
-func (s *store) LookupAdditionalLayer(d digest.Digest, imageref string) (AdditionalLayer, error) {
+func (s *store) LookupAdditionalLayer(tocDigest digest.Digest, imageref string) (AdditionalLayer, error) {
 	var adriver drivers.AdditionalLayerStoreDriver
 	if err := func() error { // A scope for defer
 		if err := s.startUsingGraphDriver(); err != nil {
@@ -3210,7 +3269,7 @@ func (s *store) LookupAdditionalLayer(d digest.Digest, imageref string) (Additio
 		return nil, err
 	}
 
-	al, err := adriver.LookupAdditionalLayer(d, imageref)
+	al, err := adriver.LookupAdditionalLayer(tocDigest, imageref)
 	if err != nil {
 		if errors.Is(err, drivers.ErrLayerUnknown) {
 			return nil, ErrLayerUnknown
@@ -3235,8 +3294,8 @@ type additionalLayer struct {
 	s       *store
 }
 
-func (al *additionalLayer) UncompressedDigest() digest.Digest {
-	return al.layer.UncompressedDigest
+func (al *additionalLayer) TOCDigest() digest.Digest {
+	return al.layer.TOCDigest
 }
 
 func (al *additionalLayer) CompressedSize() int64 {

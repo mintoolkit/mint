@@ -9,6 +9,7 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app/master/config"
 	"github.com/mintoolkit/mint/pkg/consts"
+	"github.com/mintoolkit/mint/pkg/crt"
 	"github.com/mintoolkit/mint/pkg/docker/dockerfile"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
 
@@ -140,7 +141,7 @@ func NewImageBuilder(
 	client *docker.Client,
 	imageRepoNameTag string,
 	additionalTags []string,
-	imageInfo *docker.Image,
+	imageInfo *crt.ImageInfo,
 	artifactLocation string,
 	showBuildLogs bool,
 	overrideSelectors map[string]bool,
@@ -203,10 +204,16 @@ func NewImageBuilder(
 		WorkingDir:     imageInfo.Config.WorkingDir,
 		Env:            imageInfo.Config.Env,
 		Labels:         labels,
-		ExposedPorts:   imageInfo.Config.ExposedPorts,
 		Volumes:        imageInfo.Config.Volumes,
 		OnBuild:        imageInfo.Config.OnBuild,
 		User:           imageInfo.Config.User,
+	}
+
+	if imageInfo.Config.ExposedPorts != nil {
+		builder.ExposedPorts = map[docker.Port]struct{}{}
+		for k, v := range imageInfo.Config.ExposedPorts {
+			builder.ExposedPorts[docker.Port(k)] = v
+		}
 	}
 
 	if builder.ExposedPorts == nil {

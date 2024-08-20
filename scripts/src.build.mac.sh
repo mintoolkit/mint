@@ -23,11 +23,11 @@ LD_FLAGS="-s -w -X github.com/mintoolkit/mint/pkg/version.appVersionTag=${TAG} -
 go generate github.com/mintoolkit/mint/pkg/appbom
 
 pushd ${BDIR}/cmd/mint
-GOOS=darwin GOARCH=amd64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -tags "remote" -o "${BDIR}/bin/mac/mint"
+GOOS=darwin GOARCH=amd64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -tags "remote containers_image_openpgp containers_image_docker_daemon_stub containers_image_fulcio_stub containers_image_rekor_stub" -o "${BDIR}/bin/mac/mint"
 popd
 
 pushd ${BDIR}/cmd/mint-sensor
-GOOS=linux GOARCH=amd64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -o "${BDIR}/bin/linux/mint-sensor"
+GOOS=linux GOARCH=amd64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -tags "remote containers_image_openpgp containers_image_docker_daemon_stub containers_image_fulcio_stub containers_image_rekor_stub" -o "${BDIR}/bin/linux/mint-sensor"
 chmod a+x "${BDIR}/bin/linux/mint-sensor"
 popd
 

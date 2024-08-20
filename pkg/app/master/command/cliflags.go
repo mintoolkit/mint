@@ -6,6 +6,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/mintoolkit/mint/pkg/app/master/config"
+	"github.com/mintoolkit/mint/pkg/crt"
 )
 
 /////////////////////////////////////////////////////////
@@ -290,6 +291,12 @@ const (
 	FlagContainerDNSSearchUsage = "Add a dns search domain for unqualified hostnames analyzing image at runtime"
 	FlagMountUsage              = "Mount volume analyzing image"
 	FlagDeleteFatImageUsage     = "Delete generated fat image requires --dockerfile flag"
+)
+
+// Container runtime command flag names and usage descriptions
+const (
+	FlagRuntime      = "runtime"
+	FlagRuntimeUsage = "Runtime environment type"
 )
 
 ///////////////////////////////////
@@ -931,6 +938,13 @@ var CommonFlags = map[string]cli.Flag{
 		Value:   true, //all sources are enabled by default
 		Usage:   FlagRTASourcePTUsage,
 		EnvVars: []string{"DSLIM_RTA_SRC_PT"},
+	},
+	//Runtime name
+	FlagRuntime: &cli.StringFlag{
+		Name:    FlagRuntime,
+		Value:   crt.AutoRuntime,
+		Usage:   FlagRuntimeUsage,
+		EnvVars: []string{"DSLIM_CRT_NAME"},
 	},
 }
 

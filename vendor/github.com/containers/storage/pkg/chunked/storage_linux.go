@@ -8,28 +8,25 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"syscall"
-	"time"
 
 	"github.com/containerd/stargz-snapshotter/estargz"
 	storage "github.com/containers/storage"
 	graphdriver "github.com/containers/storage/drivers"
-	driversCopy "github.com/containers/storage/drivers/copy"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chunked/compressor"
 	"github.com/containers/storage/pkg/chunked/internal"
+	"github.com/containers/storage/pkg/chunked/toc"
 	"github.com/containers/storage/pkg/fsverity"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
-	"github.com/containers/storage/types"
-	securejoin "github.com/cyphar/filepath-securejoin"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/klauspost/compress/zstd"
 	"github.com/klauspost/pgzip"
@@ -41,9 +38,8 @@ import (
 
 const (
 	maxNumberMissingChunks  = 1024
-	autoMergePartsThreshold = 128 // if the gap between two ranges is below this threshold, automatically merge them.
+	autoMergePartsThreshold = 1024 // if the gap between two ranges is below this threshold, automatically merge them.
 	newFileFlags            = (unix.O_CREAT | unix.O_TRUNC | unix.O_EXCL | unix.O_WRONLY)
-	containersOverrideXattr = "user.containers.override_stat"
 	bigDataKey              = "zstd-chunked-manifest"
 	chunkedData             = "zstd-chunked-data"
 	chunkedLayerDataKey     = "zstd-chunked-layer-data"
@@ -63,6 +59,7 @@ type compressedFileType int
 type chunkedDiffer struct {
 	stream      ImageSourceSeekable
 	manifest    []byte
+	toc         *internal.TOC // The parsed contents of manifest, or nil if not yet available
 	tarSplit    []byte
 	layersCache *layersCache
 	tocOffset   int64
@@ -94,7 +91,7 @@ type chunkedDiffer struct {
 
 	blobSize int64
 
-	storeOpts *types.StoreOptions
+	pullOptions map[string]string
 
 	useFsVerity     graphdriver.DifferFsVerity
 	fsVerityDigests map[string]string
@@ -110,103 +107,15 @@ type chunkedLayerData struct {
 	Format graphdriver.DifferOutputFormat `json:"format"`
 }
 
-func timeToTimespec(time *time.Time) (ts unix.Timespec) {
-	if time == nil || time.IsZero() {
-		// Return UTIME_OMIT special value
-		ts.Sec = 0
-		ts.Nsec = ((1 << 30) - 2)
-		return
-	}
-	return unix.NsecToTimespec(time.UnixNano())
-}
-
-func doHardLink(srcFd int, destDirFd int, destBase string) error {
-	doLink := func() error {
-		// Using unix.AT_EMPTY_PATH requires CAP_DAC_READ_SEARCH while this variant that uses
-		// /proc/self/fd doesn't and can be used with rootless.
-		srcPath := fmt.Sprintf("/proc/self/fd/%d", srcFd)
-		return unix.Linkat(unix.AT_FDCWD, srcPath, destDirFd, destBase, unix.AT_SYMLINK_FOLLOW)
-	}
-
-	err := doLink()
-
-	// if the destination exists, unlink it first and try again
-	if err != nil && os.IsExist(err) {
-		unix.Unlinkat(destDirFd, destBase, 0)
-		return doLink()
-	}
-	return err
-}
-
-func copyFileContent(srcFd int, destFile string, dirfd int, mode os.FileMode, useHardLinks bool) (*os.File, int64, error) {
-	src := fmt.Sprintf("/proc/self/fd/%d", srcFd)
-	st, err := os.Stat(src)
-	if err != nil {
-		return nil, -1, fmt.Errorf("copy file content for %q: %w", destFile, err)
-	}
-
-	copyWithFileRange, copyWithFileClone := true, true
-
-	if useHardLinks {
-		destDirPath := filepath.Dir(destFile)
-		destBase := filepath.Base(destFile)
-		destDir, err := openFileUnderRoot(destDirPath, dirfd, 0, mode)
-		if err == nil {
-			defer destDir.Close()
-
-			err := doHardLink(srcFd, int(destDir.Fd()), destBase)
-			if err == nil {
-				return nil, st.Size(), nil
-			}
-		}
-	}
-
-	// If the destination file already exists, we shouldn't blow it away
-	dstFile, err := openFileUnderRoot(destFile, dirfd, newFileFlags, mode)
-	if err != nil {
-		return nil, -1, fmt.Errorf("open file %q under rootfs for copy: %w", destFile, err)
-	}
-
-	err = driversCopy.CopyRegularToFile(src, dstFile, st, &copyWithFileRange, &copyWithFileClone)
-	if err != nil {
-		dstFile.Close()
-		return nil, -1, fmt.Errorf("copy to file %q under rootfs: %w", destFile, err)
-	}
-	return dstFile, st.Size(), nil
-}
-
-type seekableFile struct {
-	file *os.File
-}
-
-func (f *seekableFile) Close() error {
-	return f.file.Close()
-}
-
-func (f *seekableFile) GetBlobAt(chunks []ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
-	streams := make(chan io.ReadCloser)
-	errs := make(chan error)
-
-	go func() {
-		for _, chunk := range chunks {
-			streams <- io.NopCloser(io.NewSectionReader(f.file, int64(chunk.Offset), int64(chunk.Length)))
-		}
-		close(streams)
-		close(errs)
-	}()
-
-	return streams, errs, nil
-}
-
-func convertTarToZstdChunked(destDirectory string, payload *os.File) (*seekableFile, digest.Digest, map[string]string, error) {
+func (c *chunkedDiffer) convertTarToZstdChunked(destDirectory string, payload *os.File) (int64, *seekableFile, digest.Digest, map[string]string, error) {
 	diff, err := archive.DecompressStream(payload)
 	if err != nil {
-		return nil, "", nil, err
+		return 0, nil, "", nil, err
 	}
 
 	fd, err := unix.Open(destDirectory, unix.O_TMPFILE|unix.O_RDWR|unix.O_CLOEXEC, 0o600)
 	if err != nil {
-		return nil, "", nil, err
+		return 0, nil, "", nil, &fs.PathError{Op: "open", Path: destDirectory, Err: err}
 	}
 
 	f := os.NewFile(uintptr(fd), destDirectory)
@@ -216,55 +125,58 @@ func convertTarToZstdChunked(destDirectory string, payload *os.File) (*seekableF
 	chunked, err := compressor.ZstdCompressor(f, newAnnotations, &level)
 	if err != nil {
 		f.Close()
-		return nil, "", nil, err
+		return 0, nil, "", nil, err
 	}
 
 	convertedOutputDigester := digest.Canonical.Digester()
-	if _, err := io.Copy(io.MultiWriter(chunked, convertedOutputDigester.Hash()), diff); err != nil {
+	copied, err := io.CopyBuffer(io.MultiWriter(chunked, convertedOutputDigester.Hash()), diff, c.copyBuffer)
+	if err != nil {
 		f.Close()
-		return nil, "", nil, err
+		return 0, nil, "", nil, err
 	}
 	if err := chunked.Close(); err != nil {
 		f.Close()
-		return nil, "", nil, err
-	}
-	is := seekableFile{
-		file: f,
+		return 0, nil, "", nil, err
 	}
 
-	return &is, convertedOutputDigester.Digest(), newAnnotations, nil
+	return copied, newSeekableFile(f), convertedOutputDigester.Digest(), newAnnotations, nil
 }
 
 // GetDiffer returns a differ than can be used with ApplyDiffWithDiffer.
 func GetDiffer(ctx context.Context, store storage.Store, blobDigest digest.Digest, blobSize int64, annotations map[string]string, iss ImageSourceSeekable) (graphdriver.Differ, error) {
-	storeOpts, err := types.DefaultStoreOptions()
-	if err != nil {
-		return nil, err
-	}
+	pullOptions := store.PullOptions()
 
-	if !parseBooleanPullOption(&storeOpts, "enable_partial_images", true) {
+	if !parseBooleanPullOption(pullOptions, "enable_partial_images", true) {
 		return nil, errors.New("enable_partial_images not configured")
 	}
 
-	_, hasZstdChunkedTOC := annotations[internal.ManifestChecksumKey]
-	_, hasEstargzTOC := annotations[estargz.TOCJSONDigestAnnotation]
+	zstdChunkedTOCDigestString, hasZstdChunkedTOC := annotations[internal.ManifestChecksumKey]
+	estargzTOCDigestString, hasEstargzTOC := annotations[estargz.TOCJSONDigestAnnotation]
 
 	if hasZstdChunkedTOC && hasEstargzTOC {
 		return nil, errors.New("both zstd:chunked and eStargz TOC found")
 	}
 
 	if hasZstdChunkedTOC {
-		return makeZstdChunkedDiffer(ctx, store, blobSize, annotations, iss, &storeOpts)
+		zstdChunkedTOCDigest, err := digest.Parse(zstdChunkedTOCDigestString)
+		if err != nil {
+			return nil, fmt.Errorf("parsing zstd:chunked TOC digest %q: %w", zstdChunkedTOCDigestString, err)
+		}
+		return makeZstdChunkedDiffer(store, blobSize, zstdChunkedTOCDigest, annotations, iss, pullOptions)
 	}
 	if hasEstargzTOC {
-		return makeEstargzChunkedDiffer(ctx, store, blobSize, annotations, iss, &storeOpts)
+		estargzTOCDigest, err := digest.Parse(estargzTOCDigestString)
+		if err != nil {
+			return nil, fmt.Errorf("parsing estargz TOC digest %q: %w", estargzTOCDigestString, err)
+		}
+		return makeEstargzChunkedDiffer(store, blobSize, estargzTOCDigest, iss, pullOptions)
 	}
 
-	return makeConvertFromRawDiffer(ctx, store, blobDigest, blobSize, annotations, iss, &storeOpts)
+	return makeConvertFromRawDiffer(store, blobDigest, blobSize, iss, pullOptions)
 }
 
-func makeConvertFromRawDiffer(ctx context.Context, store storage.Store, blobDigest digest.Digest, blobSize int64, annotations map[string]string, iss ImageSourceSeekable, storeOpts *types.StoreOptions) (*chunkedDiffer, error) {
-	if !parseBooleanPullOption(storeOpts, "convert_images", false) {
+func makeConvertFromRawDiffer(store storage.Store, blobDigest digest.Digest, blobSize int64, iss ImageSourceSeekable, pullOptions map[string]string) (*chunkedDiffer, error) {
+	if !parseBooleanPullOption(pullOptions, "convert_images", false) {
 		return nil, errors.New("convert_images not configured")
 	}
 
@@ -280,24 +192,19 @@ func makeConvertFromRawDiffer(ctx context.Context, store storage.Store, blobDige
 		convertToZstdChunked: true,
 		copyBuffer:           makeCopyBuffer(),
 		layersCache:          layersCache,
-		storeOpts:            storeOpts,
+		pullOptions:          pullOptions,
 		stream:               iss,
 	}, nil
 }
 
-func makeZstdChunkedDiffer(ctx context.Context, store storage.Store, blobSize int64, annotations map[string]string, iss ImageSourceSeekable, storeOpts *types.StoreOptions) (*chunkedDiffer, error) {
-	manifest, tarSplit, tocOffset, err := readZstdChunkedManifest(iss, blobSize, annotations)
+func makeZstdChunkedDiffer(store storage.Store, blobSize int64, tocDigest digest.Digest, annotations map[string]string, iss ImageSourceSeekable, pullOptions map[string]string) (*chunkedDiffer, error) {
+	manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(iss, tocDigest, annotations)
 	if err != nil {
 		return nil, fmt.Errorf("read zstd:chunked manifest: %w", err)
 	}
 	layersCache, err := getLayersCache(store)
 	if err != nil {
 		return nil, err
-	}
-
-	tocDigest, err := digest.Parse(annotations[internal.ManifestChecksumKey])
-	if err != nil {
-		return nil, fmt.Errorf("parse TOC digest %q: %w", annotations[internal.ManifestChecksumKey], err)
 	}
 
 	return &chunkedDiffer{
@@ -308,26 +215,22 @@ func makeZstdChunkedDiffer(ctx context.Context, store storage.Store, blobSize in
 		fileType:        fileTypeZstdChunked,
 		layersCache:     layersCache,
 		manifest:        manifest,
-		storeOpts:       storeOpts,
+		toc:             toc,
+		pullOptions:     pullOptions,
 		stream:          iss,
 		tarSplit:        tarSplit,
 		tocOffset:       tocOffset,
 	}, nil
 }
 
-func makeEstargzChunkedDiffer(ctx context.Context, store storage.Store, blobSize int64, annotations map[string]string, iss ImageSourceSeekable, storeOpts *types.StoreOptions) (*chunkedDiffer, error) {
-	manifest, tocOffset, err := readEstargzChunkedManifest(iss, blobSize, annotations)
+func makeEstargzChunkedDiffer(store storage.Store, blobSize int64, tocDigest digest.Digest, iss ImageSourceSeekable, pullOptions map[string]string) (*chunkedDiffer, error) {
+	manifest, tocOffset, err := readEstargzChunkedManifest(iss, blobSize, tocDigest)
 	if err != nil {
 		return nil, fmt.Errorf("read zstd:chunked manifest: %w", err)
 	}
 	layersCache, err := getLayersCache(store)
 	if err != nil {
 		return nil, err
-	}
-
-	tocDigest, err := digest.Parse(annotations[estargz.TOCJSONDigestAnnotation])
-	if err != nil {
-		return nil, fmt.Errorf("parse TOC digest %q: %w", annotations[estargz.TOCJSONDigestAnnotation], err)
 	}
 
 	return &chunkedDiffer{
@@ -338,7 +241,7 @@ func makeEstargzChunkedDiffer(ctx context.Context, store storage.Store, blobSize
 		fileType:        fileTypeEstargz,
 		layersCache:     layersCache,
 		manifest:        manifest,
-		storeOpts:       storeOpts,
+		pullOptions:     pullOptions,
 		stream:          iss,
 		tocOffset:       tocOffset,
 	}, nil
@@ -354,20 +257,20 @@ func makeCopyBuffer() []byte {
 // name is the path to the file to copy in source.
 // dirfd is an open file descriptor to the destination root directory.
 // useHardLinks defines whether the deduplication can be performed using hard links.
-func copyFileFromOtherLayer(file *internal.FileMetadata, source string, name string, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
-	srcDirfd, err := unix.Open(source, unix.O_RDONLY, 0)
+func copyFileFromOtherLayer(file *fileMetadata, source string, name string, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
+	srcDirfd, err := unix.Open(source, unix.O_RDONLY|unix.O_CLOEXEC, 0)
 	if err != nil {
-		return false, nil, 0, fmt.Errorf("open source file: %w", err)
+		return false, nil, 0, &fs.PathError{Op: "open", Path: source, Err: err}
 	}
 	defer unix.Close(srcDirfd)
 
-	srcFile, err := openFileUnderRoot(name, srcDirfd, unix.O_RDONLY, 0)
+	srcFile, err := openFileUnderRoot(srcDirfd, name, unix.O_RDONLY|syscall.O_CLOEXEC, 0)
 	if err != nil {
-		return false, nil, 0, fmt.Errorf("open source file under target rootfs (%s): %w", name, err)
+		return false, nil, 0, err
 	}
 	defer srcFile.Close()
 
-	dstFile, written, err := copyFileContent(int(srcFile.Fd()), file.Name, dirfd, 0, useHardLinks)
+	dstFile, written, err := copyFileContent(int(srcFile.Fd()), file, dirfd, 0, useHardLinks)
 	if err != nil {
 		return false, nil, 0, fmt.Errorf("copy content to %q: %w", file.Name, err)
 	}
@@ -376,7 +279,7 @@ func copyFileFromOtherLayer(file *internal.FileMetadata, source string, name str
 
 // canDedupMetadataWithHardLink says whether it is possible to deduplicate file with otherFile.
 // It checks that the two files have the same UID, GID, file mode and xattrs.
-func canDedupMetadataWithHardLink(file *internal.FileMetadata, otherFile *internal.FileMetadata) bool {
+func canDedupMetadataWithHardLink(file *fileMetadata, otherFile *fileMetadata) bool {
 	if file.UID != otherFile.UID {
 		return false
 	}
@@ -394,13 +297,13 @@ func canDedupMetadataWithHardLink(file *internal.FileMetadata, otherFile *intern
 
 // canDedupFileWithHardLink checks if the specified file can be deduplicated by an
 // open file, given its descriptor and stat data.
-func canDedupFileWithHardLink(file *internal.FileMetadata, fd int, s os.FileInfo) bool {
+func canDedupFileWithHardLink(file *fileMetadata, fd int, s os.FileInfo) bool {
 	st, ok := s.Sys().(*syscall.Stat_t)
 	if !ok {
 		return false
 	}
 
-	path := fmt.Sprintf("/proc/self/fd/%d", fd)
+	path := procPathForFd(fd)
 
 	listXattrs, err := system.Llistxattr(path)
 	if err != nil {
@@ -420,11 +323,13 @@ func canDedupFileWithHardLink(file *internal.FileMetadata, fd int, s os.FileInfo
 		xattrs[x] = string(v)
 	}
 	// fill only the attributes used by canDedupMetadataWithHardLink.
-	otherFile := internal.FileMetadata{
-		UID:    int(st.Uid),
-		GID:    int(st.Gid),
-		Mode:   int64(st.Mode),
-		Xattrs: xattrs,
+	otherFile := fileMetadata{
+		FileMetadata: internal.FileMetadata{
+			UID:    int(st.Uid),
+			GID:    int(st.Gid),
+			Mode:   int64(st.Mode),
+			Xattrs: xattrs,
+		},
 	}
 	return canDedupMetadataWithHardLink(file, &otherFile)
 }
@@ -434,7 +339,7 @@ func canDedupFileWithHardLink(file *internal.FileMetadata, fd int, s os.FileInfo
 // ostreeRepos is a list of OSTree repos.
 // dirfd is an open fd to the destination checkout.
 // useHardLinks defines whether the deduplication can be performed using hard links.
-func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
+func findFileInOSTreeRepos(file *fileMetadata, ostreeRepos []string, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
 	digest, err := digest.Parse(file.Digest)
 	if err != nil {
 		logrus.Debugf("could not parse digest: %v", err)
@@ -454,7 +359,7 @@ func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, di
 		if st.Size() != file.Size {
 			continue
 		}
-		fd, err := unix.Open(sourceFile, unix.O_RDONLY|unix.O_NONBLOCK, 0)
+		fd, err := unix.Open(sourceFile, unix.O_RDONLY|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
 		if err != nil {
 			logrus.Debugf("could not open sourceFile %s: %v", sourceFile, err)
 			return false, nil, 0, nil
@@ -467,7 +372,7 @@ func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, di
 			continue
 		}
 
-		dstFile, written, err := copyFileContent(fd, file.Name, dirfd, 0, useHardLinks)
+		dstFile, written, err := copyFileContent(fd, file, dirfd, 0, useHardLinks)
 		if err != nil {
 			logrus.Debugf("could not copyFileContent: %v", err)
 			return false, nil, 0, nil
@@ -487,7 +392,7 @@ func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, di
 // file is the file to look for.
 // dirfd is an open file descriptor to the checkout root directory.
 // useHardLinks defines whether the deduplication can be performed using hard links.
-func findFileInOtherLayers(cache *layersCache, file *internal.FileMetadata, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
+func findFileInOtherLayers(cache *layersCache, file *fileMetadata, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
 	target, name, err := cache.findFileInOtherLayers(file, useHardLinks)
 	if err != nil || name == "" {
 		return false, nil, 0, err
@@ -495,7 +400,7 @@ func findFileInOtherLayers(cache *layersCache, file *internal.FileMetadata, dirf
 	return copyFileFromOtherLayer(file, target, name, dirfd, useHardLinks)
 }
 
-func maybeDoIDRemap(manifest []internal.FileMetadata, options *archive.TarOptions) error {
+func maybeDoIDRemap(manifest []fileMetadata, options *archive.TarOptions) error {
 	if options.ChownOpts == nil && len(options.UIDMaps) == 0 || len(options.GIDMaps) == 0 {
 		return nil
 	}
@@ -529,7 +434,7 @@ func mapToSlice(inputMap map[uint32]struct{}) []uint32 {
 	return out
 }
 
-func collectIDs(entries []internal.FileMetadata) ([]uint32, []uint32) {
+func collectIDs(entries []fileMetadata) ([]uint32, []uint32) {
 	uids := make(map[uint32]struct{})
 	gids := make(map[uint32]struct{})
 	for _, entry := range entries {
@@ -549,7 +454,7 @@ type missingFileChunk struct {
 	Gap  int64
 	Hole bool
 
-	File *internal.FileMetadata
+	File *fileMetadata
 
 	CompressedSize   int64
 	UncompressedSize int64
@@ -563,15 +468,15 @@ type missingPart struct {
 }
 
 func (o *originFile) OpenFile() (io.ReadCloser, error) {
-	srcDirfd, err := unix.Open(o.Root, unix.O_RDONLY, 0)
+	srcDirfd, err := unix.Open(o.Root, unix.O_RDONLY|unix.O_CLOEXEC, 0)
 	if err != nil {
-		return nil, fmt.Errorf("open source file: %w", err)
+		return nil, &fs.PathError{Op: "open", Path: o.Root, Err: err}
 	}
 	defer unix.Close(srcDirfd)
 
-	srcFile, err := openFileUnderRoot(o.Path, srcDirfd, unix.O_RDONLY, 0)
+	srcFile, err := openFileUnderRoot(srcDirfd, o.Path, unix.O_RDONLY|unix.O_CLOEXEC, 0)
 	if err != nil {
-		return nil, fmt.Errorf("open source file under target rootfs: %w", err)
+		return nil, err
 	}
 
 	if _, err := srcFile.Seek(o.Offset, 0); err != nil {
@@ -579,250 +484,6 @@ func (o *originFile) OpenFile() (io.ReadCloser, error) {
 		return nil, err
 	}
 	return srcFile, nil
-}
-
-// setFileAttrs sets the file attributes for file given metadata
-func setFileAttrs(dirfd int, file *os.File, mode os.FileMode, metadata *internal.FileMetadata, options *archive.TarOptions, usePath bool) error {
-	if file == nil || file.Fd() < 0 {
-		return errors.New("invalid file")
-	}
-	fd := int(file.Fd())
-
-	t, err := typeToTarType(metadata.Type)
-	if err != nil {
-		return err
-	}
-
-	// If it is a symlink, force to use the path
-	if t == tar.TypeSymlink {
-		usePath = true
-	}
-
-	baseName := ""
-	if usePath {
-		dirName := filepath.Dir(metadata.Name)
-		if dirName != "" {
-			parentFd, err := openFileUnderRoot(dirName, dirfd, unix.O_PATH|unix.O_DIRECTORY, 0)
-			if err != nil {
-				return err
-			}
-			defer parentFd.Close()
-
-			dirfd = int(parentFd.Fd())
-		}
-		baseName = filepath.Base(metadata.Name)
-	}
-
-	doChown := func() error {
-		if usePath {
-			return unix.Fchownat(dirfd, baseName, metadata.UID, metadata.GID, unix.AT_SYMLINK_NOFOLLOW)
-		}
-		return unix.Fchown(fd, metadata.UID, metadata.GID)
-	}
-
-	doSetXattr := func(k string, v []byte) error {
-		return unix.Fsetxattr(fd, k, v, 0)
-	}
-
-	doUtimes := func() error {
-		ts := []unix.Timespec{timeToTimespec(metadata.AccessTime), timeToTimespec(metadata.ModTime)}
-		if usePath {
-			return unix.UtimesNanoAt(dirfd, baseName, ts, unix.AT_SYMLINK_NOFOLLOW)
-		}
-		return unix.UtimesNanoAt(unix.AT_FDCWD, fmt.Sprintf("/proc/self/fd/%d", fd), ts, 0)
-	}
-
-	doChmod := func() error {
-		if usePath {
-			return unix.Fchmodat(dirfd, baseName, uint32(mode), unix.AT_SYMLINK_NOFOLLOW)
-		}
-		return unix.Fchmod(fd, uint32(mode))
-	}
-
-	if err := doChown(); err != nil {
-		if !options.IgnoreChownErrors {
-			return fmt.Errorf("chown %q to %d:%d: %w", metadata.Name, metadata.UID, metadata.GID, err)
-		}
-	}
-
-	canIgnore := func(err error) bool {
-		return err == nil || errors.Is(err, unix.ENOSYS) || errors.Is(err, unix.ENOTSUP)
-	}
-
-	for k, v := range metadata.Xattrs {
-		if _, found := xattrsToIgnore[k]; found {
-			continue
-		}
-		data, err := base64.StdEncoding.DecodeString(v)
-		if err != nil {
-			return fmt.Errorf("decode xattr %q: %w", v, err)
-		}
-		if err := doSetXattr(k, data); !canIgnore(err) {
-			return fmt.Errorf("set xattr %s=%q for %q: %w", k, data, metadata.Name, err)
-		}
-	}
-
-	if err := doUtimes(); !canIgnore(err) {
-		return fmt.Errorf("set utimes for %q: %w", metadata.Name, err)
-	}
-
-	if err := doChmod(); !canIgnore(err) {
-		return fmt.Errorf("chmod %q: %w", metadata.Name, err)
-	}
-	return nil
-}
-
-func openFileUnderRootFallback(dirfd int, name string, flags uint64, mode os.FileMode) (int, error) {
-	root := fmt.Sprintf("/proc/self/fd/%d", dirfd)
-
-	targetRoot, err := os.Readlink(root)
-	if err != nil {
-		return -1, err
-	}
-
-	hasNoFollow := (flags & unix.O_NOFOLLOW) != 0
-
-	var fd int
-	// If O_NOFOLLOW is specified in the flags, then resolve only the parent directory and use the
-	// last component as the path to openat().
-	if hasNoFollow {
-		dirName := filepath.Dir(name)
-		if dirName != "" {
-			newRoot, err := securejoin.SecureJoin(root, filepath.Dir(name))
-			if err != nil {
-				return -1, err
-			}
-			root = newRoot
-		}
-
-		parentDirfd, err := unix.Open(root, unix.O_PATH, 0)
-		if err != nil {
-			return -1, err
-		}
-		defer unix.Close(parentDirfd)
-
-		fd, err = unix.Openat(parentDirfd, filepath.Base(name), int(flags), uint32(mode))
-		if err != nil {
-			return -1, err
-		}
-	} else {
-		newPath, err := securejoin.SecureJoin(root, name)
-		if err != nil {
-			return -1, err
-		}
-		fd, err = unix.Openat(dirfd, newPath, int(flags), uint32(mode))
-		if err != nil {
-			return -1, err
-		}
-	}
-
-	target, err := os.Readlink(fmt.Sprintf("/proc/self/fd/%d", fd))
-	if err != nil {
-		unix.Close(fd)
-		return -1, err
-	}
-
-	// Add an additional check to make sure the opened fd is inside the rootfs
-	if !strings.HasPrefix(target, targetRoot) {
-		unix.Close(fd)
-		return -1, fmt.Errorf("while resolving %q.  It resolves outside the root directory", name)
-	}
-
-	return fd, err
-}
-
-func openFileUnderRootOpenat2(dirfd int, name string, flags uint64, mode os.FileMode) (int, error) {
-	how := unix.OpenHow{
-		Flags:   flags,
-		Mode:    uint64(mode & 0o7777),
-		Resolve: unix.RESOLVE_IN_ROOT,
-	}
-	return unix.Openat2(dirfd, name, &how)
-}
-
-// skipOpenat2 is set when openat2 is not supported by the underlying kernel and avoid
-// using it again.
-var skipOpenat2 int32
-
-// openFileUnderRootRaw tries to open a file using openat2 and if it is not supported fallbacks to a
-// userspace lookup.
-func openFileUnderRootRaw(dirfd int, name string, flags uint64, mode os.FileMode) (int, error) {
-	var fd int
-	var err error
-	if atomic.LoadInt32(&skipOpenat2) > 0 {
-		fd, err = openFileUnderRootFallback(dirfd, name, flags, mode)
-	} else {
-		fd, err = openFileUnderRootOpenat2(dirfd, name, flags, mode)
-		// If the function failed with ENOSYS, switch off the support for openat2
-		// and fallback to using safejoin.
-		if err != nil && errors.Is(err, unix.ENOSYS) {
-			atomic.StoreInt32(&skipOpenat2, 1)
-			fd, err = openFileUnderRootFallback(dirfd, name, flags, mode)
-		}
-	}
-	return fd, err
-}
-
-// openFileUnderRoot safely opens a file under the specified root directory using openat2
-// name is the path to open relative to dirfd.
-// dirfd is an open file descriptor to the target checkout directory.
-// flags are the flags to pass to the open syscall.
-// mode specifies the mode to use for newly created files.
-func openFileUnderRoot(name string, dirfd int, flags uint64, mode os.FileMode) (*os.File, error) {
-	fd, err := openFileUnderRootRaw(dirfd, name, flags, mode)
-	if err == nil {
-		return os.NewFile(uintptr(fd), name), nil
-	}
-
-	hasCreate := (flags & unix.O_CREAT) != 0
-	if errors.Is(err, unix.ENOENT) && hasCreate {
-		parent := filepath.Dir(name)
-		if parent != "" {
-			newDirfd, err2 := openOrCreateDirUnderRoot(parent, dirfd, 0)
-			if err2 == nil {
-				defer newDirfd.Close()
-				fd, err := openFileUnderRootRaw(int(newDirfd.Fd()), filepath.Base(name), flags, mode)
-				if err == nil {
-					return os.NewFile(uintptr(fd), name), nil
-				}
-			}
-		}
-	}
-	return nil, fmt.Errorf("open %q under the rootfs: %w", name, err)
-}
-
-// openOrCreateDirUnderRoot safely opens a directory or create it if it is missing.
-// name is the path to open relative to dirfd.
-// dirfd is an open file descriptor to the target checkout directory.
-// mode specifies the mode to use for newly created files.
-func openOrCreateDirUnderRoot(name string, dirfd int, mode os.FileMode) (*os.File, error) {
-	fd, err := openFileUnderRootRaw(dirfd, name, unix.O_DIRECTORY|unix.O_RDONLY, mode)
-	if err == nil {
-		return os.NewFile(uintptr(fd), name), nil
-	}
-
-	if errors.Is(err, unix.ENOENT) {
-		parent := filepath.Dir(name)
-		if parent != "" {
-			pDir, err2 := openOrCreateDirUnderRoot(parent, dirfd, mode)
-			if err2 != nil {
-				return nil, err
-			}
-			defer pDir.Close()
-
-			baseName := filepath.Base(name)
-
-			if err2 := unix.Mkdirat(int(pDir.Fd()), baseName, 0o755); err2 != nil {
-				return nil, err
-			}
-
-			fd, err = openFileUnderRootRaw(int(pDir.Fd()), baseName, unix.O_DIRECTORY|unix.O_RDONLY, mode)
-			if err == nil {
-				return os.NewFile(uintptr(fd), name), nil
-			}
-		}
-	}
-	return nil, err
 }
 
 func (c *chunkedDiffer) prepareCompressedStreamToFile(partCompression compressedFileType, from io.Reader, mf *missingFileChunk) (compressedFileType, error) {
@@ -893,23 +554,14 @@ func hashHole(h hash.Hash, size int64, copyBuffer []byte) error {
 	return nil
 }
 
-// appendHole creates a hole with the specified size at the open fd.
-func appendHole(fd int, size int64) error {
-	off, err := unix.Seek(fd, size, unix.SEEK_CUR)
-	if err != nil {
-		return err
-	}
-	// Make sure the file size is changed.  It might be the last hole and no other data written afterwards.
-	if err := unix.Ftruncate(fd, off); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c *chunkedDiffer) appendCompressedStreamToFile(compression compressedFileType, destFile *destinationFile, size int64) error {
 	switch compression {
 	case fileTypeZstdChunked:
-		defer c.zstdReader.Reset(nil)
+		defer func() {
+			if err := c.zstdReader.Reset(nil); err != nil {
+				logrus.Warnf("release of references to the previous zstd reader failed: %v", err)
+			}
+		}()
 		if _, err := io.CopyBuffer(destFile.to, io.LimitReader(c.zstdReader, size), c.copyBuffer); err != nil {
 			return err
 		}
@@ -923,7 +575,7 @@ func (c *chunkedDiffer) appendCompressedStreamToFile(compression compressedFileT
 			return err
 		}
 	case fileTypeHole:
-		if err := appendHole(int(destFile.file.Fd()), size); err != nil {
+		if err := appendHole(int(destFile.file.Fd()), destFile.metadata.Name, size); err != nil {
 			return err
 		}
 		if destFile.hash != nil {
@@ -944,15 +596,15 @@ type destinationFile struct {
 	dirfd          int
 	file           *os.File
 	hash           hash.Hash
-	metadata       *internal.FileMetadata
+	metadata       *fileMetadata
 	options        *archive.TarOptions
 	skipValidation bool
 	to             io.Writer
 	recordFsVerity recordFsVerityFunc
 }
 
-func openDestinationFile(dirfd int, metadata *internal.FileMetadata, options *archive.TarOptions, skipValidation bool, recordFsVerity recordFsVerityFunc) (*destinationFile, error) {
-	file, err := openFileUnderRoot(metadata.Name, dirfd, newFileFlags, 0)
+func openDestinationFile(dirfd int, metadata *fileMetadata, options *archive.TarOptions, skipValidation bool, recordFsVerity recordFsVerityFunc) (*destinationFile, error) {
+	file, err := openFileUnderRoot(dirfd, metadata.Name, newFileFlags, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -1055,7 +707,7 @@ func (c *chunkedDiffer) recordFsVerity(path string, roFile *os.File) error {
 	return nil
 }
 
-func (c *chunkedDiffer) storeMissingFiles(streams chan io.ReadCloser, errs chan error, dest string, dirfd int, missingParts []missingPart, options *archive.TarOptions) (Err error) {
+func (c *chunkedDiffer) storeMissingFiles(streams chan io.ReadCloser, errs chan error, dirfd int, missingParts []missingPart, options *archive.TarOptions) (Err error) {
 	var destFile *destinationFile
 
 	filesToClose := make(chan *destinationFile, 3)
@@ -1269,7 +921,7 @@ func mergeMissingChunks(missingParts []missingPart, target int) []missingPart {
 	return newMissingParts
 }
 
-func (c *chunkedDiffer) retrieveMissingFiles(stream ImageSourceSeekable, dest string, dirfd int, missingParts []missingPart, options *archive.TarOptions) error {
+func (c *chunkedDiffer) retrieveMissingFiles(stream ImageSourceSeekable, dirfd int, missingParts []missingPart, options *archive.TarOptions) error {
 	var chunksToRequest []ImageSourceChunk
 
 	calculateChunksToRequest := func() {
@@ -1308,163 +960,8 @@ func (c *chunkedDiffer) retrieveMissingFiles(stream ImageSourceSeekable, dest st
 		return err
 	}
 
-	if err := c.storeMissingFiles(streams, errs, dest, dirfd, missingParts, options); err != nil {
+	if err := c.storeMissingFiles(streams, errs, dirfd, missingParts, options); err != nil {
 		return err
-	}
-	return nil
-}
-
-func safeMkdir(dirfd int, mode os.FileMode, name string, metadata *internal.FileMetadata, options *archive.TarOptions) error {
-	parent := filepath.Dir(name)
-	base := filepath.Base(name)
-
-	parentFd := dirfd
-	if parent != "." {
-		parentFile, err := openOrCreateDirUnderRoot(parent, dirfd, 0)
-		if err != nil {
-			return err
-		}
-		defer parentFile.Close()
-		parentFd = int(parentFile.Fd())
-	}
-
-	if err := unix.Mkdirat(parentFd, base, uint32(mode)); err != nil {
-		if !os.IsExist(err) {
-			return fmt.Errorf("mkdir %q: %w", name, err)
-		}
-	}
-
-	file, err := openFileUnderRoot(base, parentFd, unix.O_DIRECTORY|unix.O_RDONLY, 0)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	return setFileAttrs(dirfd, file, mode, metadata, options, false)
-}
-
-func safeLink(dirfd int, mode os.FileMode, metadata *internal.FileMetadata, options *archive.TarOptions) error {
-	sourceFile, err := openFileUnderRoot(metadata.Linkname, dirfd, unix.O_PATH|unix.O_RDONLY|unix.O_NOFOLLOW, 0)
-	if err != nil {
-		return err
-	}
-	defer sourceFile.Close()
-
-	destDir, destBase := filepath.Dir(metadata.Name), filepath.Base(metadata.Name)
-	destDirFd := dirfd
-	if destDir != "." {
-		f, err := openOrCreateDirUnderRoot(destDir, dirfd, 0)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		destDirFd = int(f.Fd())
-	}
-
-	err = doHardLink(int(sourceFile.Fd()), destDirFd, destBase)
-	if err != nil {
-		return fmt.Errorf("create hardlink %q pointing to %q: %w", metadata.Name, metadata.Linkname, err)
-	}
-
-	newFile, err := openFileUnderRoot(metadata.Name, dirfd, unix.O_WRONLY|unix.O_NOFOLLOW, 0)
-	if err != nil {
-		// If the target is a symlink, open the file with O_PATH.
-		if errors.Is(err, unix.ELOOP) {
-			newFile, err := openFileUnderRoot(metadata.Name, dirfd, unix.O_PATH|unix.O_NOFOLLOW, 0)
-			if err != nil {
-				return err
-			}
-			defer newFile.Close()
-
-			return setFileAttrs(dirfd, newFile, mode, metadata, options, true)
-		}
-		return err
-	}
-	defer newFile.Close()
-
-	return setFileAttrs(dirfd, newFile, mode, metadata, options, false)
-}
-
-func safeSymlink(dirfd int, mode os.FileMode, metadata *internal.FileMetadata, options *archive.TarOptions) error {
-	destDir, destBase := filepath.Dir(metadata.Name), filepath.Base(metadata.Name)
-	destDirFd := dirfd
-	if destDir != "." {
-		f, err := openOrCreateDirUnderRoot(destDir, dirfd, 0)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		destDirFd = int(f.Fd())
-	}
-
-	if err := unix.Symlinkat(metadata.Linkname, destDirFd, destBase); err != nil {
-		return fmt.Errorf("create symlink %q pointing to %q: %w", metadata.Name, metadata.Linkname, err)
-	}
-	return nil
-}
-
-type whiteoutHandler struct {
-	Dirfd int
-	Root  string
-}
-
-func (d whiteoutHandler) Setxattr(path, name string, value []byte) error {
-	file, err := openOrCreateDirUnderRoot(path, d.Dirfd, 0)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	if err := unix.Fsetxattr(int(file.Fd()), name, value, 0); err != nil {
-		return fmt.Errorf("set xattr %s=%q for %q: %w", name, value, path, err)
-	}
-	return nil
-}
-
-func (d whiteoutHandler) Mknod(path string, mode uint32, dev int) error {
-	dir := filepath.Dir(path)
-	base := filepath.Base(path)
-
-	dirfd := d.Dirfd
-	if dir != "" {
-		dir, err := openOrCreateDirUnderRoot(dir, d.Dirfd, 0)
-		if err != nil {
-			return err
-		}
-		defer dir.Close()
-
-		dirfd = int(dir.Fd())
-	}
-
-	if err := unix.Mknodat(dirfd, base, mode, dev); err != nil {
-		return fmt.Errorf("mknod %q: %w", path, err)
-	}
-
-	return nil
-}
-
-func checkChownErr(err error, name string, uid, gid int) error {
-	if errors.Is(err, syscall.EINVAL) {
-		return fmt.Errorf(`potentially insufficient UIDs or GIDs available in user namespace (requested %d:%d for %s): Check /etc/subuid and /etc/subgid if configured locally and run "podman system migrate": %w`, uid, gid, name, err)
-	}
-	return err
-}
-
-func (d whiteoutHandler) Chown(path string, uid, gid int) error {
-	file, err := openFileUnderRoot(path, d.Dirfd, unix.O_PATH, 0)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	if err := unix.Fchownat(int(file.Fd()), "", uid, gid, unix.AT_EMPTY_PATH); err != nil {
-		var stat unix.Stat_t
-		if unix.Fstat(int(file.Fd()), &stat) == nil {
-			if stat.Uid == uint32(uid) && stat.Gid == uint32(gid) {
-				return nil
-			}
-		}
-		return checkChownErr(err, path, uid, gid)
 	}
 	return nil
 }
@@ -1473,11 +970,11 @@ type hardLinkToCreate struct {
 	dest     string
 	dirfd    int
 	mode     os.FileMode
-	metadata *internal.FileMetadata
+	metadata *fileMetadata
 }
 
-func parseBooleanPullOption(storeOpts *storage.StoreOptions, name string, def bool) bool {
-	if value, ok := storeOpts.PullOptions[name]; ok {
+func parseBooleanPullOption(pullOptions map[string]string, name string, def bool) bool {
+	if value, ok := pullOptions[name]; ok {
 		return strings.ToLower(value) == "true"
 	}
 	return def
@@ -1490,15 +987,15 @@ type findAndCopyFileOptions struct {
 }
 
 func reopenFileReadOnly(f *os.File) (*os.File, error) {
-	path := fmt.Sprintf("/proc/self/fd/%d", f.Fd())
+	path := procPathForFile(f)
 	fd, err := unix.Open(path, unix.O_RDONLY|unix.O_CLOEXEC, 0)
 	if err != nil {
-		return nil, err
+		return nil, &fs.PathError{Op: "open", Path: path, Err: err}
 	}
 	return os.NewFile(uintptr(fd), f.Name()), nil
 }
 
-func (c *chunkedDiffer) findAndCopyFile(dirfd int, r *internal.FileMetadata, copyOptions *findAndCopyFileOptions, mode os.FileMode) (bool, error) {
+func (c *chunkedDiffer) findAndCopyFile(dirfd int, r *fileMetadata, copyOptions *findAndCopyFileOptions, mode os.FileMode) (bool, error) {
 	finalizeFile := func(dstFile *os.File) error {
 		if dstFile == nil {
 			return nil
@@ -1549,8 +1046,8 @@ func (c *chunkedDiffer) findAndCopyFile(dirfd int, r *internal.FileMetadata, cop
 	return false, nil
 }
 
-func makeEntriesFlat(mergedEntries []internal.FileMetadata) ([]internal.FileMetadata, error) {
-	var new []internal.FileMetadata
+func makeEntriesFlat(mergedEntries []fileMetadata) ([]fileMetadata, error) {
+	var new []fileMetadata
 
 	hashes := make(map[string]string)
 	for i := range mergedEntries {
@@ -1572,6 +1069,7 @@ func makeEntriesFlat(mergedEntries []internal.FileMetadata) ([]internal.FileMeta
 		hashes[d] = d
 
 		mergedEntries[i].Name = fmt.Sprintf("%s/%s", d[0:2], d[2:])
+		mergedEntries[i].skipSetAttrs = true
 
 		new = append(new, mergedEntries[i])
 	}
@@ -1610,7 +1108,7 @@ func (c *chunkedDiffer) copyAllBlobToFile(destination *os.File) (digest.Digest, 
 	r := io.TeeReader(payload, originalRawDigester.Hash())
 
 	// copy the entire tarball and compute its digest
-	_, err = io.Copy(destination, r)
+	_, err = io.CopyBuffer(destination, r, c.copyBuffer)
 
 	return originalRawDigester.Digest(), err
 }
@@ -1628,12 +1126,14 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 	// stream to use for reading the zstd:chunked or Estargz file.
 	stream := c.stream
 
+	var compressedDigest digest.Digest
 	var uncompressedDigest digest.Digest
+	var convertedBlobSize int64
 
 	if c.convertToZstdChunked {
 		fd, err := unix.Open(dest, unix.O_TMPFILE|unix.O_RDWR|unix.O_CLOEXEC, 0o600)
 		if err != nil {
-			return graphdriver.DriverWithDifferOutput{}, err
+			return graphdriver.DriverWithDifferOutput{}, &fs.PathError{Op: "open", Path: dest, Err: err}
 		}
 		blobFile := os.NewFile(uintptr(fd), "blob-file")
 		defer func() {
@@ -1643,7 +1143,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		}()
 
 		// calculate the checksum before accessing the file.
-		compressedDigest, err := c.copyAllBlobToFile(blobFile)
+		compressedDigest, err = c.copyAllBlobToFile(blobFile)
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, err
 		}
@@ -1656,10 +1156,11 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 			return graphdriver.DriverWithDifferOutput{}, err
 		}
 
-		fileSource, diffID, annotations, err := convertTarToZstdChunked(dest, blobFile)
+		tarSize, fileSource, diffID, annotations, err := c.convertTarToZstdChunked(dest, blobFile)
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, err
 		}
+		convertedBlobSize = tarSize
 		// fileSource is a O_TMPFILE file descriptor, so we
 		// need to keep it open until the entire file is processed.
 		defer fileSource.Close()
@@ -1668,7 +1169,14 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		blobFile.Close()
 		blobFile = nil
 
-		manifest, tarSplit, tocOffset, err := readZstdChunkedManifest(fileSource, c.blobSize, annotations)
+		tocDigest, err := toc.GetTOCDigest(annotations)
+		if err != nil {
+			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("internal error: parsing just-created zstd:chunked TOC digest: %w", err)
+		}
+		if tocDigest == nil {
+			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("internal error: just-created zstd:chunked missing TOC digest")
+		}
+		manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(fileSource, *tocDigest, annotations)
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("read zstd:chunked manifest: %w", err)
 		}
@@ -1679,6 +1187,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		// fill the chunkedDiffer with the data we just read.
 		c.fileType = fileTypeZstdChunked
 		c.manifest = manifest
+		c.toc = toc
 		c.tarSplit = tarSplit
 		c.tocOffset = tocOffset
 
@@ -1699,9 +1208,13 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 	}
 
 	// Generate the manifest
-	toc, err := unmarshalToc(c.manifest)
-	if err != nil {
-		return graphdriver.DriverWithDifferOutput{}, err
+	toc := c.toc
+	if toc == nil {
+		toc_, err := unmarshalToc(c.manifest)
+		if err != nil {
+			return graphdriver.DriverWithDifferOutput{}, err
+		}
+		toc = toc_
 	}
 
 	output := graphdriver.DriverWithDifferOutput{
@@ -1716,27 +1229,33 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		},
 		TOCDigest:          c.tocDigest,
 		UncompressedDigest: uncompressedDigest,
+		CompressedDigest:   compressedDigest,
 	}
 
 	// When the hard links deduplication is used, file attributes are ignored because setting them
 	// modifies the source file as well.
-	useHardLinks := parseBooleanPullOption(c.storeOpts, "use_hard_links", false)
+	useHardLinks := parseBooleanPullOption(c.pullOptions, "use_hard_links", false)
 
 	// List of OSTree repositories to use for deduplication
-	ostreeRepos := strings.Split(c.storeOpts.PullOptions["ostree_repos"], ":")
+	ostreeRepos := strings.Split(c.pullOptions["ostree_repos"], ":")
 
 	whiteoutConverter := archive.GetWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
 
 	var missingParts []missingPart
 
-	output.UIDs, output.GIDs = collectIDs(toc.Entries)
-
-	mergedEntries, totalSize, err := c.mergeTocEntries(c.fileType, toc.Entries)
+	mergedEntries, totalSizeFromTOC, err := c.mergeTocEntries(c.fileType, toc.Entries)
 	if err != nil {
 		return output, err
 	}
 
-	output.Size = totalSize
+	output.UIDs, output.GIDs = collectIDs(mergedEntries)
+	if convertedBlobSize > 0 {
+		// if the image was converted, store the original tar size, so that
+		// it can be recreated correctly.
+		output.Size = convertedBlobSize
+	} else {
+		output.Size = totalSizeFromTOC
+	}
 
 	if err := maybeDoIDRemap(mergedEntries, options); err != nil {
 		return output, err
@@ -1745,16 +1264,19 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 	if options.ForceMask != nil {
 		uid, gid, mode, err := archive.GetFileOwner(dest)
 		if err == nil {
-			value := fmt.Sprintf("%d:%d:0%o", uid, gid, mode)
-			if err := unix.Setxattr(dest, containersOverrideXattr, []byte(value), 0); err != nil {
+			value := idtools.Stat{
+				IDs:  idtools.IDPair{UID: int(uid), GID: int(gid)},
+				Mode: os.FileMode(mode),
+			}
+			if err := idtools.SetContainersOverrideXattr(dest, value); err != nil {
 				return output, err
 			}
 		}
 	}
 
-	dirfd, err := unix.Open(dest, unix.O_RDONLY|unix.O_PATH, 0)
+	dirfd, err := unix.Open(dest, unix.O_RDONLY|unix.O_PATH|unix.O_CLOEXEC, 0)
 	if err != nil {
-		return output, fmt.Errorf("cannot open %q: %w", dest, err)
+		return output, &fs.PathError{Op: "open", Path: dest, Err: err}
 	}
 	defer unix.Close(dirfd)
 
@@ -1767,7 +1289,9 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		for _, e := range mergedEntries {
 			d := e.Name[0:2]
 			if _, found := createdDirs[d]; !found {
-				unix.Mkdirat(dirfd, d, 0o755)
+				if err := unix.Mkdirat(dirfd, d, 0o755); err != nil {
+					return output, &fs.PathError{Op: "mkdirat", Path: d, Err: err}
+				}
 				createdDirs[d] = struct{}{}
 			}
 		}
@@ -1789,7 +1313,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		njob     int
 		index    int
 		mode     os.FileMode
-		metadata *internal.FileMetadata
+		metadata *fileMetadata
 
 		found bool
 		err   error
@@ -1823,11 +1347,14 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 	}
 
 	filesToWaitFor := 0
-	for i, r := range mergedEntries {
+	for i := range mergedEntries {
+		r := &mergedEntries[i]
 		if options.ForceMask != nil {
-			value := fmt.Sprintf("%d:%d:0%o", r.UID, r.GID, r.Mode&0o7777)
-			r.Xattrs[containersOverrideXattr] = base64.StdEncoding.EncodeToString([]byte(value))
-			r.Mode = int64(*options.ForceMask)
+			value := idtools.FormatContainersOverrideXattr(r.UID, r.GID, int(r.Mode))
+			if r.Xattrs == nil {
+				r.Xattrs = make(map[string]string)
+			}
+			r.Xattrs[idtools.ContainersOverrideXattr] = base64.StdEncoding.EncodeToString([]byte(value))
 		}
 
 		mode := os.FileMode(r.Mode)
@@ -1871,12 +1398,12 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 			if r.Size == 0 {
 				// Used to have a scope for cleanup.
 				createEmptyFile := func() error {
-					file, err := openFileUnderRoot(r.Name, dirfd, newFileFlags, 0)
+					file, err := openFileUnderRoot(dirfd, r.Name, newFileFlags, 0)
 					if err != nil {
 						return err
 					}
 					defer file.Close()
-					if err := setFileAttrs(dirfd, file, mode, &r, options, false); err != nil {
+					if err := setFileAttrs(dirfd, file, mode, r, options, false); err != nil {
 						return err
 					}
 					return nil
@@ -1891,7 +1418,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 			if r.Name == "" || r.Name == "." {
 				output.RootDirMode = &mode
 			}
-			if err := safeMkdir(dirfd, mode, r.Name, &r, options); err != nil {
+			if err := safeMkdir(dirfd, mode, r.Name, r, options); err != nil {
 				return output, err
 			}
 			continue
@@ -1905,12 +1432,12 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 				dest:     dest,
 				dirfd:    dirfd,
 				mode:     mode,
-				metadata: &r,
+				metadata: r,
 			})
 			continue
 
 		case tar.TypeSymlink:
-			if err := safeSymlink(dirfd, mode, &r, options); err != nil {
+			if err := safeSymlink(dirfd, r); err != nil {
 				return output, err
 			}
 			continue
@@ -1961,7 +1488,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		remainingSize := r.Size
 
 		// the file is missing, attempt to find individual chunks.
-		for _, chunk := range r.Chunks {
+		for _, chunk := range r.chunks {
 			compressedSize := int64(chunk.EndOffset - chunk.Offset)
 			size := remainingSize
 			if chunk.ChunkSize > 0 {
@@ -2012,7 +1539,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 	}
 	// There are some missing files.  Prepare a multirange request for the missing chunks.
 	if len(missingParts) > 0 {
-		if err := c.retrieveMissingFiles(stream, dest, dirfd, missingParts, options); err != nil {
+		if err := c.retrieveMissingFiles(stream, dirfd, missingParts, options); err != nil {
 			return output, err
 		}
 	}
@@ -2045,7 +1572,7 @@ func mustSkipFile(fileType compressedFileType, e internal.FileMetadata) bool {
 	return false
 }
 
-func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []internal.FileMetadata) ([]internal.FileMetadata, int64, error) {
+func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []internal.FileMetadata) ([]fileMetadata, int64, error) {
 	var totalFilesSize int64
 
 	countNextChunks := func(start int) int {
@@ -2069,11 +1596,11 @@ func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []i
 		}
 	}
 
-	mergedEntries := make([]internal.FileMetadata, size)
+	mergedEntries := make([]fileMetadata, size)
 	m := 0
 	for i := 0; i < len(entries); i++ {
-		e := entries[i]
-		if mustSkipFile(fileType, e) {
+		e := fileMetadata{FileMetadata: entries[i]}
+		if mustSkipFile(fileType, entries[i]) {
 			continue
 		}
 
@@ -2086,12 +1613,12 @@ func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []i
 		if e.Type == TypeReg {
 			nChunks := countNextChunks(i + 1)
 
-			e.Chunks = make([]*internal.FileMetadata, nChunks+1)
+			e.chunks = make([]*internal.FileMetadata, nChunks+1)
 			for j := 0; j <= nChunks; j++ {
 				// we need a copy here, otherwise we override the
 				// .Size later
 				copy := entries[i+j]
-				e.Chunks[j] = &copy
+				e.chunks[j] = &copy
 				e.EndOffset = entries[i+j].EndOffset
 			}
 			i += nChunks
@@ -2110,10 +1637,10 @@ func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []i
 		}
 
 		lastChunkOffset := mergedEntries[i].EndOffset
-		for j := len(mergedEntries[i].Chunks) - 1; j >= 0; j-- {
-			mergedEntries[i].Chunks[j].EndOffset = lastChunkOffset
-			mergedEntries[i].Chunks[j].Size = mergedEntries[i].Chunks[j].EndOffset - mergedEntries[i].Chunks[j].Offset
-			lastChunkOffset = mergedEntries[i].Chunks[j].Offset
+		for j := len(mergedEntries[i].chunks) - 1; j >= 0; j-- {
+			mergedEntries[i].chunks[j].EndOffset = lastChunkOffset
+			mergedEntries[i].chunks[j].Size = mergedEntries[i].chunks[j].EndOffset - mergedEntries[i].chunks[j].Offset
+			lastChunkOffset = mergedEntries[i].chunks[j].Offset
 		}
 	}
 	return mergedEntries, totalFilesSize, nil
@@ -2122,13 +1649,13 @@ func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []i
 // validateChunkChecksum checks if the file at $root/$path[offset:chunk.ChunkSize] has the
 // same digest as chunk.ChunkDigest
 func validateChunkChecksum(chunk *internal.FileMetadata, root, path string, offset int64, copyBuffer []byte) bool {
-	parentDirfd, err := unix.Open(root, unix.O_PATH, 0)
+	parentDirfd, err := unix.Open(root, unix.O_PATH|unix.O_CLOEXEC, 0)
 	if err != nil {
 		return false
 	}
 	defer unix.Close(parentDirfd)
 
-	fd, err := openFileUnderRoot(path, parentDirfd, unix.O_RDONLY, 0)
+	fd, err := openFileUnderRoot(parentDirfd, path, unix.O_RDONLY|unix.O_CLOEXEC, 0)
 	if err != nil {
 		return false
 	}

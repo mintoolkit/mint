@@ -18,6 +18,8 @@ import (
 	"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
 	cmd "github.com/mintoolkit/mint/pkg/command"
 	"github.com/mintoolkit/mint/pkg/consts"
+	"github.com/mintoolkit/mint/pkg/crt"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockercrtclient"
 	"github.com/mintoolkit/mint/pkg/imagebuilder"
 	"github.com/mintoolkit/mint/pkg/imagebuilder/internalbuilder"
 	"github.com/mintoolkit/mint/pkg/report"
@@ -40,7 +42,8 @@ func inspectFatImage(
 	logger *log.Entry,
 	cmdReport *report.SlimCommand,
 ) (*image.Inspector, string, string, string) {
-	imageInspector, err := image.NewInspector(client, targetRef)
+	crtClient := dockercrtclient.New(client)
+	imageInspector, err := image.NewInspector(crtClient, targetRef)
 	xc.FailOn(err)
 
 	noImage, err := imageInspector.NoImage()
@@ -618,7 +621,7 @@ func UpdateBuildOptionsWithOverrides(
 
 func UpdateBuildOptionsWithSrcImageInfo(
 	options *imagebuilder.SimpleBuildOptions,
-	imageInfo *dockerapi.Image) {
+	imageInfo *crt.ImageInfo) {
 	labels := SourceToOutputImageLabels(imageInfo.Config.Labels)
 	for k, v := range labels {
 		options.ImageConfig.Config.Labels[k] = v
@@ -643,8 +646,8 @@ func UpdateBuildOptionsWithSrcImageInfo(
 	options.ImageConfig.Config.ArgsEscaped = imageInfo.Config.ArgsEscaped
 	options.ImageConfig.Config.Domainname = imageInfo.Config.Domainname
 	options.ImageConfig.Config.Hostname = imageInfo.Config.Hostname
-	if imageInfo.Config.StopTimeout > 0 {
-		options.ImageConfig.Config.StopTimeout = &imageInfo.Config.StopTimeout
+	if imageInfo.Config.StopTimeout != nil {
+		options.ImageConfig.Config.StopTimeout = imageInfo.Config.StopTimeout
 	}
 	options.ImageConfig.Config.AttachStderr = imageInfo.Config.AttachStderr
 	options.ImageConfig.Config.AttachStdin = imageInfo.Config.AttachStdin

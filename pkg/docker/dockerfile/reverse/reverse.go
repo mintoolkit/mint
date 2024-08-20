@@ -12,9 +12,10 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/google/shlex"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/mintoolkit/mint/pkg/crt"
 )
 
 var (
@@ -194,7 +195,7 @@ const tbDuration = (15 * time.Minute)
 
 // DockerfileFromHistoryData recreates Dockerfile information from container image history
 func DockerfileFromHistoryData(data string) (*Dockerfile, error) {
-	var imageHistory []docker.ImageHistory
+	var imageHistory []crt.ImageHistory
 	if err := json.NewDecoder(strings.NewReader(data)).Decode(&imageHistory); err != nil {
 		return nil, err
 	}
@@ -203,10 +204,10 @@ func DockerfileFromHistoryData(data string) (*Dockerfile, error) {
 }
 
 // DockerfileFromHistory recreates Dockerfile information from container image history
-func DockerfileFromHistory(apiClient *docker.Client, imageID string) (*Dockerfile, error) {
+func DockerfileFromHistory(apiClient crt.InspectorAPIClient, imageID string) (*Dockerfile, error) {
 	//TODO: make it possible to pass the history information as a param
 	//TODO: pass the other image metadata (including OCI and buildkit base image info)
-	imageHistory, err := apiClient.ImageHistory(imageID)
+	imageHistory, err := apiClient.GetImagesHistory(imageID)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +216,7 @@ func DockerfileFromHistory(apiClient *docker.Client, imageID string) (*Dockerfil
 }
 
 // DockerfileFromHistoryStruct recreates Dockerfile information from container image history
-func DockerfileFromHistoryStruct(imageHistory []docker.ImageHistory) (*Dockerfile, error) {
+func DockerfileFromHistoryStruct(imageHistory []crt.ImageHistory) (*Dockerfile, error) {
 	var out Dockerfile
 
 	log.Tracef("\n\nreverse.DockerfileFromHistoryStruct - IMAGE HISTORY:\n%#v\n\n", imageHistory)
@@ -711,7 +712,7 @@ func fixJSONArray(in string) string {
 	return out.String()
 }
 
-func deserialiseHealtheckInstruction(data string) (string, *docker.HealthConfig, error) {
+func deserialiseHealtheckInstruction(data string) (string, *crt.HealthConfig, error) {
 	//Example:
 	// HEALTHCHECK &{["CMD" "/healthcheck" "8080"] "5s" "10s" "0s" '\x03'}
 	// HEALTHCHECK --interval=5s --timeout=10s --retries=3 CMD [ "/healthcheck", "8080" ]
@@ -723,7 +724,7 @@ func deserialiseHealtheckInstruction(data string) (string, *docker.HealthConfig,
 		return "", nil, ErrBadInstPrefix
 	}
 
-	var config docker.HealthConfig
+	var config crt.HealthConfig
 	var strTest string
 	if strings.HasPrefix(cleanInst, instPrefixBasicEncHealthcheck) || !strings.Contains(cleanInst, "&{[") {
 		//handling the basic Buildah encoding
@@ -960,7 +961,3 @@ func deserialiseHealtheckInstruction(data string) (string, *docker.HealthConfig,
 
 	return healthInst, &config, nil
 }
-
-//
-// https://docs.docker.com/engine/reference/builder/
-//

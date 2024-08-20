@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/sirupsen/logrus"
 )
@@ -31,7 +32,7 @@ func DefaultConfigFile() (string, error) {
 		return path, nil
 	}
 	if !usePerUserStorage() {
-		if _, err := os.Stat(defaultOverrideConfigFile); err == nil {
+		if err := fileutils.Exists(defaultOverrideConfigFile); err == nil {
 			return defaultOverrideConfigFile, nil
 		}
 		return defaultConfigFile, nil
@@ -65,7 +66,10 @@ func reloadConfigurationFileIfNeeded(configFile string, storeOptions *StoreOptio
 		return
 	}
 
-	ReloadConfigurationFile(configFile, storeOptions)
+	if err := ReloadConfigurationFile(configFile, storeOptions); err != nil {
+		logrus.Warningf("Failed to reload %q %v\n", configFile, err)
+		return
+	}
 
 	prevReloadConfig.storeOptions = storeOptions
 	prevReloadConfig.mod = mtime

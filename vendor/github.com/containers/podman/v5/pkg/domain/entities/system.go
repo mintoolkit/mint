@@ -9,6 +9,8 @@ type ServiceOptions = types.ServiceOptions
 type SystemPruneOptions = types.SystemPruneOptions
 type SystemPruneReport = types.SystemPruneReport
 type SystemMigrateOptions = types.SystemMigrateOptions
+type SystemCheckOptions = types.SystemCheckOptions
+type SystemCheckReport = types.SystemCheckReport
 type SystemDfOptions = types.SystemDfOptions
 type SystemDfReport = types.SystemDfReport
 type SystemDfImageReport = types.SystemDfImageReport
@@ -19,7 +21,6 @@ type SystemUnshareOptions = types.SystemUnshareOptions
 type ComponentVersion = types.SystemComponentVersion
 type ListRegistriesReport = types.ListRegistriesReport
 
-// swagger:model AuthConfig
 type AuthConfig = types.AuthConfig
 type AuthReport = types.AuthReport
 type LocksReport = types.LocksReport

@@ -4,7 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
-	"github.com/mintoolkit/mint/pkg/app/master/crt"
+	"github.com/mintoolkit/mint/pkg/crt"
 )
 
 // Debug command flag names and usage descriptions

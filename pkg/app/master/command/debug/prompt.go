@@ -7,7 +7,7 @@ import (
 	"github.com/c-bata/go-prompt"
 
 	"github.com/mintoolkit/mint/pkg/app/master/command"
-	"github.com/mintoolkit/mint/pkg/app/master/crt"
+	"github.com/mintoolkit/mint/pkg/crt"
 )
 
 var CommandSuggestion = prompt.Suggest{
@@ -17,7 +17,7 @@ var CommandSuggestion = prompt.Suggest{
 
 var CommandFlagSuggestions = &command.FlagSuggestions{
 	Names: []prompt.Suggest{
-		{Text: command.FullFlagName(crt.FlagRuntime), Description: crt.FlagRuntimeUsage},
+		{Text: command.FullFlagName(command.FlagRuntime), Description: command.FlagRuntimeUsage},
 		{Text: command.FullFlagName(FlagTarget), Description: FlagTargetUsage},
 		{Text: command.FullFlagName(FlagNamespace), Description: FlagNamespaceUsage},
 		{Text: command.FullFlagName(FlagPod), Description: FlagPodUsage},
@@ -48,7 +48,7 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		{Text: command.FullFlagName(FlagKubeconfig), Description: FlagKubeconfigUsage},
 	},
 	Values: map[string]command.CompleteValue{
-		command.FullFlagName(crt.FlagRuntime):               crt.CompleteRuntime,
+		command.FullFlagName(command.FlagRuntime):           command.CompleteRuntime,
 		command.FullFlagName(FlagTarget):                    completeTarget,
 		command.FullFlagName(FlagDebugImage):                completeDebugImage,
 		command.FullFlagName(FlagTerminal):                  command.CompleteTBool,
@@ -89,10 +89,10 @@ func completeNamespace(ia *command.InteractiveApp, token string, params prompt.D
 	var values []prompt.Suggest
 	ccs := command.GetCurrentCommandState()
 	if ccs != nil && ccs.Command == Name {
-		runtimeFlag := command.FullFlagName(crt.FlagRuntime)
+		runtimeFlag := command.FullFlagName(command.FlagRuntime)
 		if rtFlagVals, found := ccs.CommandFlags[runtimeFlag]; found {
 			if len(rtFlagVals) > 0 {
-				runtime := crt.ResolveAutoRuntime(rtFlagVals[0])
+				runtime := command.ResolveAutoRuntime(rtFlagVals[0])
 
 				var names []string
 				switch runtime {
@@ -124,9 +124,9 @@ func completePod(ia *command.InteractiveApp, token string, params prompt.Documen
 	var values []prompt.Suggest
 	ccs := command.GetCurrentCommandState()
 	if ccs != nil && ccs.Command == Name {
-		runtimeFlag := command.FullFlagName(crt.FlagRuntime)
+		runtimeFlag := command.FullFlagName(command.FlagRuntime)
 		if rtFlagVals, found := ccs.CommandFlags[runtimeFlag]; found {
-			if len(rtFlagVals) > 0 && crt.ResolveAutoRuntime(rtFlagVals[0]) == crt.KubernetesRuntime {
+			if len(rtFlagVals) > 0 && command.ResolveAutoRuntime(rtFlagVals[0]) == crt.KubernetesRuntime {
 				kubeconfig := crt.KubeconfigDefault
 				kubeconfigFlag := command.FullFlagName(FlagKubeconfig)
 				kcFlagVals, found := ccs.CommandFlags[kubeconfigFlag]
@@ -157,14 +157,14 @@ func completeTarget(ia *command.InteractiveApp, token string, params prompt.Docu
 	var values []prompt.Suggest
 	ccs := command.GetCurrentCommandState()
 	if ccs != nil && ccs.Command == Name {
-		runtimeFlag := command.FullFlagName(crt.FlagRuntime)
+		runtimeFlag := command.FullFlagName(command.FlagRuntime)
 		rtFlagVals, found := ccs.CommandFlags[runtimeFlag]
 		runtime := crt.AutoRuntime
 		if found && len(rtFlagVals) > 0 {
 			runtime = rtFlagVals[0]
 		}
 
-		runtime = crt.ResolveAutoRuntime(runtime)
+		runtime = command.ResolveAutoRuntime(runtime)
 		switch runtime {
 		case crt.KubernetesRuntime:
 			kubeconfig := crt.KubeconfigDefault
@@ -251,12 +251,12 @@ func completeSession(ia *command.InteractiveApp, token string, params prompt.Doc
 	if ccs != nil && ccs.Command == Name {
 		csessValStr := ccs.GetCFValue(FlagConnectSession)
 
-		runtimeFlag := command.FullFlagName(crt.FlagRuntime)
+		runtimeFlag := command.FullFlagName(command.FlagRuntime)
 		rtFlagVals, found := ccs.CommandFlags[runtimeFlag]
 		handleDockerRuntime := true
 		if found && len(rtFlagVals) > 0 {
 			handleDockerRuntime = false
-			switch crt.ResolveAutoRuntime(rtFlagVals[0]) {
+			switch command.ResolveAutoRuntime(rtFlagVals[0]) {
 			case crt.KubernetesRuntime:
 				kubeconfig := crt.KubeconfigDefault
 				kubeconfigFlag := command.FullFlagName(FlagKubeconfig)

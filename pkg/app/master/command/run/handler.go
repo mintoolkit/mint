@@ -12,7 +12,8 @@ import (
 	"github.com/mintoolkit/mint/pkg/app/master/signals"
 	"github.com/mintoolkit/mint/pkg/app/master/version"
 	cmd "github.com/mintoolkit/mint/pkg/command"
-	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockercrtclient"
 	"github.com/mintoolkit/mint/pkg/report"
 	"github.com/mintoolkit/mint/pkg/util/errutil"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
@@ -71,11 +72,13 @@ func OnCommand(
 	}
 	errutil.FailOn(err)
 
+	crtClient := dockercrtclient.New(client)
+
 	if gparams.Debug {
 		version.Print(xc, Name, logger, client, false, gparams.InContainer, gparams.IsDSImage)
 	}
 
-	imageInspector, err := image.NewInspector(client, cparams.TargetRef)
+	imageInspector, err := image.NewInspector(crtClient, cparams.TargetRef)
 	errutil.FailOn(err)
 
 	noImage, err := imageInspector.NoImage()

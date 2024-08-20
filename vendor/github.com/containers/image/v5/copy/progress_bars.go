@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"time"
 
 	"github.com/containers/image/v5/internal/private"
@@ -49,10 +50,13 @@ type progressBar struct {
 // As a convention, most users of progress bars should call mark100PercentComplete on full success;
 // by convention, we don't leave progress bars in partial state when fully done
 // (even if we copied much less data than anticipated).
-func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.BlobInfo, kind string, onComplete string) *progressBar {
+func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.BlobInfo, kind string, onComplete string) (*progressBar, error) {
 	// shortDigestLen is the length of the digest used for blobs.
 	const shortDigestLen = 12
 
+	if err := info.Digest.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, so validate explicitly.
+		return nil, err
+	}
 	prefix := fmt.Sprintf("Copying %s %s", kind, info.Digest.Encoded())
 	// Truncate the prefix (chopping of some part of the digest) to make all progress bars aligned in a column.
 	maxPrefixLen := len("Copying blob ") + shortDigestLen
@@ -105,7 +109,7 @@ func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.
 	return &progressBar{
 		Bar:          bar,
 		originalSize: info.Size,
-	}
+	}, nil
 }
 
 // printCopyInfo prints a "Copying ..." message on the copier if the output is
@@ -117,7 +121,7 @@ func (c *copier) printCopyInfo(kind string, info types.BlobInfo) {
 	}
 }
 
-// mark100PercentComplete marks the progres bars as 100% complete;
+// mark100PercentComplete marks the progress bars as 100% complete;
 // it may do so by possibly advancing the current state if it is below the known total.
 func (bar *progressBar) mark100PercentComplete() {
 	if bar.originalSize > 0 {
@@ -148,12 +152,18 @@ type blobChunkAccessorProxy struct {
 // The specified chunks must be not overlapping and sorted by their offset.
 // The readers must be fully consumed, in the order they are returned, before blocking
 // to read the next chunk.
+// If the Length for the last chunk is set to math.MaxUint64, then it
+// fully fetches the remaining data from the offset to the end of the blob.
 func (s *blobChunkAccessorProxy) GetBlobAt(ctx context.Context, info types.BlobInfo, chunks []private.ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
 	start := time.Now()
 	rc, errs, err := s.wrapped.GetBlobAt(ctx, info, chunks)
 	if err == nil {
 		total := int64(0)
 		for _, c := range chunks {
+			// do not update the progress bar if there is a chunk with unknown length.
+			if c.Length == math.MaxUint64 {
+				return rc, errs, err
+			}
 			total += int64(c.Length)
 		}
 		s.bar.EwmaIncrInt64(total, time.Since(start))

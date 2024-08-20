@@ -19,7 +19,8 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/config"
-	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/crt"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockerutil"
 )
 
 type InteractiveApp struct {
@@ -504,4 +505,26 @@ func CompleteNetwork(ia *InteractiveApp, token string, params prompt.Document) [
 
 func CompleteFile(ia *InteractiveApp, token string, params prompt.Document) []prompt.Suggest {
 	return ia.fpCompleter.Complete(params)
+}
+
+// Runtime
+
+var runtimeValues = []prompt.Suggest{
+	{Text: crt.DockerRuntime, Description: crt.DockerRuntimeDesc},
+	{Text: crt.KubernetesRuntime, Description: crt.KubernetesRuntimeDesc},
+	{Text: crt.ContainerdRuntime, Description: crt.ContainerdRuntimeDesc},
+	{Text: crt.PodmanRuntime, Description: crt.PodmanRuntimeDesc},
+	{Text: crt.AutoRuntime, Description: crt.AutoRuntimeDesc},
+}
+
+func CompleteRuntime(ia *InteractiveApp, token string, params prompt.Document) []prompt.Suggest {
+	return prompt.FilterHasPrefix(runtimeValues, token, true)
+}
+
+func ResolveAutoRuntime(val string) string {
+	if val != crt.AutoRuntime {
+		return val
+	}
+
+	return crt.AutoSelectRuntime()
 }

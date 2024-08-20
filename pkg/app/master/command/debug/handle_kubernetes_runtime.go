@@ -27,6 +27,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockercrtclient"
 	"github.com/mintoolkit/mint/pkg/util/jsonutil"
 )
 
@@ -49,6 +50,7 @@ func HandleKubernetesRuntime(
 	defer logger.Trace("exit")
 
 	ctx := context.Background()
+	crtClient := dockercrtclient.New(dockerClient)
 
 	api, restConfig, err := apiClientFromConfig(commandParams.Kubeconfig)
 	if err != nil {
@@ -505,7 +507,7 @@ func HandleKubernetesRuntime(
 			//* it expects the Docker container runtime locally
 			//* it expects the target container image to be available locally
 			//* it expects the target container images to be pullable (with no auth)
-			imageInspector, err := image.NewInspector(dockerClient, targetContainer.Image)
+			imageInspector, err := image.NewInspector(crtClient, targetContainer.Image)
 			if err == nil {
 				noImage, err := imageInspector.NoImage()
 				if err == nil {
@@ -515,7 +517,7 @@ func HandleKubernetesRuntime(
 							logger.WithError(err).Trace("imageInspector.Pull")
 						}
 
-						imageInspector, err = image.NewInspector(dockerClient, targetContainer.Image)
+						imageInspector, err = image.NewInspector(crtClient, targetContainer.Image)
 						if err == nil {
 							noImage, err = imageInspector.NoImage()
 							if err == nil {

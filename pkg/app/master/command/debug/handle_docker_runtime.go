@@ -14,7 +14,8 @@ import (
 	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/app/master/container"
 	"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
-	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockercrtclient"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockerutil"
 	"github.com/mintoolkit/mint/pkg/util/errutil"
 	"github.com/mintoolkit/mint/pkg/util/jsonutil"
 )
@@ -202,7 +203,8 @@ func HandleDockerRuntime(
 		return
 	}
 
-	imageInspector, err := image.NewInspector(client, commandParams.DebugContainerImage)
+	crtClient := dockercrtclient.New(client)
+	imageInspector, err := image.NewInspector(crtClient, commandParams.DebugContainerImage)
 	errutil.FailOn(err)
 	noImage, err := imageInspector.NoImage()
 	errutil.FailOn(err)

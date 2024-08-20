@@ -23,16 +23,16 @@ LD_FLAGS="-s -w -X github.com/mintoolkit/mint/pkg/version.appVersionTag=${TAG} -
 go generate github.com/mintoolkit/mint/pkg/appbom
 
 pushd ${BDIR}/cmd/mint
-GOOS=linux GOARCH=amd64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'remote netgo osusergo' -o "${BDIR}/bin/linux/mint" 
-GOOS=darwin GOARCH=amd64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'remote netgo osusergo' -o "${BDIR}/bin/mac/mint"
-GOOS=linux GOARCH=arm go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'remote netgo osusergo' -o "$BDIR/bin/linux_arm/mint"
-GOOS=linux GOARCH=arm64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'remote netgo osusergo' -o "$BDIR/bin/linux_arm64/mint"
+GOOS=linux GOARCH=amd64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'remote netgo osusergo containers_image_openpgp containers_image_docker_daemon_stub containers_image_fulcio_stub containers_image_rekor_stub' -o "${BDIR}/bin/linux/mint" 
+GOOS=darwin GOARCH=amd64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'remote netgo osusergo containers_image_openpgp containers_image_docker_daemon_stub containers_image_fulcio_stub containers_image_rekor_stub' -o "${BDIR}/bin/mac/mint"
+GOOS=linux GOARCH=arm go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'remote netgo osusergo containers_image_openpgp containers_image_docker_daemon_stub containers_image_fulcio_stub containers_image_rekor_stub' -o "$BDIR/bin/linux_arm/mint"
+GOOS=linux GOARCH=arm64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'remote netgo osusergo containers_image_openpgp containers_image_docker_daemon_stub containers_image_fulcio_stub containers_image_rekor_stub' -o "$BDIR/bin/linux_arm64/mint"
 popd
 
 pushd ${BDIR}/cmd/mint-sensor
-GOOS=linux GOARCH=amd64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'netgo osusergo' -o "${BDIR}/bin/linux/mint-sensor"
-GOOS=linux GOARCH=arm go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'netgo osusergo' -o "$BDIR/bin/linux_arm/mint-sensor"
-GOOS=linux GOARCH=arm64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'netgo osusergo' -o "$BDIR/bin/linux_arm64/mint-sensor"
+GOOS=linux GOARCH=amd64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'netgo osusergo containers_image_openpgp containers_image_docker_daemon_stub containers_image_fulcio_stub containers_image_rekor_stub' -o "${BDIR}/bin/linux/mint-sensor"
+GOOS=linux GOARCH=arm go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'netgo osusergo containers_image_openpgp containers_image_docker_daemon_stub containers_image_fulcio_stub containers_image_rekor_stub' -o "$BDIR/bin/linux_arm/mint-sensor"
+GOOS=linux GOARCH=arm64 go build -mod=vendor -trimpath -ldflags="${LD_FLAGS}" -a -tags 'netgo osusergo containers_image_openpgp containers_image_docker_daemon_stub containers_image_fulcio_stub containers_image_rekor_stub' -o "$BDIR/bin/linux_arm64/mint-sensor"
 chmod a+x "${BDIR}/bin/linux/mint-sensor"
 chmod a+x "$BDIR/bin/linux_arm/mint-sensor"
 chmod a+x "$BDIR/bin/linux_arm64/mint-sensor"

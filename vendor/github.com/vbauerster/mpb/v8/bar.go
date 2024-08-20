@@ -44,12 +44,11 @@ type bState struct {
 	rmOnComplete      bool
 	noPop             bool
 	autoRefresh       bool
-	aDecorators       []decor.Decorator
-	pDecorators       []decor.Decorator
+	buffers           [3]*bytes.Buffer
+	decorators        [2][]decor.Decorator
 	averageDecorators []decor.AverageDecorator
 	ewmaDecorators    []decor.EwmaDecorator
 	shutdownListeners []decor.ShutdownListener
-	buffers           [3]*bytes.Buffer
 	filler            BarFiller
 	extender          extenderFunc
 	renderReq         chan<- time.Time
@@ -159,10 +158,7 @@ func (b *Bar) TraverseDecorators(cb func(decor.Decorator)) {
 	iter := make(chan decor.Decorator)
 	select {
 	case b.operateState <- func(s *bState) {
-		for _, decorators := range [][]decor.Decorator{
-			s.pDecorators,
-			s.aDecorators,
-		} {
+		for _, decorators := range s.decorators {
 			for _, d := range decorators {
 				iter <- d
 			}
@@ -177,13 +173,12 @@ func (b *Bar) TraverseDecorators(cb func(decor.Decorator)) {
 }
 
 // EnableTriggerComplete enables triggering complete event. It's effective
-// only for bars which were constructed with `total <= 0` and after total
-// has been set with `(*Bar).SetTotal(int64, false)`. If `curren >= total`
+// only for bars which were constructed with `total <= 0`. If `curren >= total`
 // at the moment of call, complete event is triggered right away.
 func (b *Bar) EnableTriggerComplete() {
 	select {
 	case b.operateState <- func(s *bState) {
-		if s.triggerComplete || s.total <= 0 {
+		if s.triggerComplete {
 			return
 		}
 		if s.current >= s.total {
@@ -200,10 +195,10 @@ func (b *Bar) EnableTriggerComplete() {
 
 // SetTotal sets total to an arbitrary value. It's effective only for bar
 // which was constructed with `total <= 0`. Setting total to negative value
-// is equivalent to `(*Bar).SetTotal((*Bar).Current(), bool)` but faster. If
-// triggerCompletion is true, total value is set to current and complete
-// event is triggered right away.
-func (b *Bar) SetTotal(total int64, triggerCompletion bool) {
+// is equivalent to `(*Bar).SetTotal((*Bar).Current(), bool)` but faster.
+// If `complete` is true complete event is triggered right away.
+// Calling `(*Bar).EnableTriggerComplete` makes this one no operational.
+func (b *Bar) SetTotal(total int64, complete bool) {
 	select {
 	case b.operateState <- func(s *bState) {
 		if s.triggerComplete {
@@ -214,7 +209,7 @@ func (b *Bar) SetTotal(total int64, triggerCompletion bool) {
 		} else {
 			s.total = total
 		}
-		if triggerCompletion {
+		if complete {
 			s.current = s.total
 			s.completed = true
 			b.triggerCompletion(s)
@@ -250,9 +245,7 @@ func (b *Bar) EwmaSetCurrent(current int64, iterDur time.Duration) {
 	}
 	select {
 	case b.operateState <- func(s *bState) {
-		if n := current - s.current; n > 0 {
-			s.decoratorEwmaUpdate(n, iterDur)
-		}
+		s.decoratorEwmaUpdate(current-s.current, iterDur)
 		s.current = current
 		if s.triggerComplete && s.current >= s.total {
 			s.current = s.total
@@ -411,22 +404,21 @@ func (b *Bar) serve(ctx context.Context, bs *bState) {
 
 func (b *Bar) render(tw int) {
 	fn := func(s *bState) {
-		var rows []io.Reader
+		frame := new(renderFrame)
 		stat := newStatistics(tw, s)
 		r, err := s.draw(stat)
 		if err != nil {
-			b.frameCh <- &renderFrame{err: err}
+			for _, buf := range s.buffers {
+				buf.Reset()
+			}
+			frame.err = err
+			b.frameCh <- frame
 			return
 		}
-		rows = append(rows, r)
+		frame.rows = append(frame.rows, r)
 		if s.extender != nil {
-			rows, err = s.extender(rows, stat)
-			if err != nil {
-				b.frameCh <- &renderFrame{err: err}
-				return
-			}
+			frame.rows, frame.err = s.extender(frame.rows, stat)
 		}
-		frame := &renderFrame{rows: rows}
 		if s.completed || s.aborted {
 			frame.shutdown = s.shutdown
 			frame.rmOnComplete = s.rmOnComplete
@@ -484,18 +476,7 @@ func (b *Bar) wSyncTable() syncTable {
 	}
 }
 
-func (s *bState) draw(stat decor.Statistics) (io.Reader, error) {
-	r, err := s.drawImpl(stat)
-	if err != nil {
-		for _, b := range s.buffers {
-			b.Reset()
-		}
-		return nil, err
-	}
-	return io.MultiReader(r, strings.NewReader("\n")), nil
-}
-
-func (s *bState) drawImpl(stat decor.Statistics) (io.Reader, error) {
+func (s *bState) draw(stat decor.Statistics) (_ io.Reader, err error) {
 	decorFiller := func(buf *bytes.Buffer, decorators []decor.Decorator) (err error) {
 		for _, d := range decorators {
 			// need to call Decor in any case becase of width synchronization
@@ -515,45 +496,45 @@ func (s *bState) drawImpl(stat decor.Statistics) (io.Reader, error) {
 		return err
 	}
 
-	bufP, bufB, bufA := s.buffers[0], s.buffers[1], s.buffers[2]
-
-	err := eitherError(decorFiller(bufP, s.pDecorators), decorFiller(bufA, s.aDecorators))
-	if err != nil {
-		return nil, err
-	}
-
-	if !s.trimSpace && stat.AvailableWidth >= 2 {
-		stat.AvailableWidth -= 2
-		writeFiller := func(buf *bytes.Buffer) error {
-			return s.filler.Fill(buf, stat)
-		}
-		for _, fn := range []func(*bytes.Buffer) error{
-			writeSpace,
-			writeFiller,
-			writeSpace,
-		} {
-			if err := fn(bufB); err != nil {
-				return nil, err
-			}
-		}
-	} else {
-		err := s.filler.Fill(bufB, stat)
+	for i, buf := range s.buffers[:2] {
+		err = decorFiller(buf, s.decorators[i])
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return io.MultiReader(bufP, bufB, bufA), nil
+	spaces := []io.Reader{
+		strings.NewReader(" "),
+		strings.NewReader(" "),
+	}
+	if s.trimSpace || stat.AvailableWidth < 2 {
+		for _, r := range spaces {
+			_, _ = io.Copy(io.Discard, r)
+		}
+	} else {
+		stat.AvailableWidth -= 2
+	}
+
+	err = s.filler.Fill(s.buffers[2], stat)
+	if err != nil {
+		return nil, err
+	}
+
+	return io.MultiReader(
+		s.buffers[0],
+		spaces[0],
+		s.buffers[2],
+		spaces[1],
+		s.buffers[1],
+		strings.NewReader("\n"),
+	), nil
 }
 
 func (s *bState) wSyncTable() (table syncTable) {
 	var count int
 	var row []chan int
 
-	for i, decorators := range [][]decor.Decorator{
-		s.pDecorators,
-		s.aDecorators,
-	} {
+	for i, decorators := range s.decorators {
 		for _, d := range decorators {
 			if ch, ok := d.Sync(); ok {
 				row = append(row, ch)
@@ -639,17 +620,4 @@ func unwrap(d decor.Decorator) decor.Decorator {
 		return unwrap(d.Unwrap())
 	}
 	return d
-}
-
-func writeSpace(buf *bytes.Buffer) error {
-	return buf.WriteByte(' ')
-}
-
-func eitherError(errors ...error) error {
-	for _, err := range errors {
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }

@@ -24,7 +24,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/certdiscover"
-	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockerutil"
 	"github.com/mintoolkit/mint/pkg/sysidentity"
 	"github.com/mintoolkit/mint/pkg/system"
 	"github.com/mintoolkit/mint/pkg/system/osdistro"

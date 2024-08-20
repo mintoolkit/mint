@@ -15,13 +15,13 @@ import (
 	"github.com/mintoolkit/mint/pkg/aflag"
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/config"
-	"github.com/mintoolkit/mint/pkg/app/master/docker/dockerhost"
 	"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
 	"github.com/mintoolkit/mint/pkg/app/master/inspectors/ipc"
 	"github.com/mintoolkit/mint/pkg/app/master/inspectors/sensor"
 	"github.com/mintoolkit/mint/pkg/app/master/security/apparmor"
 	"github.com/mintoolkit/mint/pkg/app/master/security/seccomp"
-	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/docker/dockerhost"
 	"github.com/mintoolkit/mint/pkg/ipc/channel"
 	"github.com/mintoolkit/mint/pkg/ipc/command"
 	"github.com/mintoolkit/mint/pkg/ipc/event"
@@ -1034,15 +1034,17 @@ func (i *Inspector) setPorts(ctrOpts *dockerapi.CreateContainerOptions) (hostPro
 
 		if i.ImageInspector.ImageInfo.Config != nil {
 			for p := range i.ImageInspector.ImageInfo.Config.ExposedPorts {
-				portBindings[p] = []dockerapi.PortBinding{{
-					HostPort: p.Port(),
+				port := dockerapi.Port(p)
+				portBindings[port] = []dockerapi.PortBinding{{
+					HostPort: port.Port(),
 				}}
 			}
 		}
 
 		for p := range ctrOpts.Config.ExposedPorts {
-			portBindings[p] = []dockerapi.PortBinding{{
-				HostPort: p.Port(),
+			port := dockerapi.Port(p)
+			portBindings[port] = []dockerapi.PortBinding{{
+				HostPort: port.Port(),
 			}}
 		}
 
@@ -1057,7 +1059,8 @@ func (i *Inspector) setPorts(ctrOpts *dockerapi.CreateContainerOptions) (hostPro
 		portMap := map[dockerapi.Port][]dockerapi.PortBinding{}
 		if ctrOpts.HostConfig.PublishAllPorts {
 			for p := range ctrOpts.Config.ExposedPorts {
-				portMap[p] = []dockerapi.PortBinding{{HostPort: p.Port()}}
+				port := dockerapi.Port(p)
+				portMap[port] = []dockerapi.PortBinding{{HostPort: port.Port()}}
 			}
 		} else {
 			portMap = ctrOpts.HostConfig.PortBindings

@@ -7,6 +7,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/moby/sys/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -16,14 +17,14 @@ import (
 // TryJoinFromFilePaths.  If joining fails, it attempts to delete the specified
 // file.
 func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
-	if _, err := os.Stat(pausePidPath); err != nil {
+	if err := fileutils.Exists(pausePidPath); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return false, -1, nil
 		}
 		return false, -1, err
 	}
 
-	became, ret, err := TryJoinFromFilePaths("", false, []string{pausePidPath})
+	became, ret, err := TryJoinFromFilePaths("", []string{pausePidPath})
 	if err == nil {
 		return became, ret, nil
 	}
@@ -44,7 +45,7 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 	}()
 
 	// Now the pause PID file is locked.  Try to join once again in case it changed while it was not locked.
-	became, ret, err = TryJoinFromFilePaths("", false, []string{pausePidPath})
+	became, ret, err = TryJoinFromFilePaths("", []string{pausePidPath})
 	if err != nil {
 		// It is still failing.  We can safely remove it.
 		os.Remove(pausePidPath)

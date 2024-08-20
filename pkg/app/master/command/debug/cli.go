@@ -8,7 +8,7 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
-	"github.com/mintoolkit/mint/pkg/app/master/crt"
+	"github.com/mintoolkit/mint/pkg/crt"
 )
 
 //Debug container
@@ -137,7 +137,7 @@ var CLI = &cli.Command{
 	Aliases: []string{Alias},
 	Usage:   Usage,
 	Flags: []cli.Flag{
-		crt.Cflag(crt.FlagRuntime),
+		command.Cflag(command.FlagRuntime),
 		cflag(FlagTarget),
 		cflag(FlagNamespace),
 		cflag(FlagPod),
@@ -184,7 +184,7 @@ var CLI = &cli.Command{
 		}
 
 		commandParams := &CommandParams{
-			Runtime:                        ctx.String(crt.FlagRuntime),
+			Runtime:                        ctx.String(command.FlagRuntime),
 			TargetRef:                      ctx.String(FlagTarget),
 			TargetNamespace:                ctx.String(FlagNamespace),
 			TargetPod:                      ctx.String(FlagPod),

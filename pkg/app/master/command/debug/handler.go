@@ -7,10 +7,10 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
-	"github.com/mintoolkit/mint/pkg/app/master/crt"
 	"github.com/mintoolkit/mint/pkg/app/master/version"
 	cmd "github.com/mintoolkit/mint/pkg/command"
-	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/crt"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockerclient"
 	"github.com/mintoolkit/mint/pkg/report"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
 	v "github.com/mintoolkit/mint/pkg/version"
@@ -43,8 +43,8 @@ func OnCommand(
 	}
 	xc.AddCleanupHandler(cmdReportOnExit)
 
-	xc.Out.State("started")
-	rr := crt.ResolveAutoRuntime(commandParams.Runtime)
+	xc.Out.State(cmd.StateStarted)
+	rr := command.ResolveAutoRuntime(commandParams.Runtime)
 	if rr != commandParams.Runtime {
 		rr = fmt.Sprintf("%s/%s", commandParams.Runtime, rr)
 	}
@@ -61,12 +61,12 @@ func OnCommand(
 		"fallback-to-target-user": commandParams.DoFallbackToTargetUser,
 	}
 
-	if crt.ResolveAutoRuntime(commandParams.Runtime) == crt.KubernetesRuntime {
+	if command.ResolveAutoRuntime(commandParams.Runtime) == crt.KubernetesRuntime {
 		paramVars["namespace"] = commandParams.TargetNamespace
 		paramVars["pod"] = commandParams.TargetPod
 	}
 
-	if crt.ResolveAutoRuntime(commandParams.Runtime) == crt.ContainerdRuntime {
+	if command.ResolveAutoRuntime(commandParams.Runtime) == crt.ContainerdRuntime {
 		paramVars["namespace"] = commandParams.TargetNamespace
 	}
 
@@ -80,7 +80,7 @@ func OnCommand(
 			"debug.container.name": debugContainerName,
 		})
 
-	resolved := crt.ResolveAutoRuntime(commandParams.Runtime)
+	resolved := command.ResolveAutoRuntime(commandParams.Runtime)
 	logger.Tracef("runtime.handler: rt=%s resolved=%s", commandParams.Runtime, resolved)
 	switch resolved {
 	case crt.DockerRuntime:

@@ -4,6 +4,7 @@ import (
 	"github.com/c-bata/go-prompt"
 
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	//"github.com/mintoolkit/mint/pkg/crt"
 )
 
 var CommandSuggestion = prompt.Suggest{
@@ -13,6 +14,7 @@ var CommandSuggestion = prompt.Suggest{
 
 var CommandFlagSuggestions = &command.FlagSuggestions{
 	Names: []prompt.Suggest{
+		{Text: command.FullFlagName(command.FlagRuntime), Description: command.FlagRuntimeUsage},
 		{Text: command.FullFlagName(command.FlagCommandParamsFile), Description: command.FlagCommandParamsFileUsage},
 		{Text: command.FullFlagName(command.FlagTarget), Description: command.FlagTargetUsage},
 		{Text: command.FullFlagName(command.FlagPull), Description: command.FlagPullUsage},
@@ -49,6 +51,7 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		{Text: command.FullFlagName(command.FlagRemoveFileArtifacts), Description: command.FlagRemoveFileArtifactsUsage},
 	},
 	Values: map[string]command.CompleteValue{
+		command.FullFlagName(command.FlagRuntime):             command.CompleteRuntime,
 		command.FullFlagName(command.FlagCommandParamsFile):   command.CompleteFile,
 		command.FullFlagName(command.FlagPull):                command.CompleteTBool,
 		command.FullFlagName(command.FlagShowPullLogs):        command.CompleteBool,

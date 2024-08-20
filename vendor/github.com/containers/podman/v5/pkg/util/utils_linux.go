@@ -37,7 +37,9 @@ func FindDeviceNodes() (map[string]string, error) {
 	nodes := make(map[string]string)
 	err := filepath.WalkDir("/dev", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			logrus.Warnf("Error descending into path %s: %v", path, err)
+			if !errors.Is(err, fs.ErrNotExist) {
+				logrus.Warnf("Error descending into path %s: %v", path, err)
+			}
 			return filepath.SkipDir
 		}
 
@@ -104,7 +106,6 @@ func AddPrivilegedDevices(g *generate.Generator, systemdMode bool) error {
 	if err != nil {
 		return err
 	}
-	g.ClearLinuxDevices()
 
 	if rootless.IsRootless() {
 		mounts := make(map[string]interface{})

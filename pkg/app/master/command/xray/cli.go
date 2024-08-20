@@ -10,6 +10,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/docker/dockerimage"
+	//"github.com/mintoolkit/mint/pkg/crt"
 )
 
 const (
@@ -40,11 +41,13 @@ type CommandParams struct {
 	DetectSystemHooks    *DetectOpParam `json:"detect_system_hooks,omitempty"`
 
 	//todo: migrate simple bool param to DetectOpParam
-	DetectAllCertFiles   bool `json:"detect_all_cert_files,omitempty"`
-	DetectAllCertPKFiles bool `json:"detect_all_cert_pks,omitempty"`
+	DetectAllCertFiles   bool   `json:"detect_all_cert_files,omitempty"`
+	DetectAllCertPKFiles bool   `json:"detect_all_cert_pks,omitempty"`
+	Runtime              string `json:"runtime,omitempty"`
 }
 
 var XRayFlags = []cli.Flag{
+	command.Cflag(command.FlagRuntime),
 	command.Cflag(command.FlagCommandParamsFile),
 	command.Cflag(command.FlagTarget),
 	command.Cflag(command.FlagPull),
@@ -186,6 +189,7 @@ var CLI = &cli.Command{
 		//1. migrate all param fields to CommandParams
 		//2. load command params from file if command.FlagCommandParamsFile is provided
 		cparams := &CommandParams{
+			Runtime:              ctx.String(command.FlagRuntime),
 			DetectAllCertFiles:   ctx.Bool(FlagDetectAllCertFiles),
 			DetectAllCertPKFiles: ctx.Bool(FlagDetectAllCertPKFiles),
 			DetectIdentities:     detectIdentities,

@@ -57,7 +57,9 @@ type ImageMetadata struct {
 	CreateTime            string            `json:"create_time"`
 	Author                string            `json:"author,omitempty"`
 	Maintainers           []string          `json:"maintainers,omitempty"`
-	DockerVersion         string            `json:"docker_version"`
+	RuntimeName           string            `json:"runtime_name,omitempty"`
+	RuntimeVersion        string            `json:"runtime_version,omitempty"`
+	DockerVersion         string            `json:"docker_version,omitempty"` //depricating
 	Architecture          string            `json:"architecture"`
 	User                  string            `json:"user,omitempty"`
 	ExposedPorts          []string          `json:"exposed_ports,omitempty"`

@@ -16,7 +16,8 @@ import (
 	"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
 	"github.com/mintoolkit/mint/pkg/app/master/version"
 	cmd "github.com/mintoolkit/mint/pkg/command"
-	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockercrtclient"
 	"github.com/mintoolkit/mint/pkg/imagebuilder"
 	"github.com/mintoolkit/mint/pkg/imagebuilder/internalbuilder"
 	"github.com/mintoolkit/mint/pkg/imagereader"
@@ -78,13 +79,15 @@ func OnCommand(
 	}
 	xc.FailOn(err)
 
+	crtClient := dockercrtclient.New(client)
+
 	if gparams.Debug {
 		version.Print(xc, cmdName, logger, client, false, gparams.InContainer, gparams.IsDSImage)
 	}
 
 	//////////////////////////////////////////////////
 	ensureImage := func(name string, imageRef string, cr *report.MergeCommand) string {
-		imageInspector, err := image.NewInspector(client, imageRef)
+		imageInspector, err := image.NewInspector(crtClient, imageRef)
 		xc.FailOn(err)
 
 		noImage, err := imageInspector.NoImage()

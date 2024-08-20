@@ -6,6 +6,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"time"
 
 	"github.com/containers/common/libimage/define"
@@ -19,8 +21,6 @@ import (
 	structcopier "github.com/jinzhu/copier"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 // NOTE: the abstractions and APIs here are a first step to further merge
@@ -238,9 +238,7 @@ func (m *ManifestList) Inspect() (*define.ManifestListData, error) {
 	for i, manifest := range ociFormat.Manifests {
 		inspectList.Manifests[i].Annotations = manifest.Annotations
 		inspectList.Manifests[i].ArtifactType = manifest.ArtifactType
-		if manifest.URLs != nil {
-			inspectList.Manifests[i].URLs = slices.Clone(manifest.URLs)
-		}
+		inspectList.Manifests[i].URLs = slices.Clone(manifest.URLs)
 		inspectList.Manifests[i].Data = manifest.Data
 		inspectList.Manifests[i].Files, err = m.list.Files(manifest.Digest)
 		if err != nil {
@@ -252,10 +250,7 @@ func (m *ManifestList) Inspect() (*define.ManifestListData, error) {
 		if platform == nil {
 			platform = &imgspecv1.Platform{}
 		}
-		var osFeatures []string
-		if platform.OSFeatures != nil {
-			osFeatures = slices.Clone(platform.OSFeatures)
-		}
+		osFeatures := slices.Clone(platform.OSFeatures)
 		inspectList.Subject = &define.ManifestListDescriptor{
 			Platform: manifest.Schema2PlatformSpec{
 				OS:           platform.OS,
@@ -314,20 +309,34 @@ type ManifestListAddOptions struct {
 	Password string
 }
 
+func (m *ManifestList) parseNameToExtantReference(ctx context.Context, sys *types.SystemContext, name string, manifestList bool, what string) (types.ImageReference, error) {
+	ref, err := alltransports.ParseImageName(name)
+	if err != nil {
+		withDocker := fmt.Sprintf("%s://%s", docker.Transport.Name(), name)
+		ref, err = alltransports.ParseImageName(withDocker)
+		if err == nil {
+			var src types.ImageSource
+			src, err = ref.NewImageSource(ctx, sys)
+			if err == nil {
+				src.Close()
+			}
+		}
+		if err != nil {
+			image, _, lookupErr := m.image.runtime.LookupImage(name, &LookupImageOptions{ManifestList: manifestList})
+			if lookupErr != nil {
+				return nil, fmt.Errorf("locating %s: %q: %w; %q: %w", what, withDocker, err, name, lookupErr)
+			}
+			ref, err = image.storageReference, nil
+		}
+	}
+	return ref, err
+}
+
 // Add adds one or more manifests to the manifest list and returns the digest
 // of the added instance.
 func (m *ManifestList) Add(ctx context.Context, name string, options *ManifestListAddOptions) (digest.Digest, error) {
 	if options == nil {
 		options = &ManifestListAddOptions{}
-	}
-
-	ref, err := alltransports.ParseImageName(name)
-	if err != nil {
-		withDocker := fmt.Sprintf("%s://%s", docker.Transport.Name(), name)
-		ref, err = alltransports.ParseImageName(withDocker)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	// Now massage in the copy-related options into the system context.
@@ -349,6 +358,12 @@ func (m *ManifestList) Add(ctx context.Context, name string, options *ManifestLi
 			Password: options.Password,
 		}
 	}
+
+	ref, err := m.parseNameToExtantReference(ctx, systemContext, name, false, "image to add to manifest list")
+	if err != nil {
+		return "", err
+	}
+
 	locker, err := manifests.LockerForImage(m.image.runtime.store, m.ID())
 	if err != nil {
 		return "", err
@@ -428,17 +443,9 @@ func (m *ManifestList) AddArtifact(ctx context.Context, options *ManifestListAdd
 		opts.LayerMediaType = &options.LayerType
 	}
 	if options.Subject != "" {
-		ref, err := alltransports.ParseImageName(options.Subject)
+		ref, err := m.parseNameToExtantReference(ctx, nil, options.Subject, true, "subject for artifact manifest")
 		if err != nil {
-			withDocker := fmt.Sprintf("%s://%s", docker.Transport.Name(), options.Subject)
-			ref, err = alltransports.ParseImageName(withDocker)
-			if err != nil {
-				image, _, err := m.image.runtime.LookupImage(options.Subject, &LookupImageOptions{ManifestList: true})
-				if err != nil {
-					return "", fmt.Errorf("locating subject for artifact manifest: %w", err)
-				}
-				ref = image.storageReference
-			}
+			return "", err
 		}
 		opts.SubjectReference = ref
 	}
@@ -472,23 +479,23 @@ func (m *ManifestList) AddArtifact(ctx context.Context, options *ManifestListAdd
 
 // Options for annotating a manifest list.
 type ManifestListAnnotateOptions struct {
-	// Add the specified annotations to the added image.
+	// Add the specified annotations to the added image.  Empty values are ignored.
 	Annotations map[string]string
-	// Add the specified architecture to the added image.
+	// Add the specified architecture to the added image.  Empty values are ignored.
 	Architecture string
-	// Add the specified features to the added image.
+	// Add the specified features to the added image.  Empty values are ignored.
 	Features []string
-	// Add the specified OS to the added image.
+	// Add the specified OS to the added image.  Empty values are ignored.
 	OS string
-	// Add the specified OS features to the added image.
+	// Add the specified OS features to the added image.  Empty values are ignored.
 	OSFeatures []string
-	// Add the specified OS version to the added image.
+	// Add the specified OS version to the added image.  Empty values are ignored.
 	OSVersion string
-	// Add the specified variant to the added image.
+	// Add the specified variant to the added image.  Empty values are ignored unless Architecture is set to a non-empty value.
 	Variant string
-	// Add the specified annotations to the index itself.
+	// Add the specified annotations to the index itself.  Empty values are ignored.
 	IndexAnnotations map[string]string
-	// Set the subject to which the index refers.
+	// Set the subject to which the index refers.  Empty values are ignored.
 	Subject string
 }
 
@@ -525,7 +532,7 @@ func (m *ManifestList) AnnotateInstance(d digest.Digest, options *ManifestListAn
 			return err
 		}
 	}
-	if len(options.Variant) > 0 {
+	if len(options.Architecture) != 0 || len(options.Variant) > 0 {
 		if err := m.list.SetVariant(d, options.Variant); err != nil {
 			return err
 		}
@@ -541,17 +548,9 @@ func (m *ManifestList) AnnotateInstance(d digest.Digest, options *ManifestListAn
 		}
 	}
 	if options.Subject != "" {
-		ref, err := alltransports.ParseImageName(options.Subject)
+		ref, err := m.parseNameToExtantReference(ctx, nil, options.Subject, true, "subject for image index")
 		if err != nil {
-			withDocker := fmt.Sprintf("%s://%s", docker.Transport.Name(), options.Subject)
-			ref, err = alltransports.ParseImageName(withDocker)
-			if err != nil {
-				image, _, err := m.image.runtime.LookupImage(options.Subject, &LookupImageOptions{ManifestList: true})
-				if err != nil {
-					return fmt.Errorf("locating subject for image index: %w", err)
-				}
-				ref = image.storageReference
-			}
+			return err
 		}
 		src, err := ref.NewImageSource(ctx, &m.image.runtime.systemContext)
 		if err != nil {

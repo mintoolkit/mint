@@ -41,11 +41,7 @@ func GetRootlessGID() int {
 // This is useful when there are already running containers and we
 // don't have a pause process yet.  We can use the paths to the conmon
 // processes to attempt joining their namespaces.
-// If needNewNamespace is set, the file is read from a temporary user
-// namespace, this is useful for containers that are running with a
-// different uidmap and the unprivileged user has no way to read the
-// file owned by the root in the container.
-func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []string) (bool, int, error) {
+func TryJoinFromFilePaths(pausePidPath string, paths []string) (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
 }
 
@@ -58,11 +54,6 @@ func ConfigurationMatches() (bool, error) {
 // GetConfiguredMappings returns the additional IDs configured for the current user.
 func GetConfiguredMappings(quiet bool) ([]idtools.IDMap, []idtools.IDMap, error) {
 	return nil, nil, errors.New("this function is not supported on this os")
-}
-
-// ReadMappingsProc returns the uid_map and gid_map
-func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
-	return nil, nil
 }
 
 // IsFdInherited checks whether the fd is opened and valid to use

@@ -18,7 +18,7 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/config"
-	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockerutil"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
 )
 

@@ -4,15 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"strings"
 
-	docker "github.com/fsouza/go-dockerclient"
+	//docker "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/consts"
+	"github.com/mintoolkit/mint/pkg/crt"
 	"github.com/mintoolkit/mint/pkg/docker/dockerfile/reverse"
-	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
 	"github.com/mintoolkit/mint/pkg/util/errutil"
 )
 
@@ -22,8 +21,8 @@ const (
 	seccompProfileName     = "seccomp-profile"
 	appArmorProfileNamePat = "%s-apparmor-profile"
 	seccompProfileNamePat  = "%s-seccomp.json"
-	https                  = "https://"
-	http                   = "http://"
+	// https                  = "https://"
+	// http                   = "http://"
 )
 
 // Inspector is a container image inspector
@@ -33,22 +32,22 @@ type Inspector struct {
 	SlimImageRepo       string
 	AppArmorProfileName string
 	SeccompProfileName  string
-	ImageInfo           *docker.Image
-	ImageRecordInfo     docker.APIImages
-	APIClient           *docker.Client
+	ImageInfo           *crt.ImageInfo         // *docker.Image
+	ImageRecordInfo     crt.BasicImageInfo     // docker.APIImages
+	APIClient           crt.InspectorAPIClient //*docker.Client
 	//fatImageDockerInstructions []string
 	DockerfileInfo *reverse.Dockerfile
 }
 
 // NewInspector creates a new container image inspector
-func NewInspector(client *docker.Client, imageRef string /*, artifactLocation string*/) (*Inspector, error) {
+func NewInspector(apiClient crt.InspectorAPIClient, imageRef string /*, artifactLocation string*/) (*Inspector, error) {
 	inspector := &Inspector{
 		ImageRef:            imageRef,
 		SlimImageRepo:       slimImageRepo,
 		AppArmorProfileName: appArmorProfileName,
 		SeccompProfileName:  seccompProfileName,
 		//ArtifactLocation:    artifactLocation,
-		APIClient: client,
+		APIClient: apiClient,
 	}
 
 	return inspector, nil
@@ -57,13 +56,13 @@ func NewInspector(client *docker.Client, imageRef string /*, artifactLocation st
 // NoImage returns true if the target image doesn't exist
 func (i *Inspector) NoImage() (bool, error) {
 	//first, do a simple exact match lookup
-	ii, err := dockerutil.HasImage(i.APIClient, i.ImageRef)
+	ii, err := i.APIClient.HasImage(i.ImageRef) // := dockerutil.HasImage(i.APIClient, i.ImageRef)
 	if err == nil {
 		log.Tracef("image.inspector.NoImage: ImageRef=%v ImageIdentity=%#v", i.ImageRef, ii)
 		return false, nil
 	}
 
-	if err != dockerutil.ErrNotFound {
+	if err != crt.ErrNotFound {
 		log.Errorf("image.inspector.NoImage: err=%v", err)
 		return true, err
 	}
@@ -72,10 +71,10 @@ func (i *Inspector) NoImage() (bool, error) {
 	//handle the case where there's no tag in the target image reference
 	//and there are no default 'latest' tag
 	//this will return/save the first available tag
-	if err == dockerutil.ErrNotFound &&
+	if err == crt.ErrNotFound &&
 		!strings.Contains(i.ImageRef, ":") {
 		//check if there are any tags for the target image
-		matches, err := dockerutil.ListImages(i.APIClient, i.ImageRef)
+		matches, err := i.APIClient.ListImages(i.ImageRef) // dockerutil.ListImages(i.APIClient, i.ImageRef)
 		if err != nil {
 			log.Errorf("image.inspector.NoImage: err=%v", err)
 			return true, err
@@ -105,7 +104,7 @@ func (i *Inspector) Pull(showPullLog bool, dockerConfigPath, registryAccount, re
 		tag = "latest"
 	}
 
-	input := docker.PullImageOptions{
+	input := crt.PullImageOptions{
 		Repository: repo,
 		Tag:        tag,
 	}
@@ -115,19 +114,19 @@ func (i *Inspector) Pull(showPullLog bool, dockerConfigPath, registryAccount, re
 	}
 
 	var err error
-	var authConfig *docker.AuthConfiguration
-	registry := extractRegistry(repo)
-	authConfig, err = getRegistryCredential(registryAccount, registrySecret, dockerConfigPath, registry)
+	var authConfig crt.AuthConfig // *docker.AuthConfiguration
+	registry := crt.ExtractRegistry(repo)
+	authConfig, err = i.APIClient.GetRegistryAuthConfig(registryAccount, registrySecret, dockerConfigPath, registry)
 	if err != nil {
 		log.Warnf("image.inspector.Pull: failed to get registry credential for registry=%s with err=%v", registry, err)
 		//warn, attempt pull anyway, needs to work for public registries
 	}
 
-	if authConfig == nil {
-		authConfig = &docker.AuthConfiguration{}
-	}
+	//if authConfig == nil {
+	//	authConfig = &docker.AuthConfiguration{}
+	//}
 
-	err = i.APIClient.PullImage(input, *authConfig)
+	err = i.APIClient.PullImage(input, authConfig)
 	if err != nil {
 		log.Debugf("image.inspector.Pull: client.PullImage err=%v", err)
 		return err
@@ -142,6 +141,7 @@ func (i *Inspector) Pull(showPullLog bool, dockerConfigPath, registryAccount, re
 	return nil
 }
 
+/*
 func getRegistryCredential(registryAccount, registrySecret, dockerConfigPath, registry string) (cred *docker.AuthConfiguration, err error) {
 	if registryAccount != "" && registrySecret != "" {
 		cred = &docker.AuthConfiguration{
@@ -197,7 +197,9 @@ func getRegistryCredential(registryAccount, registrySecret, dockerConfigPath, re
 	log.Debugf("loaded registry auth config %+v", cred)
 	return cred, nil
 }
+*/
 
+/*
 func extractRegistry(repo string) string {
 	var scheme string
 	if strings.Contains(repo, https) {
@@ -244,13 +246,14 @@ func extractRegistry(repo string) string {
 	}
 	return scheme + registry
 }
+*/
 
 // Inspect starts the target image inspection
 func (i *Inspector) Inspect() error {
 	var err error
 	i.ImageInfo, err = i.APIClient.InspectImage(i.ImageRef)
 	if err != nil {
-		if err == docker.ErrNoSuchImage {
+		if err == crt.ErrNotFound { // docker.ErrNoSuchImage {
 			log.Info("could not find target image")
 		}
 		return err
@@ -258,7 +261,7 @@ func (i *Inspector) Inspect() error {
 
 	log.Tracef("image.Inspector.Inspect: ImageInfo=%#v", i.ImageInfo)
 
-	imageList, err := i.APIClient.ListImages(docker.ListImagesOptions{All: true})
+	imageList, err := i.APIClient.ListImagesAll() // i.APIClient.ListImages(docker.ListImagesOptions{All: true})
 	if err != nil {
 		return err
 	}
@@ -274,7 +277,7 @@ func (i *Inspector) Inspect() error {
 
 	if i.ImageRecordInfo.ID == "" {
 		log.Info("could not find target image in the image list")
-		return docker.ErrNoSuchImage
+		return crt.ErrNotFound //docker.ErrNoSuchImage
 	}
 
 	return nil

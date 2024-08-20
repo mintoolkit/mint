@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -136,8 +138,8 @@ func NewReportFromData(data *DataSet) (*Report, error) {
 
 	for _, record := range sinfo.Records {
 		userInfo, found := report.Users[record.Username]
-		if !found {
-			userInfo := &UserInfo{
+		if !found || userInfo == nil {
+			userInfo = &UserInfo{
 				Username: record.Username,
 			}
 
@@ -168,8 +170,11 @@ func NewReportFromData(data *DataSet) (*Report, error) {
 	}
 
 	for fileName, data := range data.AuthKeysData {
-		//tmp
-		fmt.Printf("%s -> %v\n", fileName, data)
+		log.WithFields(log.Fields{
+			"op":   "sysidentity.NewReportFromData",
+			"file": fileName,
+			"data": data,
+		}).Trace("auth.keys")
 	}
 
 	return &report, nil

@@ -25,9 +25,11 @@ import (
 	"github.com/mintoolkit/mint/pkg/app/master/version"
 	cmd "github.com/mintoolkit/mint/pkg/command"
 	"github.com/mintoolkit/mint/pkg/consts"
-	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/crt"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockercrtclient"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockerutil"
 	"github.com/mintoolkit/mint/pkg/docker/dockerimage"
-	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
 	"github.com/mintoolkit/mint/pkg/report"
 	"github.com/mintoolkit/mint/pkg/util/errutil"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
@@ -1275,7 +1277,7 @@ func monitorContainer(
 	targetRef string,
 	continueAfter *config.ContinueAfter,
 	doIncludeHealthcheck bool,
-	healthcheck *dockerapi.HealthConfig,
+	healthcheck *crt.HealthConfig,
 	execCmd string,
 	execFileCmd string,
 	httpProbeOpts config.HTTPProbeOptions,
@@ -1577,7 +1579,8 @@ func finishCommand(
 	cmdReport *report.SlimCommand,
 	imageBuildEngine string,
 ) {
-	newImageInspector, err := image.NewInspector(client, minifiedImageName)
+	crtClient := dockercrtclient.New(client)
+	newImageInspector, err := image.NewInspector(crtClient, minifiedImageName)
 	xc.FailOn(err)
 
 	noImage, err := imageInspector.NoImage()
@@ -1604,7 +1607,7 @@ func finishCommand(
 
 	if err == nil {
 		cmdReport.MinifiedBy = float64(imageInspector.ImageInfo.VirtualSize) / float64(newImageInspector.ImageInfo.VirtualSize)
-		imgIdentity := dockerutil.ImageToIdentity(imageInspector.ImageInfo)
+		imgIdentity := crt.ImageToIdentity(imageInspector.ImageInfo)
 		cmdReport.SourceImage = report.ImageMetadata{
 			Identity: report.ImageIdentity{
 				ID:          imgIdentity.ID,
@@ -1613,14 +1616,15 @@ func finishCommand(
 				Digests:     imgIdentity.ShortDigests,
 				FullDigests: imgIdentity.RepoDigests,
 			},
-			Size:          imageInspector.ImageInfo.VirtualSize,
-			SizeHuman:     humanize.Bytes(uint64(imageInspector.ImageInfo.VirtualSize)),
-			CreateTime:    imageInspector.ImageInfo.Created.UTC().Format(time.RFC3339),
-			Author:        imageInspector.ImageInfo.Author,
-			DockerVersion: imageInspector.ImageInfo.DockerVersion,
-			Architecture:  imageInspector.ImageInfo.Architecture,
-			User:          imageInspector.ImageInfo.Config.User,
-			OS:            imageInspector.ImageInfo.OS,
+			Size:           imageInspector.ImageInfo.VirtualSize,
+			SizeHuman:      humanize.Bytes(uint64(imageInspector.ImageInfo.VirtualSize)),
+			CreateTime:     imageInspector.ImageInfo.Created.UTC().Format(time.RFC3339),
+			Author:         imageInspector.ImageInfo.Author,
+			RuntimeName:    imageInspector.ImageInfo.RuntimeName,
+			RuntimeVersion: imageInspector.ImageInfo.RuntimeVersion,
+			Architecture:   imageInspector.ImageInfo.Architecture,
+			User:           imageInspector.ImageInfo.Config.User,
+			OS:             imageInspector.ImageInfo.OS,
 		}
 
 		if cmdReport.MinifiedImageID != newImageInspector.ImageInfo.ID {

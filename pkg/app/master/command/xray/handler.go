@@ -1,6 +1,7 @@
 package xray
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -9,6 +10,7 @@ import (
 
 	//"github.com/bmatcuk/doublestar/v3"
 	"github.com/dustin/go-humanize"
+	docker "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/app"
@@ -16,10 +18,13 @@ import (
 	"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
 	"github.com/mintoolkit/mint/pkg/app/master/version"
 	cmd "github.com/mintoolkit/mint/pkg/command"
+	"github.com/mintoolkit/mint/pkg/crt"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockercrtclient"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/crt/podman/podmancrtclient"
 	"github.com/mintoolkit/mint/pkg/docker/buildpackinfo"
-	"github.com/mintoolkit/mint/pkg/docker/dockerclient"
 	"github.com/mintoolkit/mint/pkg/docker/dockerimage"
-	"github.com/mintoolkit/mint/pkg/docker/dockerutil"
 	"github.com/mintoolkit/mint/pkg/report"
 	"github.com/mintoolkit/mint/pkg/util/errutil"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
@@ -149,39 +154,92 @@ func OnCommand(
 	cmdReport.TargetReference = targetRef
 
 	xc.Out.State(cmd.StateStarted)
+	rr := command.ResolveAutoRuntime(cparams.Runtime)
+	if rr != cparams.Runtime {
+		rr = fmt.Sprintf("%s/%s", cparams.Runtime, rr)
+	}
+
 	xc.Out.Info("cmd.input.params",
 		ovars{
+			"runtime":            rr,
 			"target":             targetRef,
 			"add-image-manifest": doAddImageManifest,
 			"add-image-config":   doAddImageConfig,
 			"rm-file-artifacts":  doRmFileArtifacts,
 		})
 
-	client, err := dockerclient.New(gparams.ClientConfig)
-	if err == dockerclient.ErrNoDockerInfo {
-		exitMsg := "missing Docker connection info"
-		if gparams.InContainer && gparams.IsDSImage {
-			exitMsg = "make sure to pass the Docker connect parameters to the mint container"
+	resolved := command.ResolveAutoRuntime(cparams.Runtime)
+	logger.Tracef("runtime.handler: rt=%s resolved=%s", cparams.Runtime, resolved)
+
+	var err error
+	var dclient *docker.Client
+	var pclient context.Context
+	var crtClient crt.APIClient
+
+	switch resolved {
+	case crt.DockerRuntime:
+		dclient, err = dockerclient.New(gparams.ClientConfig)
+		if err == dockerclient.ErrNoDockerInfo {
+			exitMsg := "missing Docker connection info"
+			if gparams.InContainer && gparams.IsDSImage {
+				exitMsg = "make sure to pass the Docker connect parameters to the mint container"
+			}
+
+			xc.Out.Error("docker.connect.error", exitMsg)
+
+			exitCode := command.ECTCommon | command.ECCNoDockerConnectInfo
+			xc.Out.State("exited",
+				ovars{
+					"exit.code": exitCode,
+					"version":   v.Current(),
+					"location":  fsutil.ExeDir(),
+				})
+			xc.Exit(exitCode)
+		}
+		errutil.FailOn(err)
+		crtClient = dockercrtclient.New(dclient)
+
+	case crt.PodmanRuntime:
+		if gparams.CRTConnection != "" {
+			pclient = crt.GetPodmanConnContextWithConn(gparams.CRTConnection)
+		} else {
+			pclient = crt.GetPodmanConnContext()
 		}
 
-		xc.Out.Error("docker.connect.error", exitMsg)
+		if pclient == nil {
+			xc.Out.Info("podman.connect.service",
+				ovars{
+					"message": "not running",
+				})
 
-		exitCode := command.ECTCommon | command.ECCNoDockerConnectInfo
+			xc.Out.State("exited",
+				ovars{
+					"exit.code":    -1,
+					"version":      v.Current(),
+					"location":     fsutil.ExeDir(),
+					"podman.error": crt.PodmanConnErr,
+				})
+			xc.Exit(-1)
+		}
+		crtClient = podmancrtclient.New(pclient)
+
+	default:
+		xc.Out.Error("runtime", "unsupported runtime")
 		xc.Out.State("exited",
 			ovars{
-				"exit.code": exitCode,
+				"exit.code": -1,
 				"version":   v.Current(),
 				"location":  fsutil.ExeDir(),
 			})
-		xc.Exit(exitCode)
+		xc.Exit(-1)
 	}
-	errutil.FailOn(err)
 
 	if gparams.Debug {
-		version.Print(xc, cmdName, logger, client, false, gparams.InContainer, gparams.IsDSImage)
+		//todo: need to accept different clients
+		version.Print(xc, cmdName, logger, dclient, false, gparams.InContainer, gparams.IsDSImage)
 	}
 
-	imageInspector, err := image.NewInspector(client, targetRef)
+	imageInspector, err := image.NewInspector(crtClient, targetRef)
 	errutil.FailOn(err)
 
 	noImage, err := imageInspector.NoImage()
@@ -267,7 +325,7 @@ func OnCommand(
 		}
 	}
 
-	imgIdentity := dockerutil.ImageToIdentity(imageInspector.ImageInfo)
+	imgIdentity := crt.ImageToIdentity(imageInspector.ImageInfo)
 	cmdReport.SourceImage = report.ImageMetadata{
 		Identity: report.ImageIdentity{
 			ID:          imgIdentity.ID,
@@ -276,15 +334,16 @@ func OnCommand(
 			Digests:     imgIdentity.ShortDigests,
 			FullDigests: imgIdentity.RepoDigests,
 		},
-		Size:          imageInspector.ImageInfo.VirtualSize,
-		SizeHuman:     humanize.Bytes(uint64(imageInspector.ImageInfo.VirtualSize)),
-		CreateTime:    imageInspector.ImageInfo.Created.UTC().Format(time.RFC3339),
-		Author:        imageInspector.ImageInfo.Author,
-		DockerVersion: imageInspector.ImageInfo.DockerVersion,
-		Architecture:  imageInspector.ImageInfo.Architecture,
-		User:          imageInspector.ImageInfo.Config.User,
-		OS:            imageInspector.ImageInfo.OS,
-		WorkDir:       imageInspector.ImageInfo.Config.WorkingDir,
+		Size:           imageInspector.ImageInfo.VirtualSize,
+		SizeHuman:      humanize.Bytes(uint64(imageInspector.ImageInfo.VirtualSize)),
+		CreateTime:     imageInspector.ImageInfo.Created.UTC().Format(time.RFC3339),
+		Author:         imageInspector.ImageInfo.Author,
+		RuntimeName:    imageInspector.ImageInfo.RuntimeName,
+		RuntimeVersion: imageInspector.ImageInfo.RuntimeVersion,
+		Architecture:   imageInspector.ImageInfo.Architecture,
+		User:           imageInspector.ImageInfo.Config.User,
+		OS:             imageInspector.ImageInfo.OS,
+		WorkDir:        imageInspector.ImageInfo.Config.WorkingDir,
 		ContainerEntry: report.ContainerEntryInfo{
 			Entrypoint: imageInspector.ImageInfo.Config.Entrypoint,
 			Cmd:        imageInspector.ImageInfo.Config.Cmd,
@@ -371,7 +430,7 @@ func OnCommand(
 		}
 
 		xc.Out.Info("image.data.inspection.save.image.start")
-		err = dockerutil.SaveImage(client, imageID, iaPath, false, false)
+		err = crtClient.SaveImage(imageID, iaPath, false, false)
 		errutil.FailOn(err)
 
 		err = fsutil.Touch(iaPathReady)
