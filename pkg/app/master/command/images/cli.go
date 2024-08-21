@@ -14,6 +14,16 @@ const (
 	Alias = "i"
 )
 
+type CommandParams struct {
+	Runtime string `json:"runtime,omitempty"`
+	Filter  string `json:"filter,omitempty"`
+}
+
+var ImagesFlags = []cli.Flag{
+	command.Cflag(command.FlagRuntime),
+	cflag(FlagFilter),
+}
+
 //todo soon: add a lot of useful filtering flags
 // (to show new images from last hour, to show images in use, by size, with details, etc)
 
@@ -21,17 +31,24 @@ var CLI = &cli.Command{
 	Name:    Name,
 	Aliases: []string{Alias},
 	Usage:   Usage,
+	Flags:   ImagesFlags,
 	Action: func(ctx *cli.Context) error {
-		gcvalues := command.GlobalFlagValues(ctx)
+		gcvalues, ok := command.CLIContextGet(ctx.Context, command.GlobalParams).(*command.GenericParams)
+		if !ok || gcvalues == nil {
+			return command.ErrNoGlobalParams
+		}
+
 		xc := app.NewExecutionContext(
 			Name,
 			gcvalues.QuietCLIMode,
 			gcvalues.OutputFormat)
 
-		OnCommand(
-			xc,
-			gcvalues)
+		cparams := &CommandParams{
+			Runtime: ctx.String(command.FlagRuntime),
+			Filter:  ctx.String(FlagFilter),
+		}
 
+		OnCommand(xc, gcvalues, cparams)
 		return nil
 	},
 }

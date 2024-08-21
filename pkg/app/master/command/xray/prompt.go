@@ -1,10 +1,18 @@
 package xray
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	"github.com/c-bata/go-prompt"
+	"github.com/dustin/go-humanize"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/app/master/command"
-	//"github.com/mintoolkit/mint/pkg/crt"
+	"github.com/mintoolkit/mint/pkg/crt"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/crt/podman/podmanutil"
 )
 
 var CommandSuggestion = prompt.Suggest{
@@ -56,7 +64,7 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		command.FullFlagName(command.FlagPull):                command.CompleteTBool,
 		command.FullFlagName(command.FlagShowPullLogs):        command.CompleteBool,
 		command.FullFlagName(command.FlagDockerConfigPath):    command.CompleteFile,
-		command.FullFlagName(command.FlagTarget):              command.CompleteImage,
+		command.FullFlagName(command.FlagTarget):              completeTarget,
 		command.FullFlagName(FlagChanges):                     completeLayerChanges,
 		command.FullFlagName(FlagChangesOutput):               completeOutputs,
 		command.FullFlagName(FlagAddImageManifest):            command.CompleteBool,
@@ -93,4 +101,74 @@ var outputsValues = []prompt.Suggest{
 
 func completeOutputs(ia *command.InteractiveApp, token string, params prompt.Document) []prompt.Suggest {
 	return prompt.FilterHasPrefix(outputsValues, token, true)
+}
+
+func completeTarget(ia *command.InteractiveApp, token string, params prompt.Document) []prompt.Suggest {
+	var values []prompt.Suggest
+	ccs := command.GetCurrentCommandState()
+	if ccs != nil && ccs.Command == Name {
+		runtimeFlag := command.FullFlagName(command.FlagRuntime)
+		rtFlagVals, found := ccs.CommandFlags[runtimeFlag]
+		runtime := crt.AutoRuntime
+		if found && len(rtFlagVals) > 0 {
+			runtime = rtFlagVals[0]
+		}
+
+		runtime = command.ResolveAutoRuntime(runtime)
+		switch runtime {
+		case crt.PodmanRuntime:
+			var connCtx context.Context
+			if ccs.CRTConnection != "" {
+				connCtx = crt.GetPodmanConnContextWithConn(ccs.CRTConnection)
+			} else {
+				connCtx = crt.GetPodmanConnContext()
+			}
+
+			if connCtx != nil {
+				images, err := podmanutil.ListImages(connCtx, "")
+				if err != nil {
+					log.Errorf("images.podman.completeTarget(%q): error - %v", token, err)
+					return []prompt.Suggest{}
+				}
+
+				for name, info := range images {
+					description := fmt.Sprintf("size=%v created=%v id=%v",
+						humanize.Bytes(uint64(info.Size)),
+						time.Unix(info.Created, 0).Format(time.RFC3339),
+						info.ID)
+
+					entry := prompt.Suggest{
+						Text:        name,
+						Description: description,
+					}
+
+					values = append(values, entry)
+				}
+			}
+		default:
+			//either no explicit 'runtime' param or other/docker runtime
+			//todo: need a way to access/pass the docker client struct (or just pass the connect params)
+			images, err := dockerutil.ListImages(ccs.Dclient, "")
+			if err != nil {
+				log.Errorf("images.docker.completeTarget(%q): error - %v", token, err)
+				return []prompt.Suggest{}
+			}
+
+			for name, info := range images {
+				description := fmt.Sprintf("size=%v created=%v id=%v",
+					humanize.Bytes(uint64(info.Size)),
+					time.Unix(info.Created, 0).Format(time.RFC3339),
+					info.ID)
+
+				entry := prompt.Suggest{
+					Text:        name,
+					Description: description,
+				}
+
+				values = append(values, entry)
+			}
+		}
+	}
+
+	return prompt.FilterHasPrefix(values, token, true)
 }

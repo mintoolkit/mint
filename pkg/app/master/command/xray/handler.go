@@ -196,7 +196,7 @@ func OnCommand(
 				})
 			xc.Exit(exitCode)
 		}
-		errutil.FailOn(err)
+		xc.FailOn(err)
 		crtClient = dockercrtclient.New(dclient)
 
 	case crt.PodmanRuntime:
@@ -227,9 +227,11 @@ func OnCommand(
 		xc.Out.Error("runtime", "unsupported runtime")
 		xc.Out.State("exited",
 			ovars{
-				"exit.code": -1,
-				"version":   v.Current(),
-				"location":  fsutil.ExeDir(),
+				"exit.code":        -1,
+				"version":          v.Current(),
+				"location":         fsutil.ExeDir(),
+				"runtime":          cparams.Runtime,
+				"runtime.resolved": resolved,
 			})
 		xc.Exit(-1)
 	}

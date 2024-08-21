@@ -186,11 +186,19 @@ func SaveImage(
 
 func ListImages(client context.Context, imageNameFilter string) (map[string]BasicImageProps, error) {
 	//needs extra testing...
+	//limited 'reference' filtering (wildcard usable only in the image name,
+	//not account or domain or can wildcard the domain/account)
 	options := &images.ListOptions{}
-	imageList, err := images.List(client,
-		options.WithAll(false).WithFilters(map[string][]string{
+	if imageNameFilter == "" {
+		options.WithAll(true)
+	} else {
+		options.WithAll(false)
+		options.WithFilters(map[string][]string{
 			"reference": {imageNameFilter},
-		}))
+		})
+	}
+
+	imageList, err := images.List(client, options)
 	if err != nil {
 		log.Errorf("podmanutil.ListImages(%s): images.List() error = %v", imageNameFilter, err)
 		return nil, err

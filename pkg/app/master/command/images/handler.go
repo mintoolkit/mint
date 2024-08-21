@@ -1,10 +1,12 @@
 package images
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/dustin/go-humanize"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/jedib0t/go-pretty/v6/table"
 	log "github.com/sirupsen/logrus"
 
@@ -12,8 +14,10 @@ import (
 	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/app/master/version"
 	cmd "github.com/mintoolkit/mint/pkg/command"
+	"github.com/mintoolkit/mint/pkg/crt"
 	"github.com/mintoolkit/mint/pkg/crt/docker/dockerclient"
-	"github.com/mintoolkit/mint/pkg/crt/docker/dockerutil"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockercrtclient"
+	"github.com/mintoolkit/mint/pkg/crt/podman/podmancrtclient"
 	"github.com/mintoolkit/mint/pkg/report"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
 	"github.com/mintoolkit/mint/pkg/util/jsonutil"
@@ -27,7 +31,8 @@ type ovars = app.OutVars
 // OnCommand implements the 'images' command
 func OnCommand(
 	xc *app.ExecutionContext,
-	gparams *command.GenericParams) {
+	gparams *command.GenericParams,
+	cparams *CommandParams) {
 	const cmdName = Name
 	logger := log.WithFields(log.Fields{"app": appName, "cmd": cmdName})
 
@@ -36,40 +41,89 @@ func OnCommand(
 	cmdReport := report.NewImagesCommand(gparams.ReportLocation, gparams.InContainer)
 	cmdReport.State = cmd.StateStarted
 
-	xc.Out.State("started")
-	xc.Out.Info("params",
+	xc.Out.State(cmd.StateStarted)
+	rr := command.ResolveAutoRuntime(cparams.Runtime)
+	if rr != cparams.Runtime {
+		rr = fmt.Sprintf("%s/%s", cparams.Runtime, rr)
+	}
+
+	xc.Out.Info("cmd.input.params",
 		ovars{
-			//"target": targetRef, - todo: add command params here when added
+			"runtime": rr,
+			"filter":  cparams.Filter,
 		})
 
-	client, err := dockerclient.New(gparams.ClientConfig)
-	if err == dockerclient.ErrNoDockerInfo {
-		exitMsg := "missing Docker connection info"
-		if gparams.InContainer && gparams.IsDSImage {
-			exitMsg = "make sure to pass the Docker connect parameters to the slim app container"
+	resolved := command.ResolveAutoRuntime(cparams.Runtime)
+	logger.Tracef("runtime.handler: rt=%s resolved=%s", cparams.Runtime, resolved)
+
+	var err error
+	var dclient *docker.Client
+	var pclient context.Context
+	var crtClient crt.APIClient
+
+	switch resolved {
+	case crt.DockerRuntime:
+		dclient, err = dockerclient.New(gparams.ClientConfig)
+		if err == dockerclient.ErrNoDockerInfo {
+			exitMsg := "missing Docker connection info"
+			if gparams.InContainer && gparams.IsDSImage {
+				exitMsg = "make sure to pass the Docker connect parameters to the mint container"
+			}
+
+			xc.Out.Error("docker.connect.error", exitMsg)
+
+			exitCode := command.ECTCommon | command.ECCNoDockerConnectInfo
+			xc.Out.State("exited",
+				ovars{
+					"exit.code": exitCode,
+					"version":   v.Current(),
+					"location":  fsutil.ExeDir(),
+				})
+			xc.Exit(exitCode)
+		}
+		xc.FailOn(err)
+		crtClient = dockercrtclient.New(dclient)
+	case crt.PodmanRuntime:
+		if gparams.CRTConnection != "" {
+			pclient = crt.GetPodmanConnContextWithConn(gparams.CRTConnection)
+		} else {
+			pclient = crt.GetPodmanConnContext()
 		}
 
-		xc.Out.Info("docker.connect.error",
-			ovars{
-				"message": exitMsg,
-			})
+		if pclient == nil {
+			xc.Out.Info("podman.connect.service",
+				ovars{
+					"message": "not running",
+				})
 
-		exitCode := command.ECTCommon | command.ECCNoDockerConnectInfo
+			xc.Out.State("exited",
+				ovars{
+					"exit.code":    -1,
+					"version":      v.Current(),
+					"location":     fsutil.ExeDir(),
+					"podman.error": crt.PodmanConnErr,
+				})
+			xc.Exit(-1)
+		}
+		crtClient = podmancrtclient.New(pclient)
+	default:
+		xc.Out.Error("runtime", "unsupported runtime")
 		xc.Out.State("exited",
 			ovars{
-				"exit.code": exitCode,
-				"version":   v.Current(),
-				"location":  fsutil.ExeDir(),
+				"exit.code":        -1,
+				"version":          v.Current(),
+				"location":         fsutil.ExeDir(),
+				"runtime":          cparams.Runtime,
+				"runtime.resolved": resolved,
 			})
-		xc.Exit(exitCode)
+		xc.Exit(-1)
 	}
-	xc.FailOn(err)
 
 	if gparams.Debug {
-		version.Print(xc, cmdName, logger, client, false, gparams.InContainer, gparams.IsDSImage)
+		version.Print(xc, cmdName, logger, dclient, false, gparams.InContainer, gparams.IsDSImage)
 	}
 
-	images, err := dockerutil.ListImages(client, "")
+	images, err := crtClient.ListImages(cparams.Filter)
 	xc.FailOn(err)
 
 	if xc.Out.Quiet {
@@ -81,6 +135,7 @@ func OnCommand(
 		printImagesTable(images)
 		return
 	} else {
+		xc.Out.Info("image.list", ovars{"count": len(images)})
 		for name, info := range images {
 			fields := ovars{
 				"name":    name,
@@ -109,7 +164,7 @@ func OnCommand(
 	}
 }
 
-func printImagesTable(images map[string]dockerutil.BasicImageProps) {
+func printImagesTable(images map[string]crt.BasicImageInfo) {
 	tw := table.NewWriter()
 	tw.AppendHeader(table.Row{"Name", "ID", "Size", "Created"})
 
