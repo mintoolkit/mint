@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	probeRetryCount = 5
+	defaultProbeRetryCount = 5
 
 	defaultHTTPPortStr    = "80"
 	defaultHTTPSPortStr   = "443"
@@ -282,6 +282,19 @@ func (p *CustomProbe) Ports() []string {
 	return p.ports
 }
 
+func (ref *CustomProbe) retryCount() int {
+	if ref.opts.RetryOff {
+		return 0
+	}
+
+	result := defaultProbeRetryCount
+	if ref.opts.RetryCount > -1 {
+		result = ref.opts.RetryCount
+	}
+
+	return result
+}
+
 // Start starts the HTTP probe instance execution
 func (p *CustomProbe) Start() {
 	if p.printState {
@@ -362,11 +375,7 @@ func (p *CustomProbe) Start() {
 			if (found && dstPort == defaultRedisPortStr) || port == defaultRedisPortStr {
 				//NOTE: a hacky way to support the Redis protocol
 				//TODO: refactor and have a flag to disable this port-based behavior
-				maxRetryCount := probeRetryCount
-				if p.opts.RetryCount > 0 {
-					maxRetryCount = p.opts.RetryCount
-				}
-
+				maxRetryCount := p.retryCount()
 				for i := 0; i < maxRetryCount; i++ {
 					output, err := redisPing(p.targetHost, port)
 					p.CallCount++
@@ -407,11 +416,7 @@ func (p *CustomProbe) Start() {
 			} else if (found && dstPort == defaultDNSPortStr) || port == defaultDNSPortStr {
 				//NOTE: a hacky way to support the DNS protocol
 				//TODO: refactor and have a flag to disable this port-based behavior
-				maxRetryCount := probeRetryCount
-				if p.opts.RetryCount > 0 {
-					maxRetryCount = p.opts.RetryCount
-				}
-
+				maxRetryCount := p.retryCount()
 				for i := 0; i < maxRetryCount; i++ {
 					//NOTE: use 'tcp', but later add support for 'udp' when probes support UDP
 					output, err := dnsPing(context.Background(), p.targetHost, port, true)
@@ -591,11 +596,7 @@ func (p *CustomProbe) Start() {
 				}
 
 				for _, proto := range protocols {
-					maxRetryCount := probeRetryCount
-					if p.opts.RetryCount > 0 {
-						maxRetryCount = p.opts.RetryCount
-					}
-
+					maxRetryCount := p.retryCount()
 					notReadyErrorWait := time.Duration(16)
 					webErrorWait := time.Duration(8)
 					otherErrorWait := time.Duration(4)

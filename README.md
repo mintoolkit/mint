@@ -434,7 +434,8 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--http-probe-cmd-file` - File with user defined HTTP probe commands
 - `--http-probe-cmd-upload` - User defined HTTP probe(s) to submit form data as `[[[[[PROTO:]FORM_FILE_NAME:]FORM_FIELD_NAME:]FILE_OR_GENERATE_TYPE:]PATH]` [can use this flag multiple times
 - `--http-probe-start-wait` - Number of seconds to wait before starting HTTP probing
-- `--http-probe-retry-count` - Number of retries for each HTTP probe (default value: 5)
+- `--http-probe-retry-off` - Disable retries for probes (alternative way to disable probes)
+- `--http-probe-retry-count` - Number of retries for each probe (set to -1 to disable probe retries / default value: 5)
 - `--http-probe-retry-wait` - Number of seconds to wait before retrying HTTP probe (doubles when target is not ready; default value: 8)
 - `--http-probe-ports` - Explicit list of ports to probe (in the order you want them to be probed; excluded ports are not probed!)
 - `--http-probe-full` - Do full HTTP probe for all selected ports (if false, finish after first successful scan; default value: false)

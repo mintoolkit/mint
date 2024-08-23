@@ -89,6 +89,7 @@ type HTTPProbeOptions struct {
 	StartWait  int
 	RetryCount int
 	RetryWait  int
+	RetryOff   bool
 
 	CrawlMaxDepth       int
 	CrawlMaxPageCount   int

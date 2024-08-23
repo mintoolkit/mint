@@ -116,6 +116,7 @@ const (
 	FlagHTTPProbeCmdFile          = "http-probe-cmd-file"
 	FlagHTTPProbeCmdUpload        = "http-probe-cmd-upload"
 	FlagHTTPProbeStartWait        = "http-probe-start-wait"
+	FlagHTTPProbeRetryOff         = "http-probe-retry-off"
 	FlagHTTPProbeRetryCount       = "http-probe-retry-count"
 	FlagHTTPProbeRetryWait        = "http-probe-retry-wait"
 	FlagHTTPProbePorts            = "http-probe-ports"
@@ -230,7 +231,8 @@ const (
 	FlagHTTPProbeCmdUploadUsage        = "User defined HTTP probe(s) to submit form data as [[[[[PROTO:]FORM_FILE_NAME:]FORM_FIELD_NAME:]FILE_OR_GENERATE_TYPE:]PATH]"
 	FlagHTTPProbeCmdFileUsage          = "File with user defined HTTP probes"
 	FlagHTTPProbeStartWaitUsage        = "Number of seconds to wait before starting HTTP probing"
-	FlagHTTPProbeRetryCountUsage       = "Number of retries for each HTTP probe"
+	FlagHTTPProbeRetryOffUsage         = "Disable retries for probes (alternative way to disable probes)"
+	FlagHTTPProbeRetryCountUsage       = "Number of retries for each HTTP probe (set to -1 to disable probe retries)"
 	FlagHTTPProbeRetryWaitUsage        = "Number of seconds to wait before retrying HTTP probe (doubles when target is not ready)"
 	FlagHTTPProbePortsUsage            = "Explicit list of ports to probe (in the order you want them to be probed)"
 	FlagHTTPProbeFullUsage             = "Do full HTTP probe for all selected ports (if false, finish after first successful scan)"
@@ -651,6 +653,11 @@ var CommonFlags = map[string]cli.Flag{
 		Usage:   FlagHTTPProbeStartWaitUsage,
 		EnvVars: []string{"DSLIM_HTTP_PROBE_START_WAIT"},
 	},
+	FlagHTTPProbeRetryOff: &cli.BoolFlag{
+		Name:    FlagHTTPProbeRetryOff,
+		Usage:   FlagHTTPProbeRetryOffUsage,
+		EnvVars: []string{"DSLIM_HTTP_PROBE_RETRY_OFF"},
+	},
 	FlagHTTPProbeRetryCount: &cli.IntFlag{
 		Name:    FlagHTTPProbeRetryCount,
 		Value:   5,
@@ -973,6 +980,7 @@ func HTTPProbeFlagsBasic() []cli.Flag {
 		Cflag(FlagHTTPProbeCmdUpload),
 		Cflag(FlagHTTPProbeCmdFile),
 		Cflag(FlagHTTPProbeStartWait),
+		Cflag(FlagHTTPProbeRetryOff),
 		Cflag(FlagHTTPProbeRetryCount),
 		Cflag(FlagHTTPProbeRetryWait),
 		Cflag(FlagHTTPProbePorts),

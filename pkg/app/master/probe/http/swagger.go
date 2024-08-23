@@ -576,11 +576,7 @@ func (p *CustomProbe) apiSpecEndpointCall(
 	bodyBytes []byte,
 ) bool {
 	const op = "probe.http.CustomProbe.apiSpecEndpointCall"
-
-	maxRetryCount := probeRetryCount
-	if p.opts.RetryCount > 0 {
-		maxRetryCount = p.opts.RetryCount
-	}
+	maxRetryCount := p.retryCount()
 
 	notReadyErrorWait := time.Duration(16)
 	webErrorWait := time.Duration(8)
