@@ -24,12 +24,15 @@ func (p *CustomProbe) crawl(proto, domain, addr string) {
 	var httpClient *http.Client
 	if strings.HasPrefix(proto, config.ProtoHTTP2) {
 		var err error
-		if httpClient, err = getHTTPClient(proto); err != nil {
+		if httpClient, err = getHTTPClient(proto, p.opts.ClientTimeout); err != nil {
 			p.xc.Out.Error("HTTP probe - construct client error - %v", err.Error())
 			return
 		}
 
-		httpClient.Timeout = 10 * time.Second //matches the timeout used by Colly
+		if p.opts.ClientTimeout == 0 {
+			httpClient.Timeout = 10 * time.Second //matches the timeout used by Colly
+		}
+
 		jar, _ := cookiejar.New(nil)
 		httpClient.Jar = jar
 	}
@@ -60,6 +63,14 @@ func (p *CustomProbe) crawl(proto, domain, addr string) {
 		c.AllowURLRevisit = false
 		if httpClient != nil {
 			c.SetClient(httpClient)
+		}
+
+		if p.opts.CrawlClientTimeout > 0 {
+			c.SetRequestTimeout(time.Duration(p.opts.CrawlClientTimeout) * time.Second)
+			log.Debugf("http.CustomProbe.crawl - set request timeout - p.opts.CrawlClientTimeout (%v)", p.opts.CrawlClientTimeout)
+		} else if p.opts.ClientTimeout > 0 {
+			c.SetRequestTimeout(time.Duration(p.opts.ClientTimeout) * time.Second)
+			log.Debugf("http.CustomProbe.crawl - set request timeout - p.opts.ClientTimeout (%v)", p.opts.ClientTimeout)
 		}
 
 		if p.opts.CrawlMaxDepth > 0 {

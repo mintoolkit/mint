@@ -205,7 +205,7 @@ func apiSpecPrefix(spec *openapi3.T) (string, error) {
 func (p *CustomProbe) loadAPISpecs(proto, targetHost, port string) {
 
 	baseAddr := getHTTPAddr(proto, targetHost, port)
-	client, err := getHTTPClient(proto)
+	client, err := getHTTPClient(proto, p.opts.ClientTimeout)
 	if err != nil {
 		p.xc.Out.Error("HTTP probe - construct client error - %v", err.Error())
 		return
@@ -386,7 +386,7 @@ func (p *CustomProbe) probeAPISpecEndpoints(proto, targetHost, port, prefix stri
 			})
 	}
 
-	httpClient, err := getHTTPClient(proto)
+	httpClient, err := getHTTPClient(proto, p.opts.ClientTimeout)
 	if err != nil {
 		p.xc.Out.Error("HTTP probe - construct client error - %v", err.Error())
 		return

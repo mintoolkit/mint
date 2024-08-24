@@ -84,6 +84,10 @@ type HTTPProbeOptions struct {
 	ExitOnFailure      bool
 	ExitOnFailureCount int
 
+	ClientTimeout      int
+	CrawlClientTimeout int
+	WsClientTimeout    int //todo
+
 	Cmds  []HTTPProbeCmd
 	Ports []uint16
 

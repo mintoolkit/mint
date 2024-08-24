@@ -13,12 +13,18 @@ import (
 	"github.com/mintoolkit/mint/pkg/app/master/probe/http/internal"
 )
 
-func getHTTP1Client() *http.Client {
+const defaultClientTimeout = 30
+
+func getHTTP1Client(clientTimeout int) *http.Client {
+	if clientTimeout <= 0 {
+		clientTimeout = defaultClientTimeout
+	}
+
 	client := &http.Client{
-		Timeout: time.Second * 30,
+		Timeout: time.Second * time.Duration(clientTimeout),
 		Transport: &http.Transport{
 			MaxIdleConns:    10,
-			IdleConnTimeout: 30 * time.Second,
+			IdleConnTimeout: time.Duration(clientTimeout) * time.Second,
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
 			},
@@ -28,7 +34,11 @@ func getHTTP1Client() *http.Client {
 	return client
 }
 
-func getHTTP2Client(h2c bool) *http.Client {
+func getHTTP2Client(clientTimeout int, h2c bool) *http.Client {
+	if clientTimeout <= 0 {
+		clientTimeout = defaultClientTimeout
+	}
+
 	transport := &http2.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -36,7 +46,7 @@ func getHTTP2Client(h2c bool) *http.Client {
 	}
 
 	client := &http.Client{
-		Timeout:   time.Second * 30,
+		Timeout:   time.Second * time.Duration(clientTimeout),
 		Transport: transport,
 	}
 
@@ -50,14 +60,14 @@ func getHTTP2Client(h2c bool) *http.Client {
 	return client
 }
 
-func getHTTPClient(proto string) (*http.Client, error) {
+func getHTTPClient(proto string, clientTimeout int) (*http.Client, error) {
 	switch proto {
 	case config.ProtoHTTP2:
-		return getHTTP2Client(false), nil
+		return getHTTP2Client(clientTimeout, false), nil
 	case config.ProtoHTTP2C:
-		return getHTTP2Client(true), nil
+		return getHTTP2Client(clientTimeout, true), nil
 	default:
-		return getHTTP1Client(), nil
+		return getHTTP1Client(clientTimeout), nil
 	}
 
 	return nil, fmt.Errorf("unsupported HTTP-family protocol %s", proto)
@@ -84,9 +94,12 @@ func getHTTPScheme(proto string) string {
 	return scheme
 }
 
-func getFastCGIClient(cfg *config.FastCGIProbeWrapperConfig) *http.Client {
+func getFastCGIClient(clientTimeout int, cfg *config.FastCGIProbeWrapperConfig) *http.Client {
+	if clientTimeout <= 0 {
+		clientTimeout = defaultClientTimeout
+	}
 
-	genericTimeout := time.Second * 30
+	genericTimeout := time.Second * time.Duration(clientTimeout)
 	var dialTimeout, readTimeout, writeTimeout time.Duration
 	if dialTimeout = cfg.DialTimeout; dialTimeout == 0 {
 		dialTimeout = genericTimeout

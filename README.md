@@ -430,6 +430,8 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--poststart-compose-svc` - placeholder for now
 - `--http-probe` - Enables/disables HTTP probing (ENABLED by default; you have to disable the probe if you don't need it by setting the flag to `false`: `--http-probe=false`)
 - `--http-probe-off` - Alternative way to disable HTTP probing
+- `--http-probe-client-timeout` - Probe network client timeout in seconds (defaults to 30 seconds)
+- `--http-probe-client-timeout-crawl` - Crawl probe network client timeout in seconds (defaults to probe network client timeout if set or internal default if not, 10 seconds)
 - `--http-probe-cmd` - User defined HTTP probe(s) as `[[[[\"crawl\":]PROTO:]METHOD:]PATH]` [can use this flag multiple times]
 - `--http-probe-cmd-file` - File with user defined HTTP probe commands
 - `--http-probe-cmd-upload` - User defined HTTP probe(s) to submit form data as `[[[[[PROTO:]FORM_FILE_NAME:]FORM_FIELD_NAME:]FILE_OR_GENERATE_TYPE:]PATH]` [can use this flag multiple times

@@ -50,6 +50,8 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		{Text: command.FullFlagName(command.FlagCROShmSize), Description: command.FlagCROShmSizeUsage},
 		{Text: command.FullFlagName(command.FlagHTTPProbeOff), Description: command.FlagHTTPProbeOffUsage},
 		{Text: command.FullFlagName(command.FlagHTTPProbe), Description: command.FlagHTTPProbeUsage},
+		{Text: command.FullFlagName(command.FlagHTTPProbeClientTimeout), Description: command.FlagHTTPProbeClientTimeoutUsage},
+		{Text: command.FullFlagName(command.FlagHTTPProbeClientTimeoutCrawl), Description: command.FlagHTTPProbeClientTimeoutCrawlUsage},
 		{Text: command.FullFlagName(command.FlagHTTPProbeCmd), Description: command.FlagHTTPProbeCmdUsage},
 		{Text: command.FullFlagName(command.FlagHTTPProbeCmdUpload), Description: command.FlagHTTPProbeCmdUploadUsage},
 		{Text: command.FullFlagName(command.FlagHTTPProbeCmdFile), Description: command.FlagHTTPProbeCmdFileUsage},

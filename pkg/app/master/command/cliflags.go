@@ -112,6 +112,8 @@ const (
 
 	FlagHTTPProbe                   = "http-probe"
 	FlagHTTPProbeOff                = "http-probe-off" //alternative way to disable http probing
+	FlagHTTPProbeClientTimeout      = "http-probe-client-timeout"
+	FlagHTTPProbeClientTimeoutCrawl = "http-probe-client-timeout-crawl"
 	FlagHTTPProbeCmd                = "http-probe-cmd"
 	FlagHTTPProbeCmdFile            = "http-probe-cmd-file"
 	FlagHTTPProbeCmdUpload          = "http-probe-cmd-upload"
@@ -228,6 +230,8 @@ const (
 
 	FlagHTTPProbeUsage                   = "Enable or disable HTTP probing"
 	FlagHTTPProbeOffUsage                = "Alternative way to disable HTTP probing"
+	FlagHTTPProbeClientTimeoutUsage      = "Probe network client timeout in seconds (defaults to 30 seconds)"
+	FlagHTTPProbeClientTimeoutCrawlUsage = "Crawl probe network client timeout in seconds (defaults to probe network client timeout if set or internal default if not, 10 seconds)"
 	FlagHTTPProbeCmdUsage                = "User defined HTTP probe(s) as [[[[\"crawl\":]PROTO:]METHOD:]PATH]"
 	FlagHTTPProbeCmdUploadUsage          = "User defined HTTP probe(s) to submit form data as [[[[[PROTO:]FORM_FILE_NAME:]FORM_FIELD_NAME:]FILE_OR_GENERATE_TYPE:]PATH]"
 	FlagHTTPProbeCmdFileUsage            = "File with user defined HTTP probes"
@@ -619,6 +623,18 @@ var CommonFlags = map[string]cli.Flag{
 		Usage:   FlagHTTPProbeOffUsage,
 		EnvVars: []string{"DSLIM_HTTP_PROBE_OFF"},
 	},
+	FlagHTTPProbeClientTimeout: &cli.IntFlag{
+		Name:    FlagHTTPProbeClientTimeout,
+		Value:   0, //0 means use defaults in the app code
+		Usage:   FlagHTTPProbeClientTimeoutUsage,
+		EnvVars: []string{"DSLIM_HTTP_PROBE_CLIENT_TIMEOUT"},
+	},
+	FlagHTTPProbeClientTimeoutCrawl: &cli.IntFlag{
+		Name:    FlagHTTPProbeClientTimeoutCrawl,
+		Value:   0, //0 means use defaults in the app code
+		Usage:   FlagHTTPProbeClientTimeoutCrawlUsage,
+		EnvVars: []string{"DSLIM_HTTP_PROBE_CLIENT_TIMEOUT_CRAWL"},
+	},
 	FlagHTTPProbeCmd: &cli.StringSliceFlag{
 		Name:    FlagHTTPProbeCmd,
 		Value:   cli.NewStringSlice(),
@@ -985,6 +1001,8 @@ func HTTPProbeFlags() []cli.Flag {
 
 func HTTPProbeFlagsBasic() []cli.Flag {
 	return []cli.Flag{
+		Cflag(FlagHTTPProbeClientTimeout),
+		Cflag(FlagHTTPProbeClientTimeoutCrawl),
 		Cflag(FlagHTTPProbeCmd),
 		Cflag(FlagHTTPProbeCmdUpload),
 		Cflag(FlagHTTPProbeCmdFile),

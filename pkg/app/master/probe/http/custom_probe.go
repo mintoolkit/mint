@@ -730,10 +730,10 @@ func (p *CustomProbe) Start() {
 					switch {
 					case cmd.FastCGI != nil:
 						log.Debug("HTTP probe - FastCGI embedded proxy configured")
-						client = getFastCGIClient(cmd.FastCGI)
+						client = getFastCGIClient(p.opts.ClientTimeout, cmd.FastCGI)
 					default:
 						var err error
-						if client, err = getHTTPClient(proto); err != nil {
+						if client, err = getHTTPClient(proto, p.opts.ClientTimeout); err != nil {
 							p.xc.Out.Error("HTTP probe - construct client error - %v", err.Error())
 							continue
 						}

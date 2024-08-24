@@ -58,6 +58,9 @@ func GetHTTPProbeOptions(xc *app.ExecutionContext, ctx *cli.Context, doProbe boo
 	opts := config.HTTPProbeOptions{
 		Full: ctx.Bool(FlagHTTPProbeFull),
 
+		ClientTimeout:      ctx.Int(FlagHTTPProbeClientTimeout),
+		CrawlClientTimeout: ctx.Int(FlagHTTPProbeClientTimeoutCrawl),
+
 		StartWait:  ctx.Int(FlagHTTPProbeStartWait),
 		RetryOff:   ctx.Bool(FlagHTTPProbeRetryOff),
 		RetryCount: ctx.Int(FlagHTTPProbeRetryCount),
