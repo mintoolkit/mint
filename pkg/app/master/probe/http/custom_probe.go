@@ -283,7 +283,7 @@ func (p *CustomProbe) Ports() []string {
 }
 
 func (ref *CustomProbe) retryCount() int {
-	if ref.opts.RetryOff {
+	if ref.opts.RetryOff || (ref.opts.RetryCount == 0) {
 		return 0
 	}
 
@@ -370,7 +370,19 @@ func (p *CustomProbe) Start() {
 				})
 		}
 
+		var callFailureCount int
+
+	probeLoop:
 		for _, port := range p.ports {
+			// a hacky way to check the results of the previous loop iteration
+			if p.OkCount > 0 && !p.opts.Full {
+				break probeLoop
+			}
+
+			var called bool
+			var okCall bool
+			var errCount int
+
 			dstPort, found := p.availableHostPorts[port]
 			if (found && dstPort == defaultRedisPortStr) || port == defaultRedisPortStr {
 				//NOTE: a hacky way to support the Redis protocol
@@ -379,6 +391,7 @@ func (p *CustomProbe) Start() {
 				for i := 0; i < maxRetryCount; i++ {
 					output, err := redisPing(p.targetHost, port)
 					p.CallCount++
+					called = true
 
 					statusCode := "error"
 					callErrorStr := "none"
@@ -401,18 +414,14 @@ func (p *CustomProbe) Start() {
 					}
 
 					if err == nil {
-						p.OkCount++
+						okCall = true
 						break
 					} else {
-						p.ErrCount++
+						errCount++
 					}
 
 					time.Sleep(1 * time.Second)
-				}
-
-				if p.OkCount > 0 {
-					continue
-				}
+				} // end of redis call retry loop
 			} else if (found && dstPort == defaultDNSPortStr) || port == defaultDNSPortStr {
 				//NOTE: a hacky way to support the DNS protocol
 				//TODO: refactor and have a flag to disable this port-based behavior
@@ -421,6 +430,7 @@ func (p *CustomProbe) Start() {
 					//NOTE: use 'tcp', but later add support for 'udp' when probes support UDP
 					output, err := dnsPing(context.Background(), p.targetHost, port, true)
 					p.CallCount++
+					called = true
 
 					statusCode := "error"
 					callErrorStr := "none"
@@ -443,23 +453,44 @@ func (p *CustomProbe) Start() {
 					}
 
 					if err == nil {
-						p.OkCount++
+						okCall = true
 						break
 					} else {
-						p.ErrCount++
+						errCount++
 					}
 
 					time.Sleep(1 * time.Second)
-				}
-
-				if p.OkCount > 0 {
-					continue
-				}
+				} // end of DNS call retry loop
 			}
 
-			//If it's ok stop after the first successful probe pass
-			if p.OkCount > 0 && !p.opts.Full {
-				break
+			if called {
+				if okCall {
+					p.OkCount++
+				} else {
+					p.ErrCount += uint64(errCount)
+					callFailureCount++
+				}
+
+				if p.opts.ExitOnFailureCount > 0 && callFailureCount >= p.opts.ExitOnFailureCount {
+					if p.printState {
+						p.xc.Out.Info("probe.call.failure.exit",
+							ovars{
+								"port":                  port,
+								"port.dst":              dstPort,
+								"exit.on.failure.count": p.opts.ExitOnFailureCount,
+							})
+					}
+
+					break probeLoop
+				}
+
+				//If it's ok stop after the first successful probe pass
+				if okCall && !p.opts.Full {
+					break probeLoop
+				}
+
+				//continue to the next port to probe...
+				continue
 			}
 
 			for _, cmd := range p.opts.Cmds {
@@ -614,6 +645,7 @@ func (p *CustomProbe) Start() {
 						}
 
 						wc.ReadCh = make(chan WebsocketMessage, 10)
+						okCall = false
 						for i := 0; i < maxRetryCount; i++ {
 							err = wc.Connect()
 							if err != nil {
@@ -650,10 +682,12 @@ func (p *CustomProbe) Start() {
 							}
 
 							if err != nil {
+								errCount++
 								p.ErrCount++
 								log.Debugf("HTTP probe - websocket write error - %v", err)
 								time.Sleep(notReadyErrorWait * time.Second)
 							} else {
+								okCall = true
 								p.OkCount++
 
 								//try to read something from the socket
@@ -669,6 +703,26 @@ func (p *CustomProbe) Start() {
 						}
 
 						wc.Disconnect()
+
+						if !okCall {
+							callFailureCount++
+						}
+
+						if p.opts.ExitOnFailureCount > 0 && callFailureCount >= p.opts.ExitOnFailureCount {
+							if p.printState {
+								p.xc.Out.Info("probe.call.failure.exit",
+									ovars{
+										"port":                  port,
+										"port.dst":              dstPort,
+										"proto":                 proto,
+										"cmd":                   fmt.Sprintf("%s|%s|%s", cmd.Protocol, cmd.Method, cmd.Resource),
+										"exit.on.failure.count": p.opts.ExitOnFailureCount,
+									})
+							}
+
+							break probeLoop
+						}
+
 						continue
 					}
 
@@ -699,6 +753,7 @@ func (p *CustomProbe) Start() {
 						req.Header.Set(HeaderContentType, contentTypeHdr)
 					}
 
+					okCall = false
 					for i := 0; i < maxRetryCount; i++ {
 						res, err := client.Do(req.Clone(context.Background()))
 						p.CallCount++
@@ -736,8 +791,12 @@ func (p *CustomProbe) Start() {
 
 						if err == nil {
 							p.OkCount++
+							okCall = true
 
 							if p.OkCount == 1 {
+								// running API spec probes after the first successful call
+								// todo: refactor / move it after the cmd probes loop
+
 								if len(p.opts.APISpecs) != 0 && len(p.opts.APISpecFiles) != 0 && cmd.FastCGI != nil {
 									p.xc.Out.Info("HTTP probe - API spec probing not implemented for fastcgi")
 								} else {
@@ -746,6 +805,8 @@ func (p *CustomProbe) Start() {
 							}
 
 							if cmd.Crawl {
+								// running crawl for each probe command where it's enabled
+
 								if cmd.FastCGI != nil {
 									p.xc.Out.Info("HTTP probe - crawling not implemented for fastcgi")
 								} else {
@@ -754,6 +815,7 @@ func (p *CustomProbe) Start() {
 							}
 							break
 						} else {
+							errCount++
 							p.ErrCount++
 
 							urlErr := &url.Error{}
@@ -771,7 +833,26 @@ func (p *CustomProbe) Start() {
 								time.Sleep(otherErrorWait * time.Second)
 							}
 						}
+					} // call loop
 
+					if !okCall {
+						callFailureCount++
+					}
+
+					if p.opts.ExitOnFailureCount > 0 && callFailureCount >= p.opts.ExitOnFailureCount {
+						if p.printState {
+							p.xc.Out.Info("probe.call.failure.exit",
+								ovars{
+									"port":                  port,
+									"port.dst":              dstPort,
+									"proto":                 proto,
+									"addr":                  addr,
+									"cmd":                   fmt.Sprintf("%s|%s|%s", cmd.Protocol, cmd.Method, cmd.Resource),
+									"exit.on.failure.count": p.opts.ExitOnFailureCount,
+								})
+						}
+
+						break probeLoop
 					}
 				}
 			}

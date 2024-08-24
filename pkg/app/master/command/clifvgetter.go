@@ -74,6 +74,7 @@ func GetHTTPProbeOptions(xc *app.ExecutionContext, ctx *cli.Context, doProbe boo
 	} else {
 		opts.Do = ctx.Bool(FlagHTTPProbe) && !ctx.Bool(FlagHTTPProbeOff)
 		opts.ExitOnFailure = ctx.Bool(FlagHTTPProbeExitOnFailure)
+		opts.ExitOnFailureCount = ctx.Int(FlagHTTPProbeExitOnFailureCount)
 	}
 
 	cmds, err := GetHTTPProbes(ctx)

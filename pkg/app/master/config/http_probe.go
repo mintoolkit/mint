@@ -79,9 +79,10 @@ type HTTPProbeCmds struct {
 }
 
 type HTTPProbeOptions struct {
-	Do            bool
-	Full          bool
-	ExitOnFailure bool
+	Do                 bool
+	Full               bool
+	ExitOnFailure      bool
+	ExitOnFailureCount int
 
 	Cmds  []HTTPProbeCmd
 	Ports []uint16
