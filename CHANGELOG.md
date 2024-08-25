@@ -1,5 +1,26 @@
 # Releases
 
+## 1.41.6 (8/24/2024)
+
+### New Features
+
+- Podman runtime support for the `xray` command and the `--runtime` flag to choose the runtime.
+- Podman runtime support for the `images` command
+- `--http-probe-client-timeout` and `--http-probe-client-timeout-crawl` flags for the `slim`/`profile` commands
+- `--http-probe-exit-on-failure-count` flag for the `slim`/`profile` commands
+- `--http-probe-retry-off` flag for the `slim`/`profile` commands
+
+### Improvements
+
+- Created `app` command and moved the `install`, `update`, `version` and other app management related operations there as sub-commands.
+- `--http-probe-retry-count` flag now can be used to disable probe retries by setting it to -1 (or use the `--http-probe-retry-off` flag instead)
+
+### Bug Fixes
+
+- User identity collection bugfix for the `xray` command.
+- HTTP probing completion logic bugfix to prevent early probing exit.
+
+
 ## 1.41.5 (6/30/2024)
 
 ### New Features
