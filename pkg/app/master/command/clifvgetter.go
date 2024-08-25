@@ -342,6 +342,10 @@ func UpdateGlobalFlagValues(appOpts *config.AppOptions, values *GenericParams) *
 		values.NoColor = *appOpts.Global.NoColor
 	}
 
+	if appOpts.Global.CheckVersion != nil {
+		values.CheckVersion = *appOpts.Global.CheckVersion
+	}
+
 	if appOpts.Global.Debug != nil {
 		values.Debug = *appOpts.Global.Debug
 	}
@@ -370,6 +374,22 @@ func UpdateGlobalFlagValues(appOpts *config.AppOptions, values *GenericParams) *
 		values.Log = *appOpts.Global.Log
 	}
 
+	if appOpts.Global.StatePath != nil {
+		values.StatePath = *appOpts.Global.StatePath
+	}
+
+	if appOpts.Global.ReportLocation != nil {
+		values.ReportLocation = *appOpts.Global.ReportLocation
+	}
+
+	if appOpts.Global.ArchiveState != nil {
+		values.ArchiveState = *appOpts.Global.ArchiveState
+	}
+
+	if appOpts.Global.CRTConnection != nil {
+		values.CRTConnection = *appOpts.Global.CRTConnection
+	}
+
 	if appOpts.Global.UseTLS != nil {
 		values.ClientConfig.UseTLS = *appOpts.Global.UseTLS
 	}
@@ -395,6 +415,7 @@ func UpdateGlobalFlagValues(appOpts *config.AppOptions, values *GenericParams) *
 
 func GlobalFlagValues(ctx *cli.Context) *GenericParams {
 	values := GenericParams{
+		NoColor:        ctx.Bool(FlagNoColor),
 		CheckVersion:   ctx.Bool(FlagCheckVersion),
 		Debug:          ctx.Bool(FlagDebug),
 		Verbose:        ctx.Bool(FlagVerbose),

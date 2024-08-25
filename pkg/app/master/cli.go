@@ -155,8 +155,11 @@ func newCLI() *cli.App {
 	}
 
 	cliApp.After = func(ctx *cli.Context) error {
-		//todo: get already fetched gcvalues from ctx.Context
-		gcvalues := command.GlobalFlagValues(ctx)
+		//gcvalues := command.GlobalFlagValues(ctx)
+		gcvalues, ok := command.CLIContextGet(ctx.Context, command.GlobalParams).(*command.GenericParams)
+		if !ok || gcvalues == nil {
+			return command.ErrNoGlobalParams
+		}
 
 		if gcvalues.QuietCLIMode {
 			return nil
@@ -172,8 +175,11 @@ func newCLI() *cli.App {
 	}
 
 	cliApp.Action = func(ctx *cli.Context) error {
-		//todo: get already fetched gcvalues from ctx.Context
-		gcvalues := command.GlobalFlagValues(ctx)
+		//gcvalues := command.GlobalFlagValues(ctx)
+		gcvalues, ok := command.CLIContextGet(ctx.Context, command.GlobalParams).(*command.GenericParams)
+		if !ok || gcvalues == nil {
+			return command.ErrNoGlobalParams
+		}
 
 		//disable community info in interactive mode (too noisy)
 		doShowCommunityInfo = false

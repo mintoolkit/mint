@@ -28,6 +28,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/report"
 	"github.com/mintoolkit/mint/pkg/util/errutil"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
+	"github.com/mintoolkit/mint/pkg/util/jsonutil"
 	v "github.com/mintoolkit/mint/pkg/version"
 )
 
@@ -190,9 +191,10 @@ func OnCommand(
 			exitCode := command.ECTCommon | command.ECCNoDockerConnectInfo
 			xc.Out.State("exited",
 				ovars{
-					"exit.code": exitCode,
-					"version":   v.Current(),
-					"location":  fsutil.ExeDir(),
+					"client.config": jsonutil.ToString(gparams.ClientConfig),
+					"exit.code":     exitCode,
+					"version":       v.Current(),
+					"location":      fsutil.ExeDir(),
 				})
 			xc.Exit(exitCode)
 		}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
@@ -155,6 +156,8 @@ func New(config *config.DockerClient) (*docker.Client, error) {
 	var client *docker.Client
 	var err error
 
+	log.Tracef("dockerclient.New(config=%#v)", config)
+
 	newTLSClient := func(host string, certPath string, verify bool, apiVersion string) (*docker.Client, error) {
 		var ca []byte
 
@@ -235,6 +238,36 @@ func New(config *config.DockerClient) (*docker.Client, error) {
 
 		log.Debug("dockerclient.New: new Docker client (env) [5]")
 
+	case config.Host != "" && (strings.HasPrefix(config.Host, "/") || strings.HasPrefix(config.Host, "unix://")):
+		log.Debugf("dockerclient.New: new Docker client - host(unix.socket)='%s'", config.Host)
+		socketPath := strings.TrimPrefix(config.Host, "unix://")
+		if !HasSocket(socketPath) {
+			log.Errorf("dockerclient.New: new Docker client - no unix socket => %s", socketPath)
+			return nil, ErrNoDockerInfo
+		}
+
+		socketInfo, err := getSocketInfo(socketPath)
+		if err != nil {
+			return nil, err
+		}
+
+		socketInfo.Address = fmt.Sprintf("unix://%s", socketPath)
+
+		log.Debugf("dockerclient.New: new Docker client - unix socket => %s", jsonutil.ToString(socketInfo))
+		if socketInfo.CanRead == false || socketInfo.CanWrite == false {
+			return nil, fmt.Errorf("insufficient socket permissions (can_read=%v can_write=%v)", socketInfo.CanRead, socketInfo.CanWrite)
+		}
+
+		config.Host = socketInfo.Address
+		client, err = docker.NewVersionedClient(config.Host, config.APIVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		if config.APIVersion != "" {
+			client.SkipServerVersionCheck = true
+		}
+
 	case config.Host == "" && config.Env[EnvDockerHost] == "":
 		socketInfo, err := GetUnixSocketAddr()
 		if err != nil {
@@ -262,6 +295,7 @@ func New(config *config.DockerClient) (*docker.Client, error) {
 		log.Debug("dockerclient.New: new Docker client (default) [6]")
 
 	default:
+		log.Debug("dockerclient.New: no docker info")
 		return nil, ErrNoDockerInfo
 	}
 
