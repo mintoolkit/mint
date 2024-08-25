@@ -55,7 +55,7 @@ func (ref *Instance) ListImagesAll() ([]crt.BasicImageInfo, error) {
 	var imageList []crt.BasicImageInfo
 	for _, r := range pimages {
 		imageList = append(imageList, crt.BasicImageInfo{
-			ID:          strings.TrimPrefix(r.ID, "sha256:"),
+			ID:          r.ID,
 			Size:        r.Size,
 			Created:     r.Created,
 			VirtualSize: r.VirtualSize,

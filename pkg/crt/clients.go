@@ -6,12 +6,11 @@ import (
 	"regexp"
 	"strings"
 	"time"
-	//log "github.com/sirupsen/logrus"
 )
 
 var (
-	ErrBadParam = errors.New("bad parameter")
-	ErrNotFound = errors.New("not found")
+	ErrBadParam = errors.New("crt - bad parameter")
+	ErrNotFound = errors.New("crt - not found")
 )
 
 type ImageIdentity struct {

@@ -210,13 +210,13 @@ func ListImages(client context.Context, imageNameFilter string) (map[string]Basi
 	for _, imageInfo := range imageList {
 		for _, repo := range imageInfo.RepoTags {
 			info := BasicImageProps{
-				ID:      strings.TrimPrefix(imageInfo.ID, "sha256:"),
+				ID:      imageInfo.ID,
 				Size:    imageInfo.Size,
 				Created: imageInfo.Created,
 			}
 
 			if repo == "<none>:<none>" {
-				repo = strings.TrimPrefix(imageInfo.ID, "sha256:")
+				repo = imageInfo.ID
 				images[repo] = info
 				break
 			}

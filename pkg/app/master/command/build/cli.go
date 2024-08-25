@@ -16,7 +16,7 @@ import (
 
 const (
 	Name   = "slim"
-	Usage  = "Creates a slim version of your container image auto-generating Seccomp and AppArmor security profiles"
+	Usage  = "Shrinks your container image auto-generating Seccomp and AppArmor security profiles"
 	AliasA = "build"
 	AliasB = "b"
 )

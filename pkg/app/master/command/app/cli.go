@@ -11,7 +11,7 @@ import (
 
 const (
 	Name  = "app"
-	Usage = "Execute app management, maintanance, debugging and query operations"
+	Usage = "Execute app management, maintenance, debugging and query operations"
 	Alias = "a"
 
 	BomCmdName      = "bom"

@@ -273,19 +273,17 @@ If you don't specify any command `mint` will start in the interactive prompt mod
 
 ### COMMANDS
 
+- `slim` - Create a minimal container image for your selected image generating the supported security profiles. This is the most popular command. (aka `build`)
 - `debug` - Debug minimal or regular container images running in Docker, Podman, Kubernetes and ContainerD.
 - `xray` - Performs static analysis for the target container image (including 'reverse engineering' the Dockerfile for the image). Use this command if you want to know what's inside of your container image and what makes it fat.
 - `lint` - Analyzes container instructions in Dockerfiles (Docker image support is WIP)
-- `build` - Analyzes, profiles and optimizes your container image generating the supported security profiles. This is the most popular command.
 - `registry` - Execute registry operations (`pull`, `push`, `copy`, `server`).
 - `profile` - Performs basic container image analysis and dynamic container analysis, but it doesn't generate an optimized image.
 - `run` - Runs one or more containers (for now runs a single container similar to `docker run`)
 - `merge` - Merge two container images (optimized to merge minified images).
 - `images` - Get information about container images (example: `mint --quiet images`).
 - `vulnerability` - Execute vulnerability related tools and operations (`epss`).
-- `version` - Shows the version information.
-- `appbom` - Shows the application BOM (app composition/dependencies).
-- `update` - Updates Mint to the latest version.
+- `app` - Execute app management, maintenance, debugging and query operations (`bom`, `version`, `remove-sensor-volumes`, `update`, `install` operations).
 - `help` - Show the available commands and global flags
 
 Example: `mint build my/sample-app`
@@ -300,18 +298,16 @@ If you run `mint` without any parameters you'll get an interactive prompt that w
 
 Commands:
 
+- `slim` - Create a minimal container image for your selected image generating the supported security profiles. (aka `build`)
 - `debug` - Debug minimal or regular container images running in Docker, Podman, Kubernetes and ContainerD.
 - `xray` - Show what's in the container image and reverse engineer its Dockerfile
 - `lint` - Lint the target Dockerfile (or image, in the future)
-- `build` - Analyze the target container image along with its application and build an optimized image from it
 - `registry` - Execute registry operations (`pull`, `push`, `copy`, `server`).
 - `profile` - Collect fat image information and generate a fat container report
 - `merge` - Merge two container images (optimized to merge minified images)
 - `images` - Get information about container images.
 - `vulnerability` - Execute vulnerability related tools and operations (`epss`).
-- `appbom` - Shows the application BOM (app composition/dependencies)
-- `version` - Show app and docker version information
-- `update` - Update the app
+- `app` - Execute app management, maintenance, debugging and query operations (`bom`, `version`, `remove-sensor-volumes`, `update`, `install` operations).
 - `help` - Show help info
 
 Global options:
@@ -357,6 +353,7 @@ To disable the version checks set the global `--check-version` flag to `false` (
 
 ### `XRAY` COMMAND OPTIONS
 
+- `--runtime` - Runtime environment type (values: `docker`, `podman` and a special meta runtime `auto`, which auto-selects the runtime based on the installed runtime; defaults to `auto`)
 - `--target` - Target container image (name or ID)
 - `--pull` - Try pulling target if it's not available locally (default: false).
 - `--docker-config-path` - Set the docker config path used to fetch registry credentials (used with the `--pull` flag).

@@ -41,7 +41,7 @@ func PrintCheckVersion(
 	printPrefix string,
 	info *CheckVersionInfo) {
 	if info != nil && info.Status == "success" && info.Outdated {
-		msg := "Your version of SlimToolkit is out of date! Use `slim update` to get the latest version."
+		msg := "Your version of MinToolkit is out of date! Use `mint update` to get the latest version."
 		if xc == nil {
 			fmt.Printf("%s info=version status=OUTDATED local=%s current=%s\n", printPrefix, v.Tag(), info.Current)
 			fmt.Printf("%s info=message message='%s'\n", printPrefix, msg)
@@ -154,7 +154,7 @@ func Print(xc *app.ExecutionContext, cmdNameParam string, logger *log.Entry, cli
 
 // Check checks the app version
 func Check(inContainer, isDSImage bool) *CheckVersionInfo {
-	logger := log.WithFields(log.Fields{"app": "slim"})
+	logger := log.WithFields(log.Fields{"app": "mint"})
 
 	client := http.Client{
 		Timeout: 13 * time.Second,
