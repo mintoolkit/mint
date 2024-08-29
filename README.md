@@ -440,6 +440,7 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--http-probe-full` - Do full HTTP probe for all selected ports (if false, finish after first successful scan; default value: false)
 - `--http-probe-exit-on-failure` - Exit when all HTTP probe commands fail (default value: true)
 - `--http-probe-exit-on-failure-count` - Exit when selected number of probe call failures happens
+- `--http-probe-fail-on-status-5xx` - Treat 5xx HTTP status codes as errors during HTTP probing
 - `--http-probe-crawl` - Enable crawling for the default HTTP probe command (default value: true)
 - `--http-crawl-max-depth` - Max depth to use for the HTTP probe crawler (default value: 3)
 - `--http-crawl-max-page-count` - Max number of pages to visit for the HTTP probe crawler (default value: 1000)

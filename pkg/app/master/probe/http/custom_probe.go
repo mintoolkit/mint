@@ -40,6 +40,10 @@ const (
 	HeaderContentType = "Content-Type"
 )
 
+var (
+	ErrFailOnStatus5xx = errors.New("failed on status code 5xx")
+)
+
 type ovars = app.OutVars
 
 // CustomProbe is a custom HTTP probe
@@ -674,7 +678,7 @@ func (p *CustomProbe) Start() {
 										"stats.rc":  wc.ReadCount,
 										"stats.pic": wc.PingCount,
 										"stats.poc": wc.PongCount,
-										"target":    wc.Addr,
+										"endpoint":  wc.Addr,
 										"attempt":   i + 1,
 										"error":     callErrorStr,
 										"time":      time.Now().UTC().Format(time.RFC3339),
@@ -773,6 +777,19 @@ func (p *CustomProbe) Start() {
 						callErrorStr := "none"
 						if err == nil {
 							statusCode = fmt.Sprintf("%v", res.StatusCode)
+							if p.opts.FailOnStatus5xx &&
+								res.StatusCode >= 500 &&
+								res.StatusCode < 600 {
+								err = ErrFailOnStatus5xx
+								if p.printState {
+									p.xc.Out.Info("http.probe.call.status.error",
+										ovars{
+											"status":   statusCode,
+											"method":   cmd.Method,
+											"endpoint": addr,
+										})
+								}
+							}
 						} else {
 							callErrorStr = err.Error()
 						}
@@ -780,12 +797,12 @@ func (p *CustomProbe) Start() {
 						if p.printState {
 							p.xc.Out.Info("http.probe.call",
 								ovars{
-									"status":  statusCode,
-									"method":  cmd.Method,
-									"target":  addr,
-									"attempt": i + 1,
-									"error":   callErrorStr,
-									"time":    time.Now().UTC().Format(time.RFC3339),
+									"status":   statusCode,
+									"method":   cmd.Method,
+									"endpoint": addr,
+									"attempt":  i + 1,
+									"error":    callErrorStr,
+									"time":     time.Now().UTC().Format(time.RFC3339),
 								})
 						}
 
@@ -846,7 +863,7 @@ func (p *CustomProbe) Start() {
 									"port":                  port,
 									"port.dst":              dstPort,
 									"proto":                 proto,
-									"addr":                  addr,
+									"endpoint":              addr,
 									"cmd":                   fmt.Sprintf("%s|%s|%s", cmd.Protocol, cmd.Method, cmd.Resource),
 									"exit.on.failure.count": p.opts.ExitOnFailureCount,
 								})

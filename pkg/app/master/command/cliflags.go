@@ -125,6 +125,7 @@ const (
 	FlagHTTPProbeFull               = "http-probe-full"
 	FlagHTTPProbeExitOnFailure      = "http-probe-exit-on-failure"
 	FlagHTTPProbeExitOnFailureCount = "http-probe-exit-on-failure-count"
+	FlagHTTPProbeFailOnStatus5xx    = "http-probe-fail-on-status-5xx"
 	FlagHTTPProbeCrawl              = "http-probe-crawl"
 	FlagHTTPCrawlMaxDepth           = "http-crawl-max-depth"
 	FlagHTTPCrawlMaxPageCount       = "http-crawl-max-page-count"
@@ -243,6 +244,7 @@ const (
 	FlagHTTPProbeFullUsage               = "Do full HTTP probe for all selected ports (if false, finish after first successful scan)"
 	FlagHTTPProbeExitOnFailureUsage      = "Exit when all HTTP probe commands fail"
 	FlagHTTPProbeExitOnFailureCountUsage = "Exit when selected number of probe call failures happens"
+	FlagHTTPProbeFailOnStatus5xxUsage    = "Treat 5xx HTTP status codes as errors during HTTP probing"
 	FlagHTTPProbeCrawlUsage              = "Enable crawling for the default HTTP probe command"
 	FlagHTTPCrawlMaxDepthUsage           = "Max depth to use for the HTTP probe crawler"
 	FlagHTTPCrawlMaxPageCountUsage       = "Max number of pages to visit for the HTTP probe crawler"
@@ -711,6 +713,11 @@ var CommonFlags = map[string]cli.Flag{
 		Usage:   FlagHTTPProbeExitOnFailureCountUsage,
 		EnvVars: []string{"DSLIM_HTTP_PROBE_EXIT_ON_FAILURE_COUNT"},
 	},
+	FlagHTTPProbeFailOnStatus5xx: &cli.BoolFlag{
+		Name:    FlagHTTPProbeFailOnStatus5xx,
+		Usage:   FlagHTTPProbeFailOnStatus5xxUsage,
+		EnvVars: []string{"DSLIM_HTTP_PROBE_FAIL_ON_5XX"},
+	},
 	FlagHTTPProbeCrawl: &cli.BoolFlag{
 		Name:    FlagHTTPProbeCrawl,
 		Value:   true,
@@ -996,6 +1003,7 @@ func HTTPProbeFlags() []cli.Flag {
 		Cflag(FlagHTTPProbe),
 		Cflag(FlagHTTPProbeExitOnFailure),
 		Cflag(FlagHTTPProbeExitOnFailureCount),
+		Cflag(FlagHTTPProbeFailOnStatus5xx),
 	}, HTTPProbeFlagsBasic()...)
 }
 

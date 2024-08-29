@@ -640,10 +640,26 @@ func (p *CustomProbe) apiSpecEndpointCall(
 		}
 
 		if res != nil {
-			if res.StatusCode == http.StatusInternalServerError {
-				log.WithFields(log.Fields{
-					"op": op,
-				}).Debug("status.500.try.again.with.different.data")
+			if p.opts.FailOnStatus5xx &&
+				res.StatusCode >= 500 &&
+				res.StatusCode < 600 {
+				err = ErrFailOnStatus5xx
+				if p.printState {
+					p.xc.Out.Info("http.probe.api-spec.probe.endpoint.call.status.error",
+						ovars{
+							"status":   statusCode,
+							"method":   method,
+							"endpoint": endpoint,
+						})
+				}
+			} else if res.StatusCode == http.StatusInternalServerError {
+				if p.printState {
+					p.xc.Out.Info("http.probe.api-spec.probe.endpoint.call.status.500.try.again.with.different.data",
+						ovars{
+							"method":   method,
+							"endpoint": endpoint,
+						})
+				}
 				return true
 			}
 		}

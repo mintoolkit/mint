@@ -120,13 +120,14 @@ func (i *Inspector) Pull(showPullLog bool, dockerConfigPath, registryAccount, re
 	registry := crt.ExtractRegistry(repo)
 	authConfig, err = i.APIClient.GetRegistryAuthConfig(registryAccount, registrySecret, dockerConfigPath, registry)
 	if err != nil {
-		log.Warnf("image.inspector.Pull: failed to get registry credential for registry=%s with err=%v", registry, err)
+		log.WithError(err).Warnf("image.inspector.Pull: [repo='%s'/tag='%s'] failed to get registry credential for registry='%s'",
+			repo, tag, registry)
 		//warn, attempt pull anyway, needs to work for public registries
 	}
 
 	err = i.APIClient.PullImage(input, authConfig)
 	if err != nil {
-		log.Debugf("image.inspector.Pull: client.PullImage err=%v", err)
+		log.WithError(err).Debugf("image.inspector.Pull: client.PullImage")
 		return err
 	}
 

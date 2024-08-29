@@ -83,6 +83,7 @@ type HTTPProbeOptions struct {
 	Full               bool
 	ExitOnFailure      bool
 	ExitOnFailureCount int
+	FailOnStatus5xx    bool
 
 	ClientTimeout      int
 	CrawlClientTimeout int

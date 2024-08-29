@@ -192,11 +192,9 @@ func (ref *Instance) GetRegistryAuthConfig(account, secret, configPath, registry
 	if configPath != "" {
 		dAuthConfigs, err := docker.NewAuthConfigurationsFromFile(configPath)
 		if err != nil {
-			log.Warnf(
-				"image.inspector.Pull: getDockerCredential - failed to acquire local docker config path=%s err=%s",
-				configPath,
-				err.Error(),
-			)
+			log.WithError(err).Warnf(
+				"dockercrtclient.Instance.GetRegistryAuthConfig('%s',secret,'%s','%s'): getDockerCredential - failed to acquire local docker config path",
+				account, configPath, registry)
 			return nil, err
 		}
 		r, found := dAuthConfigs.Configs[registry]
@@ -208,11 +206,9 @@ func (ref *Instance) GetRegistryAuthConfig(account, secret, configPath, registry
 
 	cred, err := docker.NewAuthConfigurationsFromCredsHelpers(registry)
 	if err != nil {
-		log.Warnf(
-			"image.inspector.Pull: failed to acquire local docker credential helpers for %s err=%s",
-			registry,
-			err.Error(),
-		)
+		log.WithError(err).Warnf(
+			"dockercrtclient.Instance.GetRegistryAuthConfig('%s',secret,'%s','%s'): failed to acquire local docker credential helpers",
+			account, configPath, registry)
 		return nil, err
 	}
 
@@ -220,7 +216,7 @@ func (ref *Instance) GetRegistryAuthConfig(account, secret, configPath, registry
 	if cred == nil {
 		dConfigs, err := docker.NewAuthConfigurationsFromDockerCfg()
 		if err != nil {
-			log.WithError(err).Error("image.inspector.Pull: getDockerCredential err extracting docker auth configs")
+			log.WithError(err).Error("dockercrtclient.Instance.GetRegistryAuthConfig: docker.NewAuthConfigurationsFromDockerCfg err extracting docker auth configs")
 			return nil, err
 		}
 		r, found := dConfigs.Configs[registry]
@@ -230,7 +226,7 @@ func (ref *Instance) GetRegistryAuthConfig(account, secret, configPath, registry
 		cred = &r
 	}
 
-	log.Tracef("loaded registry auth config %+v", cred)
+	log.Tracef("dockercrtclient.Instance.GetRegistryAuthConfig: loaded registry auth config %+v", cred)
 	return cred, nil
 }
 
