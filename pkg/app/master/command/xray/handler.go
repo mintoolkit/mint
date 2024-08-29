@@ -252,13 +252,33 @@ func OnCommand(
 		if doPull {
 			xc.Out.Info("target.image",
 				ovars{
-					"status":  "not.found",
+					"status":  "image.not.found",
 					"image":   targetRef,
 					"message": "trying to pull target image",
 				})
 
 			err := imageInspector.Pull(doShowPullLogs, dockerConfigPath, registryAccount, registrySecret)
-			errutil.FailOn(err)
+			if err != nil {
+				if strings.Contains(err.Error(), "not found") ||
+					strings.Contains(err.Error(), "API error (404)") {
+					xc.Out.Info("target.image.error",
+						ovars{
+							"status":  "image.not.found",
+							"image":   targetRef,
+							"message": "target image is not found in registry",
+						})
+
+					exitCode := command.ECTCommon | command.ECCImageNotFound
+					xc.Out.State("exited",
+						ovars{
+							"exit.code": exitCode,
+						})
+
+					xc.Exit(exitCode)
+				} else {
+					xc.FailOn(err)
+				}
+			}
 		} else {
 			xc.Out.Error("image.not.found", "make sure the target image already exists locally (use --pull flag to auto-download it from registry)")
 

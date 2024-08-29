@@ -58,7 +58,27 @@ func inspectFatImage(
 				})
 
 			err := imageInspector.Pull(doShowPullLogs, dockerConfigPath, registryAccount, registrySecret)
-			xc.FailOn(err)
+			if err != nil {
+				if strings.Contains(err.Error(), "not found") ||
+					strings.Contains(err.Error(), "API error (404)") {
+					xc.Out.Info("target.image.error",
+						ovars{
+							"status":  "image.not.found",
+							"image":   targetRef,
+							"message": "target image is not found in registry",
+						})
+
+					exitCode := command.ECTCommon | command.ECCImageNotFound
+					xc.Out.State("exited",
+						ovars{
+							"exit.code": exitCode,
+						})
+
+					xc.Exit(exitCode)
+				} else {
+					xc.FailOn(err)
+				}
+			}
 		} else {
 			xc.Out.Info("target.image.error",
 				ovars{
