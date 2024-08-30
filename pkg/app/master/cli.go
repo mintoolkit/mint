@@ -11,10 +11,12 @@ import (
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/app/master/command/build"
+
 	//"github.com/mintoolkit/mint/pkg/app/master/command/containerize"
 	//"github.com/mintoolkit/mint/pkg/app/master/command/convert"
 	"github.com/mintoolkit/mint/pkg/app/master/command/debug"
 	"github.com/mintoolkit/mint/pkg/app/master/command/dockerclipm"
+
 	//"github.com/mintoolkit/mint/pkg/app/master/command/edit"
 	"github.com/mintoolkit/mint/pkg/app/master/command/help"
 	"github.com/mintoolkit/mint/pkg/app/master/command/images"
@@ -24,8 +26,10 @@ import (
 	"github.com/mintoolkit/mint/pkg/app/master/command/profile"
 	"github.com/mintoolkit/mint/pkg/app/master/command/registry"
 	"github.com/mintoolkit/mint/pkg/app/master/command/run"
+
 	//"github.com/mintoolkit/mint/pkg/app/master/command/server"
 	appcmd "github.com/mintoolkit/mint/pkg/app/master/command/app"
+	"github.com/mintoolkit/mint/pkg/app/master/command/tui"
 	"github.com/mintoolkit/mint/pkg/app/master/command/vulnerability"
 	"github.com/mintoolkit/mint/pkg/app/master/command/xray"
 	"github.com/mintoolkit/mint/pkg/app/master/config"
@@ -62,6 +66,7 @@ func registerCommands() {
 	//containerize.RegisterCommand() - not doing anything yet
 	dockerclipm.RegisterCommand()
 	appcmd.RegisterCommand()
+	tui.RegisterCommand()
 }
 
 func newCLI() *cli.App {

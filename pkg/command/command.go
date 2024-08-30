@@ -7,6 +7,7 @@ const (
 	Xray          Type = "xray"
 	Lint          Type = "lint"
 	Images        Type = "images"
+	Tui           Type = "tui"
 	Containerize  Type = "containerize"
 	Convert       Type = "convert"
 	Merge         Type = "merge"
