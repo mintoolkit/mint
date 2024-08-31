@@ -154,7 +154,7 @@ Elixir application images:
 - [USAGE DETAILS](#usage-details)
   - [`LINT` COMMAND OPTIONS](#lint-command-options)
   - [`XRAY` COMMAND OPTIONS](#xray-command-options)
-  - [`BUILD` COMMAND OPTIONS](#build-command-options)
+  - [`SLIM` (aka `BUILD`) COMMAND OPTIONS](#slim-command-options)
   - [`DEBUG` COMMAND OPTIONS](#debug-command-options)
   - [`RUN` COMMAND OPTIONS](#run-command-options)
   - [`REGISTRY` COMMAND OPTIONS](#registry-command-options)
@@ -267,7 +267,7 @@ See the [RUNNING CONTAINERIZED](#running-containerized) section for more usage i
 
 ## BASIC USAGE INFO
 
-`mint [global flags] [debug|xray|build|profile|run|lint|merge|images|registry|vulnerability|update|version|appbom|help] [command-specific flags] <IMAGE_ID_OR_NAME>`
+`mint [global flags] [xray|slim|debug|profile|run|lint|merge|images|registry|vulnerability|app|help] [command-specific flags] <IMAGE_ID_OR_NAME>`
 
 If you don't specify any command `mint` will start in the interactive prompt mode.
 
@@ -398,10 +398,10 @@ Change Types:
 
 In the interactive CLI prompt mode you must specify the target image using the `--target` flag while in the traditional CLI mode you can use the `--target` flag or you can specify the target image as the last value in the command.
 
-### `BUILD` COMMAND OPTIONS
+### `SLIM` COMMAND OPTIONS
 
-- `--target` - Target container image (name or ID). It's an alternative way to provide the target information. The standard way to provide the target information is by putting as the last value in the `build` command CLI call.
-- `--pull` - Try pulling target if it's not available locally (default: false).
+- `--target` - Target container image (name or ID). It's an alternative way to provide the target information. The standard way to provide the target information is by putting the target image reference as the last value in the `slim` (aka `build`) command CLI call.
+- `--pull` - Try pulling target if it's not available locally (default: true).
 - `--docker-config-path` - Set the docker config path used to fetch registry credentials (used with the `--pull` flag).
 - `--registry-account` - Account to be used when pulling images from private registries (used with the `--pull` flag).
 - `--registry-secret` - Account secret to be used when pulling images from private registries (used with the `--pull` and `--registry-account` flags).
