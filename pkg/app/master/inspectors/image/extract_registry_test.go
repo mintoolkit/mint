@@ -3,6 +3,8 @@ package image
 import (
 	"reflect"
 	"testing"
+
+	"github.com/mintoolkit/mint/pkg/crt"
 )
 
 func TestRegistryExtraction(t *testing.T) {
@@ -30,7 +32,7 @@ func TestRegistryExtraction(t *testing.T) {
 	}
 
 	for _, test := range tt {
-		registry := extractRegistry(test.in)
+		registry := crt.ExtractRegistry(test.in)
 		if !equal(registry, test.expected) {
 			t.Errorf("got %s expected %s", registry, test.expected)
 		}
