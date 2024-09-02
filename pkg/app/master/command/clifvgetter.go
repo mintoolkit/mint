@@ -61,10 +61,11 @@ func GetHTTPProbeOptions(xc *app.ExecutionContext, ctx *cli.Context, doProbe boo
 		ClientTimeout:      ctx.Int(FlagHTTPProbeClientTimeout),
 		CrawlClientTimeout: ctx.Int(FlagHTTPProbeClientTimeoutCrawl),
 
-		StartWait:  ctx.Int(FlagHTTPProbeStartWait),
-		RetryOff:   ctx.Bool(FlagHTTPProbeRetryOff),
-		RetryCount: ctx.Int(FlagHTTPProbeRetryCount),
-		RetryWait:  ctx.Int(FlagHTTPProbeRetryWait),
+		StartWait:        ctx.Int(FlagHTTPProbeStartWait),
+		RetryOff:         ctx.Bool(FlagHTTPProbeRetryOff),
+		RetryCount:       ctx.Int(FlagHTTPProbeRetryCount),
+		RetryWait:        ctx.Int(FlagHTTPProbeRetryWait),
+		ProbeConcurrency: ctx.Int(FlagHTTPProbeConcurrency),
 
 		CrawlMaxDepth:       ctx.Int(FlagHTTPCrawlMaxDepth),
 		CrawlMaxPageCount:   ctx.Int(FlagHTTPCrawlMaxPageCount),

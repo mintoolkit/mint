@@ -92,10 +92,11 @@ type HTTPProbeOptions struct {
 	Cmds  []HTTPProbeCmd
 	Ports []uint16
 
-	StartWait  int
-	RetryCount int
-	RetryWait  int
-	RetryOff   bool
+	StartWait        int
+	RetryCount       int
+	RetryWait        int
+	RetryOff         bool
+	ProbeConcurrency int
 
 	CrawlMaxDepth       int
 	CrawlMaxPageCount   int
