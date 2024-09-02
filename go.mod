@@ -11,13 +11,17 @@ require (
 	github.com/c-bata/go-prompt v0.2.3
 	github.com/c4milo/unpackit v0.0.0-20170704181138-4ed373e9ef1c
 	github.com/cespare/xxhash/v2 v2.2.0
+	github.com/charmbracelet/bubbles v0.19.0
+	github.com/charmbracelet/bubbletea v1.0.1
+	github.com/charmbracelet/lipgloss v0.13.0
 	github.com/compose-spec/compose-go v0.0.0-20210916141509-a7e1bc322970
 	github.com/containerd/console v1.0.3
 	github.com/containers/common v0.60.1
 	github.com/containers/podman/v5 v5.2.1
+	github.com/containers/storage v1.55.0
 	github.com/docker/docker v27.1.2+incompatible
 	github.com/docker/go-connections v0.5.0
-	github.com/dustin/go-humanize v1.0.0
+	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.15.0
 	github.com/fsouza/go-dockerclient v1.12.0
 	github.com/getkin/kin-openapi v0.76.0
@@ -62,8 +66,6 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
-	github.com/charmbracelet/bubbletea v1.0.1 // indirect
-	github.com/charmbracelet/lipgloss v0.13.0 // indirect
 	github.com/charmbracelet/x/ansi v0.1.4 // indirect
 	github.com/charmbracelet/x/input v0.1.0 // indirect
 	github.com/charmbracelet/x/term v0.1.1 // indirect
@@ -83,7 +85,6 @@ require (
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/ocicrypt v1.2.0 // indirect
 	github.com/containers/psgo v1.9.0 // indirect
-	github.com/containers/storage v1.55.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20231217050601-ba74d44ecf5f // indirect
