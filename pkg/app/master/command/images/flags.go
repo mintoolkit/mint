@@ -9,6 +9,8 @@ import (
 const (
 	FlagFilter      = "filter"
 	FlagFilterUsage = "container image filter pattern"
+	FlagTUI         = "tui"
+	FlagTUIUsage    = "terminal user interface"
 )
 
 var Flags = map[string]cli.Flag{
@@ -17,6 +19,10 @@ var Flags = map[string]cli.Flag{
 		Value:   "",
 		Usage:   FlagFilterUsage,
 		EnvVars: []string{"DSLIM_IMAGES_FILTER"},
+	},
+	FlagTUI: &cli.BoolFlag{
+		Name:  FlagTUI,
+		Usage: FlagTUIUsage,
 	},
 }
 
