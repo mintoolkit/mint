@@ -17,7 +17,8 @@ var CLI = &cli.Command{
 	Aliases: []string{Alias},
 	Usage:   Usage,
 	Action: func(ctx *cli.Context) error {
-		tui.RunTUI()
+		// TODO - create a coming soon TUI
+		tui.RunTUI(nil)
 		return nil
 	},
 }
