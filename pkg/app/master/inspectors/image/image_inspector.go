@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	//docker "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/consts"
@@ -116,7 +115,7 @@ func (i *Inspector) Pull(showPullLog bool, dockerConfigPath, registryAccount, re
 	}
 
 	var err error
-	var authConfig crt.AuthConfig // *docker.AuthConfiguration
+	var authConfig crt.AuthConfig
 	registry := crt.ExtractRegistry(repo)
 	authConfig, err = i.APIClient.GetRegistryAuthConfig(registryAccount, registrySecret, dockerConfigPath, registry)
 	if err != nil {
@@ -145,7 +144,7 @@ func (i *Inspector) Inspect() error {
 	var err error
 	i.ImageInfo, err = i.APIClient.InspectImage(i.ImageRef)
 	if err != nil {
-		if err == crt.ErrNotFound { // docker.ErrNoSuchImage {
+		if err == crt.ErrNotFound {
 			log.Infof("could not find target image - i.ImageRef='%s'", i.ImageRef)
 		}
 		return err
@@ -153,7 +152,7 @@ func (i *Inspector) Inspect() error {
 
 	log.Tracef("image.Inspector.Inspect: ImageInfo=%#v", i.ImageInfo)
 
-	imageList, err := i.APIClient.ListImagesAll() // i.APIClient.ListImages(docker.ListImagesOptions{All: true})
+	imageList, err := i.APIClient.ListImagesAll()
 	if err != nil {
 		return err
 	}

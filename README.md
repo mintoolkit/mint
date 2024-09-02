@@ -21,7 +21,7 @@ Note that **DockerSlim** is now **MinToolkit** or just **Mint** (it was also cal
 
 ## Overview
 
-**Mint** allows developers to inspect, optimize and debug their containers using its `xray`, `lint`, `build`, `debug`, `run`, `images`, `merge`, `registry`, `vulnerability` (and other) commands. It simplifies and improves your developer experience building, customizing and using containers. It makes your containers better, smaller and more secure while providing advanced visibility and improved usability working with the original and minified containers.
+**Mint** allows developers to inspect, optimize and debug their containers using its `xray`, `slim` (aka `build`), `debug`, `lint`, `run`, `images`, `merge`, `registry`, `vulnerability` (and other) commands. It simplifies and improves your developer experience building, customizing and using containers. It makes your containers better, smaller and more secure while providing advanced visibility and improved usability working with the original and minified containers.
 
 Don't change anything in your container image and minify it by up to 30x making it secure too! Optimizing images isn't the only thing it can do though. It can also help you understand and author better container images.
 
@@ -47,7 +47,7 @@ Watch this screencast to see how an application image is minified by more than 3
 
 [![asciicast](https://asciinema.org/a/rHqW8cbr3vXe0WxorHsD36n7V.png)](https://asciinema.org/a/rHqW8cbr3vXe0WxorHsD36n7V)
 
-When you run the `build` or `profile` commands in **Mint** it gives you an opportunity to interact with the temporary container it creates. By default, it will pause and wait for your input before it continues its execution. You can change this behavior using the `--continue-after` flag.
+When you run the `slim` (aka `build`) or `profile` commands in **Mint** it gives you an opportunity to interact with the temporary container it creates. By default, it will pause and wait for your input before it continues its execution. You can change this behavior using the `--continue-after` flag.
 
 If your application exposes any web interfaces (e.g., when you have a web server or an HTTP API), you'll see the port numbers on the host machine you will need to use to interact with your application (look for the `port.list` and `target.port.info` messages on the screen). For example, in the screencast above you'll see that the internal application port 8000 is mapped to port 32911 on your host.
 
@@ -56,10 +56,7 @@ Note that **Mint** will interact with your application for you when HTTP probing
 You can also interact with the temporary container via a shell script or snippet using `--exec-file` or `--exec`. For example, you can create a container which is only capable of using curl.
 
 ```bash
->> docker pull archlinux:latest
-...
-
->> mint build --target archlinux:latest --tag archlinux:curl --http-probe=false --exec "curl checkip.amazonaws.com"
+>> mint slim --target archlinux:latest --tag archlinux:curl --http-probe=false --exec "curl checkip.amazonaws.com"
 ...
 
 >> docker run archlinux:curl curl checkip.amazonaws.com
@@ -154,7 +151,7 @@ Elixir application images:
 - [USAGE DETAILS](#usage-details)
   - [`LINT` COMMAND OPTIONS](#lint-command-options)
   - [`XRAY` COMMAND OPTIONS](#xray-command-options)
-  - [`BUILD` COMMAND OPTIONS](#build-command-options)
+  - [`SLIM` (aka `BUILD`) COMMAND OPTIONS](#slim-command-options)
   - [`DEBUG` COMMAND OPTIONS](#debug-command-options)
   - [`RUN` COMMAND OPTIONS](#run-command-options)
   - [`REGISTRY` COMMAND OPTIONS](#registry-command-options)
@@ -267,7 +264,7 @@ See the [RUNNING CONTAINERIZED](#running-containerized) section for more usage i
 
 ## BASIC USAGE INFO
 
-`mint [global flags] [debug|xray|build|profile|run|lint|merge|images|registry|vulnerability|update|version|appbom|help] [command-specific flags] <IMAGE_ID_OR_NAME>`
+`mint [global flags] [xray|slim|debug|profile|run|lint|merge|images|registry|vulnerability|app|help] [command-specific flags] <IMAGE_ID_OR_NAME>`
 
 If you don't specify any command `mint` will start in the interactive prompt mode.
 
@@ -286,9 +283,9 @@ If you don't specify any command `mint` will start in the interactive prompt mod
 - `app` - Execute app management, maintenance, debugging and query operations (`bom`, `version`, `remove-sensor-volumes`, `update`, `install` operations).
 - `help` - Show the available commands and global flags
 
-Example: `mint build my/sample-app`
+Example: `mint slim my/sample-app`
 
-See the `USAGE DETAILS` section for more details. Run `mint help` to get a high level overview of the available commands. Run `mint COMMAND_NAME` without any parameters and you'll get more information about that command (e.g., `mint build`).
+See the `USAGE DETAILS` section for more details. Run `mint help` to get a high level overview of the available commands. Run `mint COMMAND_NAME` without any parameters and you'll get more information about that command (e.g., `mint slim`).
 
 If you run `mint` without any parameters you'll get an interactive prompt that will provide suggestions about the available commands and flags. `Tabs` are used to show the available options, to autocomplete the parameters and to navigate the option menu (which you can also do with Up and Down arrows). `Spaces` are used to move to the next parameter and `Enter` is used to run the command. For more info about the interactive prompt see [`go-prompt`](https://github.com/c-bata/go-prompt).
 
@@ -398,10 +395,10 @@ Change Types:
 
 In the interactive CLI prompt mode you must specify the target image using the `--target` flag while in the traditional CLI mode you can use the `--target` flag or you can specify the target image as the last value in the command.
 
-### `BUILD` COMMAND OPTIONS
+### `SLIM` COMMAND OPTIONS
 
-- `--target` - Target container image (name or ID). It's an alternative way to provide the target information. The standard way to provide the target information is by putting as the last value in the `build` command CLI call.
-- `--pull` - Try pulling target if it's not available locally (default: false).
+- `--target` - Target container image (name or ID). It's an alternative way to provide the target information. The standard way to provide the target information is by putting the target image reference as the last value in the `slim` (aka `build`) command CLI call.
+- `--pull` - Try pulling target if it's not available locally (default: true).
 - `--docker-config-path` - Set the docker config path used to fetch registry credentials (used with the `--pull` flag).
 - `--registry-account` - Account to be used when pulling images from private registries (used with the `--pull` flag).
 - `--registry-secret` - Account secret to be used when pulling images from private registries (used with the `--pull` and `--registry-account` flags).
@@ -565,7 +562,7 @@ You can also combine multiple `continue-after` modes. For now only combining `pr
 
 The `--include-shell` option provides a simple way to keep a basic shell in the minified container. Not all shell commands are included. To get additional shell commands or other command line utilities use the `--include-exe` and/or `--include-bin` options. Note that the extra apps and binaries might missed some of the non-binary dependencies (which don't get picked up during static analysis). For those additional dependencies use the `--include-path` and `--include-path-file` options.
 
-The `--dockerfile` option makes it possible to build a new minified image directly from source Dockerfile. Pass the Dockerfile name as the value for this flag and pass the build context directory or URL instead of the docker image name as the last parameter for the `build` command: `mint build --dockerfile Dockerfile --tag my/custom_minified_image_name .` If you want to see the console output from the build stages (when the fat and slim images are built) add the `--show-blogs` build flag. Note that the build console output is not interactive and it's printed only after the corresponding build step is done. The fat image created during the build process has the `.fat` suffix in its name. If you specify a custom image tag (with the `--tag` flag) the `.fat` suffix is added to the name part of the tag. If you don't provide a custom tag the generated fat image name will have the following format: `slim-tmp-fat-image.<pid_of_slim>.<current_timestamp>`. The minified image name will have the `.slim` suffix added to that auto-generated container image name (`slim-tmp-fat-image.<pid_of_slim>.<current_timestamp>.slim`). Take a look at this [python examples](https://github.com/mintoolkit/examples/tree/master/python_ubuntu_18_py27_from_dockerfile) to see how it's using the `--dockerfile` flag.
+The `--dockerfile` option makes it possible to build a new minified image directly from source Dockerfile. Pass the Dockerfile name as the value for this flag and pass the build context directory or URL instead of the docker image name as the last parameter for the `build` command: `mint slim --dockerfile Dockerfile --tag my/custom_minified_image_name .` If you want to see the console output from the build stages (when the fat and slim images are built) add the `--show-blogs` build flag. Note that the build console output is not interactive and it's printed only after the corresponding build step is done. The fat image created during the build process has the `.fat` suffix in its name. If you specify a custom image tag (with the `--tag` flag) the `.fat` suffix is added to the name part of the tag. If you don't provide a custom tag the generated fat image name will have the following format: `slim-tmp-fat-image.<pid_of_slim>.<current_timestamp>`. The minified image name will have the `.slim` suffix added to that auto-generated container image name (`slim-tmp-fat-image.<pid_of_slim>.<current_timestamp>.slim`). Take a look at this [python examples](https://github.com/mintoolkit/examples/tree/master/python_ubuntu_18_py27_from_dockerfile) to see how it's using the `--dockerfile` flag.
 
 The `--use-local-mounts` option is used to choose how the **Mint** sensor is added to the target container and how the sensor artifacts are delivered back to the master. If you enable this option you'll get the original **Mint** app behavior where it uses local file system volume mounts to add the sensor executable and to extract the artifacts from the target container. This option doesn't always work as expected in the dockerized environment where **Mint** itself is running in a Docker container. When this option is disabled (default behavior) then a separate Docker volume is used to mount the sensor and the sensor artifacts are explicitly copied from the target container.
 
@@ -766,17 +763,17 @@ When **Mint** app runs in a container it will attempt to save its execution stat
 By default, the **Mint** app will try to create a Docker volume for its sensor unless one already exists. If this behavior is not supported by your containerized environment you can create a volume separately and pass its name to the **Mint** app using the `--use-sensor-volume` flag.
 
 Here's a basic example of how to use the containerized version of the **Mint** app:
-`docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock mintoolkit/mint build your-docker-image-name`
+`docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock mintoolkit/mint slim your-docker-image-name`
 
 Here's a GitLab example for their `dind` `.gitlab-ci.yml` config file:
-`docker run -e DOCKER_HOST=tcp://$(grep docker /etc/hosts | cut -f1):2375 mintoolkit/mint build your-docker-image-name`
+`docker run -e DOCKER_HOST=tcp://$(grep docker /etc/hosts | cut -f1):2375 mintoolkit/mint slim your-docker-image-name`
 
 Here's a CircleCI example for their `remote docker` `.circleci/config.yml` config file (used after the `setup_remote_docker` step):
 
 ```bash
 docker create -v /dcert_path --name dcert alpine:latest /bin/true
 docker cp $DOCKER_CERT_PATH/. dcert:/dcert_path
-docker run --volumes-from dcert -e DOCKER_HOST=$DOCKER_HOST -e DOCKER_TLS_VERIFY=$DOCKER_TLS_VERIFY -e DOCKER_CERT_PATH=/dcert_path mintoolkit/mint build your-docker-image-name
+docker run --volumes-from dcert -e DOCKER_HOST=$DOCKER_HOST -e DOCKER_TLS_VERIFY=$DOCKER_TLS_VERIFY -e DOCKER_CERT_PATH=/dcert_path mintoolkit/mint slim your-docker-image-name
 ```
 
 Different CI/CD services have different containerized environment designs that impose various restrictions that may impact the ability of the main app to communicate with the sensor app embedded in the temporary container **Mint** creates. Try adjusting the values for the `--sensor-ipc-mode` and `--sensor-ipc-endpoint` flags. This [`Google Cloud Build`](https://medium.com/google-cloud/integrating-dockerslim-container-minify-step-on-cloud-build-64da29fd58d1) blog post by Márton Kodok is a good reference for both of those flags. 
@@ -985,10 +982,10 @@ Possible field combinations:
 Here are a couple of examples:
 
 Adds two extra probe commands: `GET /api/info` and `POST /submit` (tries http first, then tries https):
-`mint build --show-clogs --http-probe-cmd /api/info --http-probe-cmd POST:/submit my/sample-node-app-multi`
+`mint slim --show-clogs --http-probe-cmd /api/info --http-probe-cmd POST:/submit my/sample-node-app-multi`
 
 Adds one extra probe command: `POST /submit` (using only http):
-`mint build --show-clogs --http-probe-cmd http:POST:/submit my/sample-node-app-multi`
+`mint slim --show-clogs --http-probe-cmd http:POST:/submit my/sample-node-app-multi`
 
 The `--http-probe-cmd-file` option is good when you have a lot of commands and/or you want to select additional HTTP command options.
 
@@ -1011,7 +1008,7 @@ Available HTTP command options:
 
 Here's a probe command file example:
 
-`mint build --show-clogs --http-probe-cmd-file probeCmds.json my/sample-node-app-multi`
+`mint slim --show-clogs --http-probe-cmd-file probeCmds.json my/sample-node-app-multi`
 
 Commands in `probeCmds.json`:
 
@@ -1063,7 +1060,7 @@ Probing based on the Swagger/OpenAPI spec is another experimental capability. Th
 
 You can use the `--http-probe-exec` and `--http-probe-exec-file` options to run the user provided commands when the http probes are executed. This example shows how you can run `curl` against the temporary container created by **Mint** when the http probes are executed.
 
-`mint build --http-probe-exec 'curl http://localhost:YOUR_CONTAINER_PORT_NUM/some/path' --publish-port YOUR_CONTAINER_PORT_NUM your-container-image-name`
+`mint slim --http-probe-exec 'curl http://localhost:YOUR_CONTAINER_PORT_NUM/some/path' --publish-port YOUR_CONTAINER_PORT_NUM your-container-image-name`
 
 
 ## DEBUGGING MINIFIED CONTAINERS
@@ -1224,19 +1221,19 @@ Other useful command line parameters:
 
 Note that the `--entrypoint` and `--cmd` options don't override the `ENTRYPOINT` and `CMD` instructions in the final minified image.
 
-Here's a sample `build` command:
+Here's a sample `slim` (aka `build`) command:
 
-`mint build --show-clogs=true --cmd docker-compose.yml --mount $(pwd)/data/:/data/ mintoolkit/container-transform`
+`mint slim --show-clogs=true --cmd docker-compose.yml --mount $(pwd)/data/:/data/ mintoolkit/container-transform`
 
 It's used to minify the `container-transform` tool. You can get the minified image from [`Docker Hub`](https://hub.docker.com/r/mintoolkit/container-transform.slim/).
 
 ## QUICK SECCOMP EXAMPLE
 
-If you want to auto-generate a Seccomp profile AND minify your image use the `build` command. If you only want to auto-generate a Seccomp profile (along with other interesting image metadata) use the `profile` command.
+If you want to auto-generate a Seccomp profile AND minify your image use the `slim` (aka `build`) command. If you only want to auto-generate a Seccomp profile (along with other interesting image metadata) use the `profile` command.
 
 Step one: run Mint
 
-`mint build your-name/your-app`
+`mint slim your-name/your-app`
 
 Step two: use the generated Seccomp profile
 
@@ -1361,7 +1358,7 @@ The `--path-*` and `--include-*` params use the same format to communicate the p
 
 You don't have to specify the user and group IDs if you don't want to change them.
 
-Here's an example using these parameters to minify the standard `nginx` image adding extra artifacts and changing their permissions: `mint build --include-path='/opt:770#104#107' --include-path='/bin/uname:710' --path-perms='/tmp:700' nginx`.
+Here's an example using these parameters to minify the standard `nginx` image adding extra artifacts and changing their permissions: `mint slim --include-path='/opt:770#104#107' --include-path='/bin/uname:710' --path-perms='/tmp:700' nginx`.
 
 This is what you'll see in the optimized container image:
 
@@ -1407,7 +1404,7 @@ Run `make build` on linux or `make build_m1` on Macs (or `./scripts/src.build.sh
 
 Note:
 
-Try using the latest version of Go building the **Mint** app. The current version of Go used to build the **Mint** app is 1.21.
+Try using the latest version of Go building the **Mint** app. The current version of Go used to build the **Mint** app is 1.22.
 
 ##### Gitpod
 
