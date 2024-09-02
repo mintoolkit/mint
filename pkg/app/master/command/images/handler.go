@@ -12,6 +12,8 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/tui"
+	"github.com/mintoolkit/mint/pkg/app/master/tui/models"
 	"github.com/mintoolkit/mint/pkg/app/master/version"
 	cmd "github.com/mintoolkit/mint/pkg/command"
 	"github.com/mintoolkit/mint/pkg/crt"
@@ -125,6 +127,11 @@ func OnCommand(
 
 	images, err := crtClient.ListImages(cparams.Filter)
 	xc.FailOn(err)
+
+	if cparams.TUI {
+		model := models.InitialImagesModel(images)
+		tui.RunTUI(model)
+	}
 
 	if xc.Out.Quiet {
 		if xc.Out.OutputFormat == command.OutputFormatJSON {
