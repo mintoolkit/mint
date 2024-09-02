@@ -12,24 +12,24 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// Model represents the state of the TUI.
-type Model struct {
+// Images represents the state of the TUI.
+type Images struct {
 	table  table.Model
 	loaded bool
 }
 
-// InitialImagesModel returns the initial state of the model.
-func InitialImagesModel(images map[string]crt.BasicImageInfo) *Model {
+// InitialImages returns the initial state of the model.
+func InitialImages(images map[string]crt.BasicImageInfo) *Images {
 	var rows []table.Row
 	for k, v := range images {
 		imageRow := []string{k, dockerutil.CleanImageID(v.ID)[:12], humanize.Time(time.Unix(v.Created, 0)), humanize.Bytes(uint64(v.Size))}
 		rows = append(rows, imageRow)
 	}
 
-	m := &Model{}
+	m := &Images{}
 	columns := []table.Column{
 		{Title: "Name", Width: 50},
-		{Title: "Image ID", Width: 10},
+		{Title: "Image ID", Width: 15},
 		{Title: "Created", Width: 30},
 		{Title: "Size", Width: 8},
 	}
@@ -43,13 +43,13 @@ func InitialImagesModel(images map[string]crt.BasicImageInfo) *Model {
 	return m
 }
 
-func (m Model) Init() tea.Cmd {
+func (m Images) Init() tea.Cmd {
 	// Just return `nil`, which means "no I/O right now, please."
 	return nil
 }
 
 // Update is called to handle user input and update the model's state.
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Images) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		if !m.loaded {
@@ -65,7 +65,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View returns the view that should be displayed.
-func (m Model) View() string {
+func (m Images) View() string {
 	if m.loaded {
 		content := m.table.View()
 
@@ -82,4 +82,45 @@ func (m Model) View() string {
 	} else {
 		return "loading"
 	}
+}
+
+// Default Model
+type Model struct{}
+
+func InitialModel() *Model {
+	m := &Model{}
+	return m
+}
+
+func (m Model) Init() tea.Cmd {
+	// Just return `nil`, which means "no I/O right now, please."
+	return nil
+}
+
+// Update is called to handle user input and update the model's state.
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "q", "ctrl+c":
+			return m, tea.Quit // Quit the program.
+		}
+	}
+	return m, nil
+}
+
+// View returns the view that should be displayed.
+func (m Model) View() string {
+	content := "Coming soon..."
+
+	footerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#282828")).
+		Background(lipgloss.Color("#7c6f64"))
+
+	footerStr := "Press q to quit"
+	footer := footerStyle.Render(footerStr)
+	return lipgloss.JoinVertical(lipgloss.Left,
+		content,
+		footer,
+	)
 }

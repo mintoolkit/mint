@@ -18,11 +18,6 @@ func RunTUI(model tea.Model) {
 
 	defer f.Close()
 
-	if model == nil {
-		// TODO - what will the flow be from `mint tui`?
-		log.Println("To implement")
-	}
-
 	p := tea.NewProgram(model)
 	if _, err := p.Run(); err != nil {
 		log.Printf("RunTUI error - %v", err)

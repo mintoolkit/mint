@@ -129,7 +129,7 @@ func OnCommand(
 	xc.FailOn(err)
 
 	if cparams.TUI {
-		model := models.InitialImagesModel(images)
+		model := models.InitialImages(images)
 		tui.RunTUI(model)
 	}
 
