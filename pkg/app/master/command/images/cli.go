@@ -17,11 +17,13 @@ const (
 type CommandParams struct {
 	Runtime string `json:"runtime,omitempty"`
 	Filter  string `json:"filter,omitempty"`
+	TUI     bool   `json:"tui"`
 }
 
 var ImagesFlags = []cli.Flag{
 	command.Cflag(command.FlagRuntime),
 	cflag(FlagFilter),
+	cflag(FlagTUI),
 }
 
 //todo soon: add a lot of useful filtering flags
@@ -46,6 +48,7 @@ var CLI = &cli.Command{
 		cparams := &CommandParams{
 			Runtime: ctx.String(command.FlagRuntime),
 			Filter:  ctx.String(FlagFilter),
+			TUI:     ctx.Bool(FlagTUI),
 		}
 
 		OnCommand(xc, gcvalues, cparams)

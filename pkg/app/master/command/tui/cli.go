@@ -2,6 +2,7 @@ package tui
 
 import (
 	tui "github.com/mintoolkit/mint/pkg/app/master/tui"
+	"github.com/mintoolkit/mint/pkg/app/master/tui/models"
 	cmd "github.com/mintoolkit/mint/pkg/command"
 	"github.com/urfave/cli/v2"
 )
@@ -17,7 +18,8 @@ var CLI = &cli.Command{
 	Aliases: []string{Alias},
 	Usage:   Usage,
 	Action: func(ctx *cli.Context) error {
-		tui.RunTUI()
+		m := models.InitialModel()
+		tui.RunTUI(m)
 		return nil
 	},
 }
