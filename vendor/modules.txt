@@ -116,6 +116,7 @@ github.com/charmbracelet/bubbletea
 # github.com/charmbracelet/lipgloss v0.13.0
 ## explicit; go 1.18
 github.com/charmbracelet/lipgloss
+github.com/charmbracelet/lipgloss/table
 # github.com/charmbracelet/x/ansi v0.1.4
 ## explicit; go 1.18
 github.com/charmbracelet/x/ansi
