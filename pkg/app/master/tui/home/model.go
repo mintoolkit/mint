@@ -25,7 +25,7 @@ type Model struct {
 
 func InitialModel() (tea.Model, tea.Cmd) {
 	m := &Model{mode: nav}
-	log.Printf("Welcome model initialized: %v", m)
+	log.Printf("Home model initialized: %v", m)
 	return m, nil
 }
 
@@ -41,16 +41,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, keys.Global.Quit):
 			return m, tea.Quit // Quit the program.
-		case key.Matches(msg, keys.Welcome.Images):
+		case key.Matches(msg, keys.Home.Images):
 			m.mode = image
 			// TODO - Unhardcode the model index
+			// Get the `images` data.
 			return common.Models[1].Update(nil)
 
-			// TODO - support debug model
-			// case key.Matches(msg, keys.Welcome.Debug):
-			// 	m.mode = debug
-			// 	// TODO - Unhardcode the model index
-			// 	return common.Models[2].Update(nil)
+		// TODO - support debug model
+		case key.Matches(msg, keys.Home.Debug):
+			m.mode = debug
+			// TODO - Unhardcode the model index
+			return common.Models[2].Update(nil)
 		}
 	}
 	return m, nil
@@ -66,7 +67,5 @@ func (m Model) View() string {
 	)
 }
 func (m Model) help() string {
-	return common.HelpStyle("• i: Open images view • q: quit")
-	// TODO - support debug view
-	// return common.HelpStyle("• i: Open images view • d: Open debug view • q: quit")
+	return common.HelpStyle("• i: Open images view • d: Open debug view • q: quit")
 }
