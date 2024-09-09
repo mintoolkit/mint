@@ -13,7 +13,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/app/master/tui"
-	"github.com/mintoolkit/mint/pkg/app/master/tui/models"
+	imagesModel "github.com/mintoolkit/mint/pkg/app/master/tui/images"
 	"github.com/mintoolkit/mint/pkg/app/master/version"
 	cmd "github.com/mintoolkit/mint/pkg/command"
 	"github.com/mintoolkit/mint/pkg/crt"
@@ -129,8 +129,9 @@ func OnCommand(
 	xc.FailOn(err)
 
 	if cparams.TUI {
-		model := models.InitialImages(images)
-		tui.RunTUI(model)
+		standalone := true
+		model := imagesModel.InitialModel(images, standalone)
+		tui.RunTUI(model, standalone)
 	}
 
 	if xc.Out.Quiet {
