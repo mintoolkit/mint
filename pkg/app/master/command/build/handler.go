@@ -1475,7 +1475,7 @@ func monitorContainer(
 					"message": "HTTP probe is done",
 				})
 
-			if probe != nil && probe.CallCount > 0 && probe.OkCount == 0 && httpProbeOpts.ExitOnFailure {
+			if probe != nil && probe.CallCount.Value() > 0 && probe.OkCount.Value() == 0 && httpProbeOpts.ExitOnFailure {
 				xc.Out.Error("probe.error", "no.successful.calls")
 
 				containerInspector.ShowContainerLogs()

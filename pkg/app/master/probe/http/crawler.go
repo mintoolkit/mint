@@ -42,7 +42,7 @@ func (p *CustomProbe) crawl(proto, domain, addr string) {
 		p.concurrentCrawlers <- struct{}{}
 	}
 
-	p.workers.Add(1)
+	p.calls.Add(1)
 	go func() {
 		defer func() {
 			if p.opts.CrawlConcurrencyMax > 0 &&
@@ -50,7 +50,7 @@ func (p *CustomProbe) crawl(proto, domain, addr string) {
 				<-p.concurrentCrawlers
 			}
 
-			p.workers.Done()
+			p.calls.Done()
 		}()
 
 		var pageCount int

@@ -378,7 +378,7 @@ func (h *kubeHandler) monitorPod(
 			<-opts.continueAfter.ContinueChan
 			h.Out.Info("event", ovars{"message": "HTTP probe is done"})
 
-			if probe.CallCount > 0 && probe.OkCount == 0 && opts.httpProbeOpts.ExitOnFailure {
+			if probe.CallCount.Value() > 0 && probe.OkCount.Value() == 0 && opts.httpProbeOpts.ExitOnFailure {
 				h.Out.Error("probe.error", "no.successful.calls")
 
 				podInspector.ShowPodLogs()
