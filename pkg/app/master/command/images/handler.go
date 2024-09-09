@@ -132,9 +132,8 @@ func OnCommand(
 		standalone := true
 		model := imagesModel.InitialModel(images, standalone)
 		tui.RunTUI(model, standalone)
-	}
-
-	if xc.Out.Quiet {
+		return
+	} else if xc.Out.Quiet {
 		if xc.Out.OutputFormat == command.OutputFormatJSON {
 			fmt.Printf("%s\n", jsonutil.ToPretty(images))
 			return
