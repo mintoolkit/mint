@@ -433,8 +433,9 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--http-probe-retry-off` - Disable retries for probes (alternative way to disable probes)
 - `--http-probe-retry-count` - Number of retries for each probe (set to -1 to disable probe retries / default value: 5)
 - `--http-probe-retry-wait` - Number of seconds to wait before retrying HTTP probe (doubles when target is not ready; default value: 8)
+- `--http-probe-concurrency` - Max number of concurrent requests executing HTTP probes (default value: 5)
 - `--http-probe-ports` - Explicit list of ports to probe (in the order you want them to be probed; excluded ports are not probed!)
-- `--http-probe-full` - Do full HTTP probe for all selected ports (if false, finish after first successful scan; default value: false)
+- `--http-probe-full` - Do full HTTP probe for all selected ports (if false, finish after first successful scan; default value: true)
 - `--http-probe-exit-on-failure` - Exit when all HTTP probe commands fail (default value: true)
 - `--http-probe-exit-on-failure-count` - Exit when selected number of probe call failures happens
 - `--http-probe-fail-on-status-5xx` - Treat 5xx HTTP status codes as errors during HTTP probing

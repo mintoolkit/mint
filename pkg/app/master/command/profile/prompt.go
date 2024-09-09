@@ -88,7 +88,7 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		command.FullFlagName(command.FlagHTTPProbeOff):             command.CompleteBool,
 		command.FullFlagName(command.FlagHTTPProbe):                command.CompleteTBool,
 		command.FullFlagName(command.FlagHTTPProbeCmdFile):         command.CompleteFile,
-		command.FullFlagName(command.FlagHTTPProbeFull):            command.CompleteBool,
+		command.FullFlagName(command.FlagHTTPProbeFull):            command.CompleteTBool,
 		command.FullFlagName(command.FlagHTTPProbeExitOnFailure):   command.CompleteTBool,
 		command.FullFlagName(command.FlagHTTPProbeFailOnStatus5xx): command.CompleteBool,
 		command.FullFlagName(command.FlagHTTPProbeCrawl):           command.CompleteTBool,
