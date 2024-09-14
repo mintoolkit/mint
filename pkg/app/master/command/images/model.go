@@ -107,96 +107,50 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case common.Event:
-		switch msg.Type {
-		case common.HydrateImagesEvent:
+		xc := app.NewExecutionContext(
+			"tui",
+			true,
+			"json",
+		)
 
-			images, ok := msg.Data.(map[string]crt.BasicImageInfo)
-			if !ok {
-				return m, nil
-			}
-			m = Model{
-				width:      20,
-				height:     15,
-				standalone: false,
-			}
-			var rows [][]string
-			for k, v := range images {
-				log.Printf("Image k: %v", k)
-				log.Printf("Image v: %v", v)
-				imageRow := []string{k, dockerutil.CleanImageID(v.ID)[:12], humanize.Time(time.Unix(v.Created, 0)), humanize.Bytes(uint64(v.Size))}
-				rows = append(rows, imageRow)
-			}
-
-			t := table.New().
-				Border(lipgloss.NormalBorder()).
-				BorderStyle(BorderStyle).
-				StyleFunc(func(row, col int) lipgloss.Style {
-					var style lipgloss.Style
-
-					switch {
-					case row == 0:
-						return HeaderStyle
-					case row%2 == 0:
-						style = EvenRowStyle
-					default:
-						style = OddRowStyle
-					}
-
-					return style
-				}).
-				Headers("Name", "ID", "Created", "Size").
-				Rows(rows...)
-
-			m.table = *t
-			log.Printf("Hydrated m: %v", m)
-			return m, nil
-		case common.GetImagesEvent:
-			xc := app.NewExecutionContext(
-				"tui",
-				true,
-				"json",
-			)
-
-			cparams := &CommandParams{
-				Runtime:   crt.AutoRuntime,
-				GlobalTUI: true,
-			}
-
-			gcValue, ok := msg.Data.(*command.GenericParams)
-			if !ok || gcValue == nil {
-				return nil, nil
-			}
-			images := OnCommand(xc, gcValue, cparams)
-			var rows [][]string
-			for k, v := range images {
-				imageRow := []string{k, dockerutil.CleanImageID(v.ID)[:12], humanize.Time(time.Unix(v.Created, 0)), humanize.Bytes(uint64(v.Size))}
-				rows = append(rows, imageRow)
-			}
-
-			t := table.New().
-				Border(lipgloss.NormalBorder()).
-				BorderStyle(BorderStyle).
-				StyleFunc(func(row, col int) lipgloss.Style {
-					var style lipgloss.Style
-
-					switch {
-					case row == 0:
-						return HeaderStyle
-					case row%2 == 0:
-						style = EvenRowStyle
-					default:
-						style = OddRowStyle
-					}
-
-					return style
-				}).
-				Headers("Name", "ID", "Created", "Size").
-				Rows(rows...)
-
-			m.table = *t
-			return m, nil
+		cparams := &CommandParams{
+			Runtime:   crt.AutoRuntime,
+			GlobalTUI: true,
 		}
 
+		gcValue, ok := msg.Data.(*command.GenericParams)
+		if !ok || gcValue == nil {
+			return nil, nil
+		}
+		images := OnCommand(xc, gcValue, cparams)
+		var rows [][]string
+		for k, v := range images {
+			imageRow := []string{k, dockerutil.CleanImageID(v.ID)[:12], humanize.Time(time.Unix(v.Created, 0)), humanize.Bytes(uint64(v.Size))}
+			rows = append(rows, imageRow)
+		}
+
+		t := table.New().
+			Border(lipgloss.NormalBorder()).
+			BorderStyle(BorderStyle).
+			StyleFunc(func(row, col int) lipgloss.Style {
+				var style lipgloss.Style
+
+				switch {
+				case row == 0:
+					return HeaderStyle
+				case row%2 == 0:
+					style = EvenRowStyle
+				default:
+					style = OddRowStyle
+				}
+
+				return style
+			}).
+			Headers("Name", "ID", "Created", "Size").
+			Rows(rows...)
+
+		m.table = *t
+		return m, nil
 	case tea.WindowSizeMsg:
 		m.table.Width(msg.Width)
 		m.table.Height(msg.Height)
