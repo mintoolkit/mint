@@ -1,14 +1,17 @@
 package images
 
 import (
+	"log"
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/dustin/go-humanize"
+	"github.com/mintoolkit/mint/pkg/app"
+
+	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/common"
-	"github.com/mintoolkit/mint/pkg/app/master/tui/home"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/keys"
 	"github.com/mintoolkit/mint/pkg/crt"
 	"github.com/mintoolkit/mint/pkg/crt/docker/dockerutil"
@@ -22,6 +25,7 @@ type Model struct {
 	width      int
 	height     int
 	standalone bool
+	loading    bool
 }
 
 // Styles - move to `common`
@@ -46,8 +50,18 @@ var (
 
 // End styles
 
+func LoadModel() *Model {
+	m := &Model{
+		width:   20,
+		height:  15,
+		loading: true,
+	}
+	return m
+}
+
 // InitialModel returns the initial state of the model.
 func InitialModel(images map[string]crt.BasicImageInfo, standalone bool) *Model {
+	log.Printf("Images.InitialModel. images: %v", images)
 	m := &Model{
 		width:      20,
 		height:     15,
@@ -90,7 +104,99 @@ func (m Model) Init() tea.Cmd {
 
 // Update is called to handle user input and update the model's state.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+
 	switch msg := msg.(type) {
+	case common.Event:
+		switch msg.Type {
+		case common.HydrateImagesEvent:
+
+			images, ok := msg.Data.(map[string]crt.BasicImageInfo)
+			if !ok {
+				return m, nil
+			}
+			m = Model{
+				width:      20,
+				height:     15,
+				standalone: false,
+			}
+			var rows [][]string
+			for k, v := range images {
+				log.Printf("Image k: %v", k)
+				log.Printf("Image v: %v", v)
+				imageRow := []string{k, dockerutil.CleanImageID(v.ID)[:12], humanize.Time(time.Unix(v.Created, 0)), humanize.Bytes(uint64(v.Size))}
+				rows = append(rows, imageRow)
+			}
+
+			t := table.New().
+				Border(lipgloss.NormalBorder()).
+				BorderStyle(BorderStyle).
+				StyleFunc(func(row, col int) lipgloss.Style {
+					var style lipgloss.Style
+
+					switch {
+					case row == 0:
+						return HeaderStyle
+					case row%2 == 0:
+						style = EvenRowStyle
+					default:
+						style = OddRowStyle
+					}
+
+					return style
+				}).
+				Headers("Name", "ID", "Created", "Size").
+				Rows(rows...)
+
+			m.table = *t
+			log.Printf("Hydrated m: %v", m)
+			return m, nil
+		case common.GetImagesEvent:
+			xc := app.NewExecutionContext(
+				"tui",
+				true,
+				"json",
+			)
+
+			cparams := &CommandParams{
+				Runtime:   crt.AutoRuntime,
+				GlobalTUI: true,
+			}
+
+			gcValue, ok := msg.Data.(*command.GenericParams)
+			if !ok || gcValue == nil {
+				return nil, nil
+			}
+			images := OnCommand(xc, gcValue, cparams)
+			var rows [][]string
+			for k, v := range images {
+				imageRow := []string{k, dockerutil.CleanImageID(v.ID)[:12], humanize.Time(time.Unix(v.Created, 0)), humanize.Bytes(uint64(v.Size))}
+				rows = append(rows, imageRow)
+			}
+
+			t := table.New().
+				Border(lipgloss.NormalBorder()).
+				BorderStyle(BorderStyle).
+				StyleFunc(func(row, col int) lipgloss.Style {
+					var style lipgloss.Style
+
+					switch {
+					case row == 0:
+						return HeaderStyle
+					case row%2 == 0:
+						style = EvenRowStyle
+					default:
+						style = OddRowStyle
+					}
+
+					return style
+				}).
+				Headers("Name", "ID", "Created", "Size").
+				Rows(rows...)
+
+			m.table = *t
+			return m, nil
+		}
+
 	case tea.WindowSizeMsg:
 		m.table.Width(msg.Width)
 		m.table.Height(msg.Height)
@@ -100,7 +206,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Global.Quit):
 			return m, tea.Quit
 		case key.Matches(msg, keys.Global.Back):
-			return home.InitialModel()
+			return common.Models[0], nil
 		}
 	}
 	return m, nil

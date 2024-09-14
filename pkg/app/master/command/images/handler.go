@@ -13,7 +13,6 @@ import (
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/app/master/tui"
-	imagesModel "github.com/mintoolkit/mint/pkg/app/master/tui/images"
 	"github.com/mintoolkit/mint/pkg/app/master/version"
 	cmd "github.com/mintoolkit/mint/pkg/command"
 	"github.com/mintoolkit/mint/pkg/crt"
@@ -34,13 +33,14 @@ type ovars = app.OutVars
 func OnCommand(
 	xc *app.ExecutionContext,
 	gparams *command.GenericParams,
-	cparams *CommandParams) {
+	cparams *CommandParams) map[string]crt.BasicImageInfo {
 	const cmdName = Name
-	logger := log.WithFields(log.Fields{"app": appName, "cmd": cmdName})
 
+	logger := log.WithFields(log.Fields{"app": appName, "cmd": cmdName})
 	viChan := version.CheckAsync(gparams.CheckVersion, gparams.InContainer, gparams.IsDSImage)
 
 	cmdReport := report.NewImagesCommand(gparams.ReportLocation, gparams.InContainer)
+
 	cmdReport.State = cmd.StateStarted
 
 	xc.Out.State(cmd.StateStarted)
@@ -128,19 +128,20 @@ func OnCommand(
 	images, err := crtClient.ListImages(cparams.Filter)
 	xc.FailOn(err)
 
-	if cparams.TUI {
-		standalone := true
-		model := imagesModel.InitialModel(images, standalone)
-		tui.RunTUI(model, standalone)
-		return
+	if cparams.TUI { // `images --tui`
+		model := InitialModel(images, true)
+		tui.RunTUI(model, true)
+		return nil
+	} else if cparams.GlobalTUI { // `tui` -> `i`
+		return images
 	} else if xc.Out.Quiet {
 		if xc.Out.OutputFormat == command.OutputFormatJSON {
 			fmt.Printf("%s\n", jsonutil.ToPretty(images))
-			return
+			return nil
 		}
 
 		printImagesTable(images)
-		return
+		return nil
 	} else {
 		xc.Out.Info("image.list", ovars{"count": len(images)})
 		for name, info := range images {
@@ -169,6 +170,7 @@ func OnCommand(
 				"file": cmdReport.ReportLocation(),
 			})
 	}
+	return nil
 }
 
 func printImagesTable(images map[string]crt.BasicImageInfo) {

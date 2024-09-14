@@ -9,3 +9,11 @@ var (
 	P      *tea.Program
 	Models []tea.Model
 )
+
+// type Models struct {
+// 	Home tea.Model
+// 	Images tea.Model
+// 	Debug tea.Model
+// }
+
+// var ModelsInstance Models

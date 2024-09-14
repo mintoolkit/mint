@@ -1,11 +1,11 @@
 package home
 
 import (
-	"log"
-
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/command/images"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/common"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/keys"
 )
@@ -20,12 +20,13 @@ const (
 
 // Default Model
 type Model struct {
-	mode mode
+	Gcvalues *command.GenericParams
+	mode     mode
 }
 
-func InitialModel() (tea.Model, tea.Cmd) {
-	m := &Model{mode: nav}
-	log.Printf("Home model initialized: %v", m)
+func InitialModel(gcvalues *command.GenericParams) (tea.Model, tea.Cmd) {
+	m := &Model{mode: nav, Gcvalues: gcvalues}
+
 	return m, nil
 }
 
@@ -45,13 +46,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mode = image
 			// TODO - Unhardcode the model index
 			// Get the `images` data.
-			return common.Models[1].Update(nil)
+			getImagesEvent := common.Event{
+				Type: common.GetImagesEvent,
+				Data: m.Gcvalues,
+			}
+			loadModel := images.LoadModel()
+			common.Models = append(common.Models, loadModel)
+			return common.Models[1].Update(getImagesEvent)
 
-		// TODO - support debug model
-		case key.Matches(msg, keys.Home.Debug):
-			m.mode = debug
-			// TODO - Unhardcode the model index
-			return common.Models[2].Update(nil)
+			// TODO - support debug model
+			// case key.Matches(msg, keys.Home.Debug):
+			// 	m.mode = debug
+			// 	// TODO - create blank debug model
+			// 	// TODO - Unhardcode the model index
+			// 	return common.Models[2].Update(nil)
 		}
 	}
 	return m, nil
