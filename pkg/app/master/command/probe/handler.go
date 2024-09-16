@@ -83,7 +83,7 @@ func OnCommand(
 			"message": "HTTP probe is done",
 		})
 
-	if probe != nil && probe.CallCount > 0 && probe.OkCount == 0 {
+	if probe != nil && probe.CallCount.Value() > 0 && probe.OkCount.Value() == 0 {
 		xc.Out.Error("probe.error", "no.successful.calls")
 	}
 

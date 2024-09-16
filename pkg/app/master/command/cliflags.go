@@ -698,8 +698,9 @@ var CommonFlags = map[string]cli.Flag{
 		Usage:   FlagHTTPProbePortsUsage,
 		EnvVars: []string{"DSLIM_HTTP_PROBE_PORTS"},
 	},
-	FlagHTTPProbeFull: &cli.BoolFlag{
+	FlagHTTPProbeFull: &cli.BoolFlag{ //true by default now
 		Name:    FlagHTTPProbeFull,
+		Value:   true,
 		Usage:   FlagHTTPProbeFullUsage,
 		EnvVars: []string{"DSLIM_HTTP_PROBE_FULL"},
 	},

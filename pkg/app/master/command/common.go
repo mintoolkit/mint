@@ -28,6 +28,7 @@ const (
 
 var (
 	ErrNoGlobalParams = errors.New("No global params")
+	ErrBadParamValue  = errors.New("Bad param value")
 )
 
 type ovars = app.OutVars

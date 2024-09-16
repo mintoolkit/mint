@@ -1,0 +1,223 @@
+syntax = "proto3";
+
+package depot.cli.v1;
+
+import "google/protobuf/timestamp.proto";
+
+service BuildService {
+  rpc CreateBuild(CreateBuildRequest) returns (CreateBuildResponse);
+  rpc FinishBuild(FinishBuildRequest) returns (FinishBuildResponse);
+  rpc GetBuildKitConnection(GetBuildKitConnectionRequest) returns (GetBuildKitConnectionResponse);
+  rpc ReportBuildHealth(ReportBuildHealthRequest) returns (ReportBuildHealthResponse);
+  rpc ReportTimings(ReportTimingsRequest) returns (ReportTimingsResponse);
+  rpc ReportBuildContext(ReportBuildContextRequest) returns (ReportBuildContextResponse);
+  rpc ListBuilds(ListBuildsRequest) returns (ListBuildsResponse) {}
+}
+
+message CreateBuildRequest {
+  string project_id = 1;
+  // This is an option per build target; in other words many for bake and one for build.
+  repeated BuildOptions options = 2;
+}
+
+message BuildOptions {
+  Command command = 1;
+  // Names of the output images.
+  repeated string tags = 2;
+  // Specifies the type of output such as image, local, and docker.
+  repeated BuildOutput outputs = 3;
+  bool push = 4;
+  bool load = 5;
+  // Bake will always have a target name, whereas build's target name is rarely used.
+  optional string target_name = 6;
+
+  // Linting was requested.
+  bool lint = 7;
+  // Save to depot registry.
+  bool save = 8;
+}
+
+enum Command {
+  COMMAND_UNSPECIFIED = 0;
+  COMMAND_BUILD = 1;
+  COMMAND_BAKE = 2;
+  COMMAND_BUILDX = 3;
+  COMMAND_DAGGER = 4;
+  COMMAND_EXEC = 5;
+  COMMAND_FLYCTL = 6;
+}
+
+message BuildOutput {
+  // Kind includes image, local, and docker.
+  string kind = 1;
+  // Attributes are specific to the kind, but include things like push.
+  map<string, string> attributes = 2;
+}
+
+message CreateBuildResponse {
+  string build_id = 1;
+  string build_token = 2;
+  Registry registry = 3;
+  optional Profiler profiler = 4;
+
+  message Profiler {
+    string token = 1;
+  }
+
+  // Build URL is the URL to the build output.
+  string build_url = 5;
+
+  string project_id = 6;
+
+  repeated Credential additional_credentials = 7;
+  message Credential {
+    string host = 1;
+    string token = 2;
+  }
+
+  repeated Tag additional_tags = 8;
+  message Tag {
+    string tag = 1;
+    bool push = 2;
+  }
+}
+
+message Registry {
+  bool can_use_local_registry = 1;
+  string proxy_image = 2;
+}
+
+message FinishBuildRequest {
+  string build_id = 1;
+  oneof result {
+    BuildSuccess success = 2;
+    BuildError error = 3;
+    BuildCanceled canceled = 4;
+  }
+
+  message BuildSuccess {}
+
+  message BuildError {
+    string error = 1;
+  }
+
+  message BuildCanceled {}
+}
+
+message FinishBuildResponse {}
+
+enum BuilderPlatform {
+  BUILDER_PLATFORM_UNSPECIFIED = 0;
+  BUILDER_PLATFORM_AMD64 = 1;
+  BUILDER_PLATFORM_ARM64 = 2;
+}
+
+message GetBuildKitConnectionRequest {
+  string build_id = 1;
+  BuilderPlatform platform = 2;
+}
+
+message GetBuildKitConnectionResponse {
+  oneof connection {
+    PendingConnection pending = 1;
+    ActiveConnection active = 2;
+  }
+
+  message PendingConnection {
+    int32 wait_ms = 1;
+  }
+
+  message ActiveConnection {
+    string endpoint = 1;
+    string server_name = 2;
+    Cert cert = 3;
+    Cert ca_cert = 4;
+    oneof compressor {
+      Identity identity = 5;
+      Gzip gzip = 6;
+    }
+
+    message Identity {}
+    message Gzip {}
+  }
+}
+
+message Cert {
+  string cert = 1;
+  string key = 2;
+}
+
+message ReportBuildHealthRequest {
+  string build_id = 1;
+  BuilderPlatform platform = 2;
+}
+
+message ReportBuildHealthResponse {}
+
+message ReportTimingsRequest {
+  string build_id = 1;
+  repeated BuildStep build_steps = 2;
+}
+
+message ReportTimingsResponse {}
+
+message BuildStep {
+  google.protobuf.Timestamp start_time = 1;
+  int32 duration_ms = 2;
+  string name = 3;
+  optional string error = 4;
+  optional string stable_digest = 5;
+  bool cached = 6;
+  repeated string input_digests = 7;
+  repeated string ancestor_digests = 8;
+}
+
+message ListBuildsRequest {
+  // The project ID to get the builds for
+  string project_id = 1;
+  // The maximum number of results to return per page
+  int32 page_size = 2;
+  // The page token indicating which page of results to return
+  string page_token = 3;
+}
+
+message ListBuildsResponse {
+  repeated Build builds = 1;
+  // The next page token, if there are more results
+  string next_page_token = 2;
+}
+
+// Build message
+message Build {
+  string id = 1;
+  BuildStatus status = 2;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp finished_at = 5;
+}
+
+// Build status enum
+enum BuildStatus {
+  BUILD_STATUS_UNSPECIFIED = 0;
+  BUILD_STATUS_RUNNING = 1;
+  BUILD_STATUS_FINISHED = 2;
+  BUILD_STATUS_FAILED = 3;
+  BUILD_STATUS_CANCELED = 4;
+}
+
+message PageToken {
+  string project_id = 1;
+  google.protobuf.Timestamp last_created_at = 2;
+}
+
+message ReportBuildContextRequest {
+  string build_id = 1;
+  repeated Dockerfile dockerfiles = 2;
+}
+
+message Dockerfile {
+  string target = 1;
+  string filename = 2;
+  string contents = 3;
+}
+
+message ReportBuildContextResponse {}

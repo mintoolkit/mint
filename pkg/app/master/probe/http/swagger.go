@@ -607,7 +607,7 @@ func (p *CustomProbe) apiSpecEndpointCall(
 
 		//no request headers and no credentials for now
 		res, err := client.Do(req)
-		p.CallCount++
+		p.CallCount.Inc()
 
 		if res != nil {
 			if res.Body != nil {
@@ -665,10 +665,10 @@ func (p *CustomProbe) apiSpecEndpointCall(
 		}
 
 		if err == nil {
-			p.OkCount++
+			p.OkCount.Inc()
 			break
 		} else {
-			p.ErrCount++
+			p.ErrCount.Inc()
 
 			if urlErr, ok := err.(*url.Error); ok {
 				if urlErr.Err == io.EOF {
