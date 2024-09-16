@@ -197,6 +197,14 @@ type ImagesCommand struct {
 	Command
 }
 
+// Output Version for 'imagebuild'
+const OVImageBuildCommand = "ov/command/imagebuild/1.0"
+
+// ImageBuildCommand is the 'imagebuild' command report data
+type ImageBuildCommand struct {
+	Command
+}
+
 // Output Version for 'containerize'
 const OVContainerizeCommand = "ov/command/containerize/1.0"
 
@@ -367,6 +375,22 @@ func NewImagesCommand(reportLocation string, containerized bool) *ImagesCommand 
 			Document:       CommandReportDT,
 			Version:        OVImagesCommand, //images command 'results' version (report and artifacts)
 			Type:           command.Images,
+			State:          command.StateUnknown,
+		},
+	}
+
+	cmd.Command.init(containerized)
+	return cmd
+}
+
+// NewImageBuildCommand creates a new 'imagebuild' command report
+func NewImageBuildCommand(reportLocation string, containerized bool) *ImageBuildCommand {
+	cmd := &ImageBuildCommand{
+		Command: Command{
+			reportLocation: reportLocation,
+			Document:       CommandReportDT,
+			Version:        OVImageBuildCommand, //imagebuild command 'results' version (report and artifacts)
+			Type:           command.ImageBuild,
 			State:          command.StateUnknown,
 		},
 	}

@@ -19,6 +19,7 @@ import (
 
 	//"github.com/mintoolkit/mint/pkg/app/master/command/edit"
 	"github.com/mintoolkit/mint/pkg/app/master/command/help"
+	"github.com/mintoolkit/mint/pkg/app/master/command/imagebuild"
 	"github.com/mintoolkit/mint/pkg/app/master/command/images"
 	"github.com/mintoolkit/mint/pkg/app/master/command/lint"
 	"github.com/mintoolkit/mint/pkg/app/master/command/merge"
@@ -54,6 +55,7 @@ func registerCommands() {
 	lint.RegisterCommand()
 	merge.RegisterCommand()
 	images.RegisterCommand()
+	imagebuild.RegisterCommand()
 	registry.RegisterCommand()
 	vulnerability.RegisterCommand()
 	profile.RegisterCommand()

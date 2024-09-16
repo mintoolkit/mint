@@ -7,10 +7,11 @@ import (
 
 	a "github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	cmd "github.com/mintoolkit/mint/pkg/command"
 )
 
 const (
-	Name  = "app"
+	Name  = string(cmd.App)
 	Usage = "Execute app management, maintenance, debugging and query operations"
 	Alias = "a"
 
