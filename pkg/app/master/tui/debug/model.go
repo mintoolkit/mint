@@ -4,7 +4,6 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/common"
-	"github.com/mintoolkit/mint/pkg/app/master/tui/home"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/keys"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -37,7 +36,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Global.Quit):
 			return m, tea.Quit
 		case key.Matches(msg, keys.Global.Back):
-			return home.InitialModel()
+			return common.ModelsInstance.Home, nil
 		}
 	}
 	return m, nil

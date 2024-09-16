@@ -7,25 +7,19 @@ import (
 	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/app/master/command/images"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/common"
+	"github.com/mintoolkit/mint/pkg/app/master/tui/debug"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/keys"
 )
 
 type mode int
 
-const (
-	nav mode = iota
-	image
-	debug
-)
-
 // Default Model
 type Model struct {
 	Gcvalues *command.GenericParams
-	mode     mode
 }
 
 func InitialModel(gcvalues *command.GenericParams) (tea.Model, tea.Cmd) {
-	m := &Model{mode: nav, Gcvalues: gcvalues}
+	m := &Model{Gcvalues: gcvalues}
 
 	return m, nil
 }
@@ -43,23 +37,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Global.Quit):
 			return m, tea.Quit // Quit the program.
 		case key.Matches(msg, keys.Home.Images):
-			m.mode = image
-			// TODO - Unhardcode the model index
-			// Get the `images` data.
 			getImagesEvent := common.Event{
 				Type: common.GetImagesEvent,
 				Data: m.Gcvalues,
 			}
-			loadModel := images.LoadModel()
-			common.Models = append(common.Models, loadModel)
-			return common.Models[1].Update(getImagesEvent)
 
-			// TODO - support debug model
-			// case key.Matches(msg, keys.Home.Debug):
-			// 	m.mode = debug
-			// 	// TODO - create blank debug model
-			// 	// TODO - Unhardcode the model index
-			// 	return common.Models[2].Update(nil)
+			loadModel := images.LoadModel()
+			common.ModelsInstance.Images = loadModel
+			return loadModel.Update(getImagesEvent)
+		case key.Matches(msg, keys.Home.Debug):
+			debugModel := debug.InitialModel(false)
+			common.ModelsInstance.Debug = debugModel
+			return debugModel.Update(nil)
 		}
 	}
 	return m, nil

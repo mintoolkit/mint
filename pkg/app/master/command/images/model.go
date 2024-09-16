@@ -1,7 +1,6 @@
 package images
 
 import (
-	"log"
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -59,14 +58,7 @@ func LoadModel() *Model {
 	return m
 }
 
-// InitialModel returns the initial state of the model.
-func InitialModel(images map[string]crt.BasicImageInfo, standalone bool) *Model {
-	log.Printf("Images.InitialModel. images: %v", images)
-	m := &Model{
-		width:      20,
-		height:     15,
-		standalone: standalone,
-	}
+func generateTable(images map[string]crt.BasicImageInfo) table.Table {
 	var rows [][]string
 	for k, v := range images {
 		imageRow := []string{k, dockerutil.CleanImageID(v.ID)[:12], humanize.Time(time.Unix(v.Created, 0)), humanize.Bytes(uint64(v.Size))}
@@ -93,7 +85,17 @@ func InitialModel(images map[string]crt.BasicImageInfo, standalone bool) *Model 
 		Headers("Name", "ID", "Created", "Size").
 		Rows(rows...)
 
-	m.table = *t
+	return *t
+}
+
+// InitialModel returns the initial state of the model.
+func InitialModel(images map[string]crt.BasicImageInfo, standalone bool) *Model {
+	m := &Model{
+		width:      20,
+		height:     15,
+		standalone: standalone,
+	}
+	m.table = generateTable(images)
 	return m
 }
 
@@ -122,34 +124,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !ok || gcValue == nil {
 			return nil, nil
 		}
+
 		images := OnCommand(xc, gcValue, cparams)
-		var rows [][]string
-		for k, v := range images {
-			imageRow := []string{k, dockerutil.CleanImageID(v.ID)[:12], humanize.Time(time.Unix(v.Created, 0)), humanize.Bytes(uint64(v.Size))}
-			rows = append(rows, imageRow)
-		}
-
-		t := table.New().
-			Border(lipgloss.NormalBorder()).
-			BorderStyle(BorderStyle).
-			StyleFunc(func(row, col int) lipgloss.Style {
-				var style lipgloss.Style
-
-				switch {
-				case row == 0:
-					return HeaderStyle
-				case row%2 == 0:
-					style = EvenRowStyle
-				default:
-					style = OddRowStyle
-				}
-
-				return style
-			}).
-			Headers("Name", "ID", "Created", "Size").
-			Rows(rows...)
-
-		m.table = *t
+		m.table = generateTable(images)
 		return m, nil
 	case tea.WindowSizeMsg:
 		m.table.Width(msg.Width)
@@ -160,7 +137,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Global.Quit):
 			return m, tea.Quit
 		case key.Matches(msg, keys.Global.Back):
-			return common.Models[0], nil
+			return common.ModelsInstance.Home, nil
 		}
 	}
 	return m, nil

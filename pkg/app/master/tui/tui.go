@@ -17,20 +17,10 @@ func RunTUI(model tea.Model, standalone bool) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	// We are running the tui via `debug --tui` || `images --tui`
-	if standalone {
-		common.Models = []tea.Model{model}
-	} else {
-		common.Models = []tea.Model{model}
-
-		// TODO - rather than using mockdata, determine the flow to hydrate the model
-		// with images data.
-		// debugModel := debug.InitialModel(false)
-		// imagesModel := images.LoadModel()
-		// common.Models = []tea.Model{model, imagesModel}
-		// common.Models = []tea.Model{model, images.InitialModel(mockData, false), debugModel}
+	// We are running the tui via `mint tui`
+	if !standalone {
+		common.ModelsInstance.Home = model
 	}
-	// We are running the tui via `mint --tui`
 	common.P = tea.NewProgram(model, tea.WithAltScreen())
 
 	if _, err := common.P.Run(); err != nil {
