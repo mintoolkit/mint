@@ -43,11 +43,11 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			LoadTUI := images.LoadTUI()
-			common.ModelsInstance.Images = LoadTUI
+			common.TUIsInstance.Images = LoadTUI
 			return LoadTUI.Update(getImagesEvent)
 		case key.Matches(msg, keys.Home.Debug):
 			debugModel := debug.InitialModel(false)
-			common.ModelsInstance.Debug = debugModel
+			common.TUIsInstance.Debug = debugModel
 			return debugModel.Update(nil)
 		}
 	}

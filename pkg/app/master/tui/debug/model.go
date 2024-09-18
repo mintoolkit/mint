@@ -38,7 +38,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// NOTE -> We should only support this back navigation,
 		// if the images tui is not standalone
 		case key.Matches(msg, keys.Global.Back):
-			return common.ModelsInstance.Home, nil
+			return common.TUIsInstance.Home, nil
 		}
 	}
 	return m, nil

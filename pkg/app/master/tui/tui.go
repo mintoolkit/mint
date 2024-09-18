@@ -19,7 +19,7 @@ func RunTUI(model tea.Model, standalone bool) {
 	defer f.Close()
 	// We are running the tui via `mint tui`
 	if !standalone {
-		common.ModelsInstance.Home = model
+		common.TUIsInstance.Home = model
 	}
 	common.P = tea.NewProgram(model, tea.WithAltScreen())
 

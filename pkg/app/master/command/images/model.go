@@ -137,7 +137,7 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Global.Quit):
 			return m, tea.Quit
 		case key.Matches(msg, keys.Global.Back):
-			return common.ModelsInstance.Home, nil
+			return common.TUIsInstance.Home, nil
 		}
 	}
 	return m, nil

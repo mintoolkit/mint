@@ -6,11 +6,11 @@ import (
 
 var (
 	// P the current tea program
-	P              *tea.Program
-	ModelsInstance Models
+	P            *tea.Program
+	TUIsInstance TUIs
 )
 
-type Models struct {
+type TUIs struct {
 	Home   tea.Model
 	Images tea.Model
 	Debug  tea.Model
