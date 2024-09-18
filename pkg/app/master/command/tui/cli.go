@@ -24,8 +24,8 @@ var CLI = &cli.Command{
 			return command.ErrNoGlobalParams
 		}
 
-		m, _ := home.InitialModel(gcvalues)
-		tui.RunTUI(m, false)
+		initialTUI, _ := home.InitialTUI(gcvalues)
+		tui.RunTUI(initialTUI, false)
 		return nil
 	},
 }

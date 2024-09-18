@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/dustin/go-humanize"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/common"
-	"github.com/mintoolkit/mint/pkg/app/master/tui/home"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/keys"
 	"github.com/mintoolkit/mint/pkg/crt"
 	"github.com/mintoolkit/mint/pkg/crt/docker/dockerutil"
@@ -99,8 +98,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, keys.Global.Quit):
 			return m, tea.Quit
+		// NOTE -> We should only support this back navigation,
+		// if the images tui is not standalone
 		case key.Matches(msg, keys.Global.Back):
-			return home.InitialModel()
+			return common.ModelsInstance.Home, nil
 		}
 	}
 	return m, nil

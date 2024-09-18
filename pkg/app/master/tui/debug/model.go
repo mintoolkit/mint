@@ -35,6 +35,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, keys.Global.Quit):
 			return m, tea.Quit
+		// NOTE -> We should only support this back navigation,
+		// if the images tui is not standalone
 		case key.Matches(msg, keys.Global.Back):
 			return common.ModelsInstance.Home, nil
 		}

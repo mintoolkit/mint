@@ -18,7 +18,7 @@ type Model struct {
 	Gcvalues *command.GenericParams
 }
 
-func InitialModel(gcvalues *command.GenericParams) (tea.Model, tea.Cmd) {
+func InitialTUI(gcvalues *command.GenericParams) (tea.Model, tea.Cmd) {
 	m := &Model{Gcvalues: gcvalues}
 
 	return m, nil
