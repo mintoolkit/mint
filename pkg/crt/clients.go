@@ -127,9 +127,14 @@ type ImageSaverAPIClient interface {
 	SaveImage(imageRef, localPath string, extract, removeOrig bool) error
 }
 
+type ImageLoaderAPIClient interface {
+	LoadImage(localPath string, outputStream io.Writer) error
+}
+
 type APIClient interface {
 	InspectorAPIClient
 	ImageSaverAPIClient
+	ImageLoaderAPIClient
 }
 
 func ImageToIdentity(info *ImageInfo) *ImageIdentity {

@@ -2,6 +2,7 @@ package dockercrtclient
 
 import (
 	"fmt"
+	"io"
 
 	docker "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
@@ -232,6 +233,18 @@ func (ref *Instance) GetRegistryAuthConfig(account, secret, configPath, registry
 
 func (ref *Instance) SaveImage(imageRef, localPath string, extract, removeOrig bool) error {
 	err := dockerutil.SaveImage(ref.pclient, imageRef, localPath, extract, removeOrig)
+	if err != nil {
+		if err == dockerutil.ErrBadParam {
+			err = crt.ErrBadParam
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (ref *Instance) LoadImage(localPath string, outputStream io.Writer) error {
+	err := dockerutil.LoadImage(ref.pclient, localPath, nil, outputStream)
 	if err != nil {
 		if err == dockerutil.ErrBadParam {
 			err = crt.ErrBadParam

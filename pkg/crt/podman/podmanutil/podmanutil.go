@@ -2,6 +2,7 @@ package podmanutil
 
 import (
 	"context"
+	"io"
 	// "archive/tar"
 	// "bufio"
 	// "bytes"
@@ -98,6 +99,40 @@ func HasImage(client context.Context, imageRef string) (*ImageIdentity, error) {
 	}
 
 	return ImageToIdentity(imageInfo), nil
+}
+
+func LoadImage(client context.Context,
+	locaTarFilePath string,
+	inputStream io.Reader,
+	outputStream io.Writer) error {
+	if locaTarFilePath == "" && inputStream == nil {
+		return ErrBadParam
+	}
+
+	if locaTarFilePath != "" {
+		if !fsutil.Exists(locaTarFilePath) {
+			return ErrBadParam
+		}
+
+		dfile, err := os.Open(locaTarFilePath)
+		if err != nil {
+			return err
+		}
+
+		defer dfile.Close()
+
+		inputStream = dfile
+	}
+
+	report, err := images.Load(client, inputStream)
+	if err != nil {
+		log.Errorf("podmanutil.LoadImage: images.Load() error = %v", err)
+		return err
+	}
+
+	log.Errorf("podmanutil.LoadImage: images.Load() report = %+v", report)
+	//todo: if outputStream != nil write report to it (report.Names)
+	return nil
 }
 
 func SaveImage(

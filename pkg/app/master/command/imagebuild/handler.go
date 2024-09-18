@@ -2,6 +2,7 @@ package imagebuild
 
 import (
 	"context"
+	"os"
 
 	docker "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/crt"
 	"github.com/mintoolkit/mint/pkg/crt/docker/dockerclient"
+	"github.com/mintoolkit/mint/pkg/crt/docker/dockercrtclient"
+	"github.com/mintoolkit/mint/pkg/crt/podman/podmancrtclient"
 
 	"github.com/mintoolkit/mint/pkg/report"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
@@ -48,8 +51,7 @@ func OnCommand(
 	var dclient *docker.Client
 	var pclient context.Context
 
-	switch cparams.Engine {
-	case DockerBuildEngine:
+	initDockerClient := func() {
 		dclient, err = dockerclient.New(gparams.ClientConfig)
 		if err == dockerclient.ErrNoDockerInfo {
 			exitMsg := "missing Docker connection info"
@@ -69,6 +71,35 @@ func OnCommand(
 			xc.Exit(exitCode)
 		}
 		xc.FailOn(err)
+	}
+
+	initPodmanClient := func() {
+		if gparams.CRTConnection != "" {
+			pclient = crt.GetPodmanConnContextWithConn(gparams.CRTConnection)
+		} else {
+			pclient = crt.GetPodmanConnContext()
+		}
+
+		if pclient == nil {
+			xc.Out.Info("podman.connect.service",
+				ovars{
+					"message": "not running",
+				})
+
+			xc.Out.State("exited",
+				ovars{
+					"exit.code":    -1,
+					"version":      v.Current(),
+					"location":     fsutil.ExeDir(),
+					"podman.error": crt.PodmanConnErr,
+				})
+			xc.Exit(-1)
+		}
+	}
+
+	switch cparams.Engine {
+	case DockerBuildEngine:
+		initDockerClient()
 
 		if gparams.Debug {
 			version.Print(xc, cmdName, logger, dclient, false, gparams.InContainer, gparams.IsDSImage)
@@ -94,27 +125,7 @@ func OnCommand(
 
 		HandleSimpleEngine(logger, xc, gparams, cparams)
 	case PodmanBuildEngine:
-		if gparams.CRTConnection != "" {
-			pclient = crt.GetPodmanConnContextWithConn(gparams.CRTConnection)
-		} else {
-			pclient = crt.GetPodmanConnContext()
-		}
-
-		if pclient == nil {
-			xc.Out.Info("podman.connect.service",
-				ovars{
-					"message": "not running",
-				})
-
-			xc.Out.State("exited",
-				ovars{
-					"exit.code":    -1,
-					"version":      v.Current(),
-					"location":     fsutil.ExeDir(),
-					"podman.error": crt.PodmanConnErr,
-				})
-			xc.Exit(-1)
-		}
+		initPodmanClient()
 
 		if gparams.Debug {
 			version.Print(xc, Name, logger, nil, false, gparams.InContainer, gparams.IsDSImage)
@@ -133,32 +144,33 @@ func OnCommand(
 		xc.Exit(-1)
 	}
 
-	//images, err := crtClient.ListImages(cparams.Filter)
-	//xc.FailOn(err)
-
-	/*
-		if xc.Out.Quiet {
-			if xc.Out.OutputFormat == command.OutputFormatJSON {
-				fmt.Printf("%s\n", jsonutil.ToPretty(images))
-				return
-			}
-
-			printImagesTable(images)
-			return
-		} else {
-			xc.Out.Info("image.list", ovars{"count": len(images)})
-			for name, info := range images {
-				fields := ovars{
-					"name":    name,
-					"id":      info.ID,
-					"size":    humanize.Bytes(uint64(info.Size)),
-					"created": time.Unix(info.Created, 0).Format(time.RFC3339),
-				}
-
-				xc.Out.Info("image", fields)
-			}
+	var crtLoaderClient crt.ImageLoaderAPIClient
+	switch cparams.Runtime {
+	case DockerRuntimeLoad:
+		if dclient == nil {
+			initDockerClient()
 		}
-	*/
+
+		crtLoaderClient = dockercrtclient.New(dclient)
+	case PodmanRuntimeLoad:
+		if pclient == nil {
+			initPodmanClient()
+		}
+
+		crtLoaderClient = podmancrtclient.New(pclient)
+	}
+
+	if crtLoaderClient != nil {
+		xc.Out.Info("runtime.load.image", ovars{
+			"runtime":            cparams.Runtime,
+			"image.archive.file": cparams.ImageArchiveFile,
+		})
+
+		err = crtLoaderClient.LoadImage(cparams.ImageArchiveFile, os.Stdout)
+		xc.FailOn(err)
+	} else {
+		xc.Out.Info("runtime.load.image.none")
+	}
 
 	xc.Out.State(cmd.StateCompleted)
 	cmdReport.State = cmd.StateCompleted

@@ -263,6 +263,61 @@ func BuildEmptyImage(dclient *dockerapi.Client) error {
 	return nil
 }
 
+func LoadImage(dclient *dockerapi.Client,
+	locaTarFilePath string,
+	inputStream io.Reader,
+	outputStream io.Writer) error {
+	if locaTarFilePath == "" && inputStream == nil {
+		return ErrBadParam
+	}
+
+	var err error
+	if dclient == nil {
+		socketInfo, err := dockerclient.GetUnixSocketAddr()
+		if err != nil {
+			return err
+		}
+
+		if socketInfo == nil || socketInfo.Address == "" {
+			return fmt.Errorf("no unix socket found")
+		}
+
+		dclient, err = dockerapi.NewClient(socketInfo.Address)
+		if err != nil {
+			log.Errorf("dockerutil.LoadImage: dockerapi.NewClient() error = %v", err)
+			return err
+		}
+	}
+
+	if locaTarFilePath != "" {
+		if !fsutil.Exists(locaTarFilePath) {
+			return ErrBadParam
+		}
+
+		dfile, err := os.Open(locaTarFilePath)
+		if err != nil {
+			return err
+		}
+
+		defer dfile.Close()
+
+		inputStream = dfile
+	}
+
+	options := dockerapi.LoadImageOptions{
+		InputStream:  inputStream,
+		OutputStream: outputStream,
+	}
+
+	err = dclient.LoadImage(options)
+	if err != nil {
+		log.Errorf("dockerutil.LoadImage: dclient.LoadImage() error = %v", err)
+		return err
+	}
+
+	return nil
+}
+
 func SaveImage(dclient *dockerapi.Client, imageRef, local string, extract, removeOrig bool) error {
 	if local == "" {
 		return ErrBadParam

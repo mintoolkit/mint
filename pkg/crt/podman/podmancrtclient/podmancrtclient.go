@@ -1,6 +1,7 @@
 package podmancrtclient
 
 import (
+	"io"
 	//"fmt"
 	"context"
 	"errors"
@@ -219,6 +220,18 @@ func (ref *Instance) GetRegistryAuthConfig(account, secret, configPath, registry
 
 func (ref *Instance) SaveImage(imageRef, localPath string, extract, removeOrig bool) error {
 	err := podmanutil.SaveImage(ref.pclient, imageRef, localPath, extract, removeOrig, true)
+	if err != nil {
+		if err == podmanutil.ErrBadParam {
+			err = crt.ErrBadParam
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (ref *Instance) LoadImage(localPath string, outputStream io.Writer) error {
+	err := podmanutil.LoadImage(ref.pclient, localPath, nil, outputStream)
 	if err != nil {
 		if err == podmanutil.ErrBadParam {
 			err = crt.ErrBadParam
