@@ -7,8 +7,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/dustin/go-humanize"
+	"github.com/mintoolkit/mint/pkg/app"
+
+	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/common"
-	"github.com/mintoolkit/mint/pkg/app/master/tui/home"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/keys"
 	"github.com/mintoolkit/mint/pkg/crt"
 	"github.com/mintoolkit/mint/pkg/crt/docker/dockerutil"
@@ -16,12 +18,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// Model represents the state of the TUI.
-type Model struct {
+// TUI represents the internal state of the terminal user interface.
+type TUI struct {
 	table      table.Table
 	width      int
 	height     int
 	standalone bool
+	loading    bool
 }
 
 // Styles - move to `common`
@@ -46,13 +49,16 @@ var (
 
 // End styles
 
-// InitialModel returns the initial state of the model.
-func InitialModel(images map[string]crt.BasicImageInfo, standalone bool) *Model {
-	m := &Model{
-		width:      20,
-		height:     15,
-		standalone: standalone,
+func LoadTUI() *TUI {
+	m := &TUI{
+		width:   20,
+		height:  15,
+		loading: true,
 	}
+	return m
+}
+
+func generateTable(images map[string]crt.BasicImageInfo) table.Table {
 	var rows [][]string
 	for k, v := range images {
 		imageRow := []string{k, dockerutil.CleanImageID(v.ID)[:12], humanize.Time(time.Unix(v.Created, 0)), humanize.Bytes(uint64(v.Size))}
@@ -79,18 +85,49 @@ func InitialModel(images map[string]crt.BasicImageInfo, standalone bool) *Model 
 		Headers("Name", "ID", "Created", "Size").
 		Rows(rows...)
 
-	m.table = *t
+	return *t
+}
+
+// InitialTUI returns the initial state of the TUI.
+func InitialTUI(images map[string]crt.BasicImageInfo, standalone bool) *TUI {
+	m := &TUI{
+		width:      20,
+		height:     15,
+		standalone: standalone,
+	}
+	m.table = generateTable(images)
 	return m
 }
 
-func (m Model) Init() tea.Cmd {
+func (m TUI) Init() tea.Cmd {
 	// Just return `nil`, which means "no I/O right now, please."
 	return nil
 }
 
-// Update is called to handle user input and update the model's state.
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+// Update is called to handle user input and update the TUI's state.
+func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+
 	switch msg := msg.(type) {
+	case common.Event:
+		xc := app.NewExecutionContext(
+			"tui",
+			true,
+			"json",
+		)
+
+		cparams := &CommandParams{
+			Runtime:   crt.AutoRuntime,
+			GlobalTUI: true,
+		}
+
+		gcValue, ok := msg.Data.(*command.GenericParams)
+		if !ok || gcValue == nil {
+			return nil, nil
+		}
+
+		images := OnCommand(xc, gcValue, cparams)
+		m.table = generateTable(images)
+		return m, nil
 	case tea.WindowSizeMsg:
 		m.table.Width(msg.Width)
 		m.table.Height(msg.Height)
@@ -100,14 +137,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Global.Quit):
 			return m, tea.Quit
 		case key.Matches(msg, keys.Global.Back):
-			return home.InitialModel()
+			return common.TUIsInstance.Home, nil
 		}
 	}
 	return m, nil
 }
 
 // View returns the view that should be displayed.
-func (m Model) View() string {
+func (m TUI) View() string {
 	var components []string
 
 	content := m.table.String()
@@ -121,7 +158,7 @@ func (m Model) View() string {
 	)
 }
 
-func (m Model) help() string {
+func (m TUI) help() string {
 	if m.standalone {
 		return common.HelpStyle("• q: quit")
 	}

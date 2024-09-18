@@ -26,12 +26,12 @@ var Global = global{
 	),
 }
 
-type welcome struct {
+type home struct {
 	Images key.Binding
 	Debug  key.Binding
 }
 
-var Welcome = welcome{
+var Home = home{
 	Images: key.NewBinding(
 		key.WithKeys("i"),
 		key.WithHelp("i", "Open images view"),

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/mintoolkit/mint/pkg/app/master/command"
 	tui "github.com/mintoolkit/mint/pkg/app/master/tui"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/home"
 	cmd "github.com/mintoolkit/mint/pkg/command"
@@ -18,8 +19,13 @@ var CLI = &cli.Command{
 	Aliases: []string{Alias},
 	Usage:   Usage,
 	Action: func(ctx *cli.Context) error {
-		m, _ := home.InitialModel()
-		tui.RunTUI(m, false)
+		gcvalues, ok := command.CLIContextGet(ctx.Context, command.GlobalParams).(*command.GenericParams)
+		if !ok || gcvalues == nil {
+			return command.ErrNoGlobalParams
+		}
+
+		initialTUI, _ := home.InitialTUI(gcvalues)
+		tui.RunTUI(initialTUI, false)
 		return nil
 	},
 }
