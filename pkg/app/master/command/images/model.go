@@ -27,9 +27,6 @@ type TUI struct {
 	loading    bool
 }
 
-// ImagesCh is a channel type used to pass data from the command handler to the TUI.
-type ImagesCh chan map[string]crt.BasicImageInfo
-
 // Styles - move to `common`
 const (
 	gray      = lipgloss.Color("#737373")
