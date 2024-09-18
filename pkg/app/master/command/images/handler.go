@@ -34,7 +34,6 @@ func OnCommand(
 	xc *app.ExecutionContext,
 	gparams *command.GenericParams,
 	cparams *CommandParams,
-	dataCh ImagesCh,
 ) {
 	const cmdName = Name
 
@@ -135,8 +134,10 @@ func OnCommand(
 		initialTUI := InitialTUI(images, true)
 		tui.RunTUI(initialTUI, true)
 	} else if cparams.GlobalTUI { // `tui` -> `i`
-		dataCh <- images
-		close(dataCh)
+		// TODO - create a central store for the lookup key.
+		// As this key needs to be the same on the sender and the receiver.
+		xc.Out.DataChannels["images"] <- images
+		close(xc.Out.DataChannels["images"])
 	} else if xc.Out.Quiet {
 		if xc.Out.OutputFormat == command.OutputFormatJSON {
 			fmt.Printf("%s\n", jsonutil.ToPretty(images))
