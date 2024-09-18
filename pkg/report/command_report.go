@@ -3,7 +3,6 @@ package report
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -569,7 +568,7 @@ func (p *Command) saveInfo(info interface{}) bool {
 		baseName := filepath.Base(p.reportLocation)
 
 		if baseName == "." {
-			fmt.Printf("no build command report location: %v\n", p.reportLocation)
+			log.Debugf("report.Command.saveInfo: no build command report location: %v", p.reportLocation)
 			return false
 		}
 
@@ -590,18 +589,26 @@ func (p *Command) saveInfo(info interface{}) bool {
 		errutil.FailOn(err)
 
 		err = os.WriteFile(p.reportLocation, reportData.Bytes(), 0644)
-		if err != nil && os.IsPermission(err) {
-			if pinfo, tmpErr := os.Stat(tmpPath); tmpErr == nil && pinfo.IsDir() {
-				p.reportLocation = filepath.Join(tmpPath, DefaultFilename)
-				log.Debugf("report.saveInfo - overriding command report file path to %v", p.reportLocation)
-				err = os.WriteFile(p.reportLocation, reportData.Bytes(), 0644)
-			} else {
-				fmt.Printf("report.Command.saveInfo: not saving report file - '%s'\n", p.reportLocation)
-				return false
+		if err != nil {
+			isPermErr := os.IsPermission(err)
+			if pathErr, isPathErr := err.(*os.PathError); isPathErr || isPermErr {
+				log.Debugf("report.Command.saveInfo: pathErr=%v isPermErr=%v", pathErr, isPermErr)
+				if pinfo, tmpErr := os.Stat(tmpPath); tmpErr == nil && pinfo.IsDir() {
+					p.reportLocation = filepath.Join(tmpPath, DefaultFilename)
+					log.Debugf("report.Command.saveInfo: overriding command report file path to %v", p.reportLocation)
+					err = os.WriteFile(p.reportLocation, reportData.Bytes(), 0644)
+				} else {
+					log.Infof("report.Command.saveInfo: not saving report file - '%s'", p.reportLocation)
+					return false
+				}
 			}
 		}
 
-		errutil.FailOn(err)
+		if err != nil {
+			log.Infof("report.Command.saveInfo: could not save report file ('%s') - '%v'", p.reportLocation, err)
+			return false
+		}
+
 		return true
 	}
 
