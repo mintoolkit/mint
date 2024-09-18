@@ -55,7 +55,7 @@ var CLI = &cli.Command{
 			quietLogs,
 			gcvalues.OutputFormat)
 
-		OnCommand(xc, gcvalues, cparams)
+		OnCommand(xc, gcvalues, cparams, nil)
 		return nil
 	},
 }

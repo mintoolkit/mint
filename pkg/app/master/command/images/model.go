@@ -27,6 +27,9 @@ type TUI struct {
 	loading    bool
 }
 
+// ImagesCh is a channel type used to pass data from the command handler to the TUI.
+type ImagesCh chan map[string]crt.BasicImageInfo
+
 // Styles - move to `common`
 const (
 	gray      = lipgloss.Color("#737373")
@@ -125,7 +128,9 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return nil, nil
 		}
 
-		images := OnCommand(xc, gcValue, cparams)
+		imagesCh := make(ImagesCh)
+		go OnCommand(xc, gcValue, cparams, imagesCh)
+		images := <-imagesCh
 		m.table = generateTable(images)
 		return m, nil
 	case tea.WindowSizeMsg:
