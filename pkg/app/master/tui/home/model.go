@@ -13,24 +13,24 @@ import (
 
 type mode int
 
-// Default Model
-type Model struct {
+// Default TUI
+type TUI struct {
 	Gcvalues *command.GenericParams
 }
 
 func InitialTUI(gcvalues *command.GenericParams) (tea.Model, tea.Cmd) {
-	m := &Model{Gcvalues: gcvalues}
+	m := &TUI{Gcvalues: gcvalues}
 
 	return m, nil
 }
 
-func (m Model) Init() tea.Cmd {
+func (m TUI) Init() tea.Cmd {
 	// Just return `nil`, which means "no I/O right now, please."
 	return nil
 }
 
 // Update is called to handle user input and update the model's state.
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
@@ -55,7 +55,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View returns the view that should be displayed.
-func (m Model) View() string {
+func (m TUI) View() string {
 	content := "Dashboard\n Select which view you would like to open\n"
 
 	return lipgloss.JoinVertical(lipgloss.Left,
@@ -63,6 +63,6 @@ func (m Model) View() string {
 		m.help(),
 	)
 }
-func (m Model) help() string {
+func (m TUI) help() string {
 	return common.HelpStyle("• i: Open images view • d: Open debug view • q: quit")
 }
