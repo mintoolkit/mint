@@ -42,9 +42,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Data: m.Gcvalues,
 			}
 
-			loadModel := images.LoadModel()
-			common.ModelsInstance.Images = loadModel
-			return loadModel.Update(getImagesEvent)
+			LoadTUI := images.LoadTUI()
+			common.ModelsInstance.Images = LoadTUI
+			return LoadTUI.Update(getImagesEvent)
 		case key.Matches(msg, keys.Home.Debug):
 			debugModel := debug.InitialModel(false)
 			common.ModelsInstance.Debug = debugModel

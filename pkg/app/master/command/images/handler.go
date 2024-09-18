@@ -129,8 +129,8 @@ func OnCommand(
 	xc.FailOn(err)
 
 	if cparams.TUI { // `images --tui`
-		model := InitialModel(images, true)
-		tui.RunTUI(model, true)
+		initialTUI := InitialTUI(images, true)
+		tui.RunTUI(initialTUI, true)
 		return nil
 	} else if cparams.GlobalTUI { // `tui` -> `i`
 		return images

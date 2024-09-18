@@ -18,8 +18,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// Model represents the state of the TUI.
-type Model struct {
+// TUI represents the internal state of the terminal user interface.
+type TUI struct {
 	table      table.Table
 	width      int
 	height     int
@@ -49,8 +49,8 @@ var (
 
 // End styles
 
-func LoadModel() *Model {
-	m := &Model{
+func LoadTUI() *TUI {
+	m := &TUI{
 		width:   20,
 		height:  15,
 		loading: true,
@@ -88,9 +88,9 @@ func generateTable(images map[string]crt.BasicImageInfo) table.Table {
 	return *t
 }
 
-// InitialModel returns the initial state of the model.
-func InitialModel(images map[string]crt.BasicImageInfo, standalone bool) *Model {
-	m := &Model{
+// InitialTUI returns the initial state of the TUI.
+func InitialTUI(images map[string]crt.BasicImageInfo, standalone bool) *TUI {
+	m := &TUI{
 		width:      20,
 		height:     15,
 		standalone: standalone,
@@ -99,13 +99,13 @@ func InitialModel(images map[string]crt.BasicImageInfo, standalone bool) *Model 
 	return m
 }
 
-func (m Model) Init() tea.Cmd {
+func (m TUI) Init() tea.Cmd {
 	// Just return `nil`, which means "no I/O right now, please."
 	return nil
 }
 
-// Update is called to handle user input and update the model's state.
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+// Update is called to handle user input and update the TUI's state.
+func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case common.Event:
@@ -144,7 +144,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View returns the view that should be displayed.
-func (m Model) View() string {
+func (m TUI) View() string {
 	var components []string
 
 	content := m.table.String()
@@ -158,7 +158,7 @@ func (m Model) View() string {
 	)
 }
 
-func (m Model) help() string {
+func (m TUI) help() string {
 	if m.standalone {
 		return common.HelpStyle("• q: quit")
 	}
