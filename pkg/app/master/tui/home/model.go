@@ -46,7 +46,7 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			common.TUIsInstance.Images = LoadTUI
 			return LoadTUI.Update(getImagesEvent)
 		case key.Matches(msg, keys.Home.Debug):
-			debugModel := debug.InitialModel(false)
+			debugModel := debug.InitialTUI(false)
 			common.TUIsInstance.Debug = debugModel
 			return debugModel.Update(nil)
 		}

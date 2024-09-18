@@ -9,27 +9,27 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// Model represents the state of the TUI.
-type Model struct {
+// TUI represents the state of the TUI.
+type TUI struct {
 	standalone bool
 }
 
-// InitialModel returns the initial state of the model.
-func InitialModel(standalone bool) *Model {
-	m := &Model{
+// InitialTUI returns the initial state of the model.
+func InitialTUI(standalone bool) *TUI {
+	m := &TUI{
 		standalone: standalone,
 	}
 
 	return m
 }
 
-func (m Model) Init() tea.Cmd {
+func (m TUI) Init() tea.Cmd {
 	// Just return `nil`, which means "no I/O right now, please."
 	return nil
 }
 
 // Update is called to handle user input and update the model's state.
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
@@ -45,7 +45,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View returns the view that should be displayed.
-func (m Model) View() string {
+func (m TUI) View() string {
 	var components []string
 
 	content := "Debug support coming soon"
@@ -59,7 +59,7 @@ func (m Model) View() string {
 	)
 }
 
-func (m Model) help() string {
+func (m TUI) help() string {
 	if m.standalone {
 		return common.HelpStyle("• q: quit")
 	}
