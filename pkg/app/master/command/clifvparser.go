@@ -1010,3 +1010,43 @@ func ParseEnvFile(filePath string) ([]string, error) {
 	}
 	return output, nil
 }
+
+func ParseKVParams(values []string) []config.CBOBuildArg {
+	var output []config.CBOBuildArg
+	for _, value := range values {
+		//need to handle:
+		//NAME=VALUE
+		//"NAME"="VALUE"
+		//NAME <- value is copied from the env var with the same name
+		parts := strings.SplitN(value, "=", 2)
+		switch len(parts) {
+		case 2:
+			if strings.HasPrefix(parts[0], "\"") {
+				parts[0] = strings.Trim(parts[0], "\"")
+				parts[1] = strings.Trim(parts[1], "\"")
+			} else {
+				parts[0] = strings.Trim(parts[0], "'")
+				parts[1] = strings.Trim(parts[1], "'")
+			}
+			ba := config.CBOBuildArg{
+				Name:  parts[0],
+				Value: parts[1],
+			}
+
+			output = append(output, ba)
+		case 1:
+			if envVal := os.Getenv(parts[0]); envVal != "" {
+				ba := config.CBOBuildArg{
+					Name:  parts[0],
+					Value: envVal,
+				}
+
+				output = append(output, ba)
+			}
+		default:
+			log.Debugf("command.ParseKVParams(): unexpected value format - '%s'", value)
+		}
+	}
+
+	return output
+}

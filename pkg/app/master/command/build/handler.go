@@ -180,18 +180,18 @@ func OnCommand(
 
 	xc.AddCleanupHandler(cmdReportOnExit)
 
-	var customImageTag string
+	var outputImagePath string
 	var additionalTags []string
 
 	if len(outputTags) > 0 {
-		customImageTag = outputTags[0]
+		outputImagePath = outputTags[0]
 
 		if len(outputTags) > 1 {
 			additionalTags = outputTags[1:]
 		}
 	}
 
-	logger.Debugf("customImageTag='%s', additionalTags=%#v", customImageTag, additionalTags)
+	logger.Debugf("outputImagePath='%s', additionalTags=%#v", outputImagePath, additionalTags)
 
 	client, err := dockerclient.New(gparams.ClientConfig)
 	if err == dockerclient.ErrNoDockerInfo {
@@ -277,7 +277,7 @@ func OnCommand(
 				LogLevel:                  gparams.LogLevel,
 				LogFormat:                 gparams.LogFormat,
 				SensorIPCEndpoint:         sensorIPCEndpoint,
-				CustomImageTag:            customImageTag,
+				OutputImagePath:           outputImagePath,
 				AdditionalTags:            additionalTags,
 				httpProbeOpts:             httpProbeOpts,
 				continueAfter:             continueAfter,
@@ -327,7 +327,7 @@ func OnCommand(
 	}
 
 	if cbOpts.Dockerfile != "" {
-		targetRef = buildFatImage(xc, targetRef, customImageTag, cbOpts, doShowBuildLogs, client, cmdReport)
+		targetRef = buildFatImage(xc, outputImagePath, cbOpts, doShowBuildLogs, client, cmdReport)
 	}
 
 	var serviceAliases []string
@@ -1239,7 +1239,7 @@ func OnCommand(
 
 	minifiedImageName := buildOutputImage(
 		xc,
-		customImageTag,
+		outputImagePath,
 		additionalTags,
 		cbOpts,
 		overrides,

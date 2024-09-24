@@ -3,7 +3,6 @@ package build
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/mintoolkit/mint/pkg/app/master/command"
@@ -701,63 +700,11 @@ func GetContainerBuildOptions(ctx *cli.Context) (*config.ContainerBuildOptions, 
 	//TODO: figure out how to encode multiple host entries to a string (docs are not helpful)
 	cbo.ExtraHosts = strings.Join(hosts, ",")
 
-	rawBuildArgs := ctx.StringSlice(FlagCBOBuildArg)
-	for _, rba := range rawBuildArgs {
-		//need to handle:
-		//NAME=VALUE
-		//"NAME"="VALUE"
-		//NAME <- value is copied from the env var with the same name
-		parts := strings.SplitN(rba, "=", 2)
-		switch len(parts) {
-		case 2:
-			if strings.HasPrefix(parts[0], "\"") {
-				parts[0] = strings.Trim(parts[0], "\"")
-				parts[1] = strings.Trim(parts[1], "\"")
-			} else {
-				parts[0] = strings.Trim(parts[0], "'")
-				parts[1] = strings.Trim(parts[1], "'")
-			}
-			ba := config.CBOBuildArg{
-				Name:  parts[0],
-				Value: parts[1],
-			}
+	cbo.BuildArgs = command.ParseKVParams(ctx.StringSlice(FlagCBOBuildArg))
 
-			cbo.BuildArgs = append(cbo.BuildArgs, ba)
-		case 1:
-			if envVal := os.Getenv(parts[0]); envVal != "" {
-				ba := config.CBOBuildArg{
-					Name:  parts[0],
-					Value: envVal,
-				}
-
-				cbo.BuildArgs = append(cbo.BuildArgs, ba)
-			}
-		default:
-			fmt.Printf("GetContainerBuildOptions(): unexpected build arg format - '%v'\n", rba)
-		}
-	}
-
-	rawLabels := ctx.StringSlice(FlagCBOLabel)
-	for _, rlabel := range rawLabels {
-		parts := strings.SplitN(rlabel, "=", 2)
-		switch len(parts) {
-		case 2:
-			if strings.HasPrefix(parts[0], "\"") {
-				parts[0] = strings.Trim(parts[0], "\"")
-				parts[1] = strings.Trim(parts[1], "\"")
-			} else {
-				parts[0] = strings.Trim(parts[0], "'")
-				parts[1] = strings.Trim(parts[1], "'")
-			}
-
-			cbo.Labels[parts[0]] = parts[1]
-		case 1:
-			if envVal := os.Getenv(parts[0]); envVal != "" {
-				cbo.Labels[parts[0]] = envVal
-			}
-		default:
-			fmt.Printf("GetContainerBuildOptions(): unexpected label format - '%v'\n", rlabel)
-		}
+	kvLabels := command.ParseKVParams(ctx.StringSlice(FlagCBOLabel))
+	for _, kv := range kvLabels {
+		cbo.Labels[kv.Name] = kv.Value
 	}
 
 	return cbo, nil

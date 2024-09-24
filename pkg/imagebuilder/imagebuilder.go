@@ -1,12 +1,18 @@
 package imagebuilder
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/mintoolkit/mint/pkg/docker/instruction"
+)
+
+var (
+	ErrInvalidContextDir = errors.New("invalid context directory")
 )
 
 // ImageConfig describes the container image configurations (aka ConfigFile or V1Image/Image in other libraries)
@@ -142,6 +148,31 @@ type ImageResult struct {
 type SimpleBuildEngine interface {
 	Name() string
 	Build(options SimpleBuildOptions) (*ImageResult, error)
+}
+
+type NVParam struct {
+	Name  string
+	Value string
+}
+
+type DockerfileBuildOptions struct {
+	Dockerfile   string
+	BuildContext string
+	ImagePath    string
+	BuildArgs    []NVParam
+	Labels       map[string]string
+	Target       string
+	NetworkMode  string
+	ExtraHosts   string //already a comma separated list
+	CacheFrom    []string
+	CacheTo      []string
+	Platforms    []string
+	OutputStream io.Writer
+}
+
+type DockerfileBuildEngine interface {
+	Name() string
+	Build(options DockerfileBuildOptions) error
 }
 
 func SimpleBuildOptionsFromDockerfileData(data string, ignoreExeInstructions bool) (*SimpleBuildOptions, error) {

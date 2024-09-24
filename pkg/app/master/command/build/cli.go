@@ -263,8 +263,16 @@ var CLI = &cli.Command{
 					targetRef = ctx.Args().First()
 				}
 			}
-		} else {
+		} else if cbOpts.Dockerfile != "" {
+			//note: targetRef needs to point to something (but the target image is not built yet)
+			//try using the --dockerfile-context flag value first
+			//then fallback to --target
+			//then fallback to the last CLI argument
 			targetRef = cbOpts.DockerfileContext
+			if targetRef == "" {
+				targetRef = ctx.String(command.FlagTarget)
+			}
+
 			if targetRef == "" {
 				if ctx.Args().Len() < 1 {
 					xc.Out.Error("param.target", "missing Dockerfile build context directory")
@@ -272,6 +280,11 @@ var CLI = &cli.Command{
 					return nil
 				} else {
 					targetRef = ctx.Args().First()
+				}
+
+				if targetRef != "" {
+					//need to make sure we store the context
+					cbOpts.DockerfileContext = targetRef
 				}
 			}
 		}

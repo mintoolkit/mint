@@ -48,6 +48,10 @@ func New(
 	return engine, nil
 }
 
+func (ref *Engine) Name() string {
+	return Name
+}
+
 func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder.ImageResult, error) {
 	if len(options.ImageConfig.Config.Entrypoint) == 0 &&
 		len(options.ImageConfig.Config.Cmd) == 0 {

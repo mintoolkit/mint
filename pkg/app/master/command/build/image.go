@@ -12,7 +12,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/app"
-	"github.com/mintoolkit/mint/pkg/app/master/builder"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/app/master/config"
 	"github.com/mintoolkit/mint/pkg/app/master/inspectors/image"
@@ -22,6 +21,8 @@ import (
 	"github.com/mintoolkit/mint/pkg/crt/docker/dockercrtclient"
 	"github.com/mintoolkit/mint/pkg/imagebuilder"
 	"github.com/mintoolkit/mint/pkg/imagebuilder/internalbuilder"
+	"github.com/mintoolkit/mint/pkg/imagebuilder/slimbuilder"
+	"github.com/mintoolkit/mint/pkg/imagebuilder/standardbuilder"
 	"github.com/mintoolkit/mint/pkg/report"
 	"github.com/mintoolkit/mint/pkg/util/errutil"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
@@ -198,8 +199,7 @@ func inspectFatImage(
 
 func buildFatImage(
 	xc *app.ExecutionContext,
-	targetRef string,
-	customImageTag string,
+	outputSlimImageTag string,
 	cbOpts *config.ContainerBuildOptions,
 	doShowBuildLogs bool,
 	client *dockerapi.Client,
@@ -216,18 +216,18 @@ func buildFatImage(
 	//* otherwise auto-generate a name
 	if cbOpts.Tag != "" {
 		fatImageRepoNameTag = cbOpts.Tag
-	} else if customImageTag != "" {
-		citParts := strings.Split(customImageTag, ":")
+	} else if outputSlimImageTag != "" {
+		citParts := strings.Split(outputSlimImageTag, ":")
 		switch len(citParts) {
 		case 1:
-			fatImageRepoNameTag = fmt.Sprintf("%s.fat", customImageTag)
+			fatImageRepoNameTag = fmt.Sprintf("%s.fat", outputSlimImageTag)
 		case 2:
 			fatImageRepoNameTag = fmt.Sprintf("%s.fat:%s", citParts[0], citParts[1])
 		default:
 			xc.Out.Info("param.error",
 				ovars{
 					"status": "malformed.custom.image.tag",
-					"value":  customImageTag,
+					"value":  outputSlimImageTag,
 				})
 
 			exitCode := command.ECTBuild | ecbBadCustomImageTag
@@ -252,20 +252,30 @@ func buildFatImage(
 		ovars{
 			"tag":        cbOpts.Tag,
 			"dockerfile": cbOpts.Dockerfile,
-			"context":    targetRef,
+			"context":    cbOpts.DockerfileContext,
 		})
 
-	fatBuilder, err := builder.NewBasicImageBuilder(
-		client,
-		cbOpts,
-		targetRef,
-		doShowBuildLogs)
-	xc.FailOn(err)
-
-	err = fatBuilder.Build()
+	fatBuilder, err := standardbuilder.New(client, doShowBuildLogs)
+	options := imagebuilder.DockerfileBuildOptions{
+		Dockerfile:   cbOpts.Dockerfile,
+		BuildContext: cbOpts.DockerfileContext,
+		ImagePath:    cbOpts.Tag,
+		Labels:       cbOpts.Labels,
+		Target:       cbOpts.Target,
+		NetworkMode:  cbOpts.NetworkMode,
+		ExtraHosts:   cbOpts.ExtraHosts,
+		CacheFrom:    cbOpts.CacheFrom,
+	}
+	if len(cbOpts.BuildArgs) > 0 {
+		for _, val := range cbOpts.BuildArgs {
+			options.BuildArgs = append(options.BuildArgs,
+				imagebuilder.NVParam{Name: val.Name, Value: val.Value})
+		}
+	}
+	err = fatBuilder.Build(options)
 
 	if doShowBuildLogs || err != nil {
-		xc.Out.LogDump("regular.image.build", fatBuilder.BuildLog.String(),
+		xc.Out.LogDump("regular.image.build", fatBuilder.BuildLog(),
 			ovars{
 				"tag": cbOpts.Tag,
 			})
@@ -296,7 +306,7 @@ func buildFatImage(
 
 func buildOutputImage(
 	xc *app.ExecutionContext,
-	customImageTag string,
+	outputImagePath string,
 	additionalTags []string,
 	cbOpts *config.ContainerBuildOptions,
 	overrides *config.ContainerOverrides,
@@ -330,8 +340,8 @@ func buildOutputImage(
 		xc.Exit(exitCode)
 	}
 
-	if customImageTag == "" {
-		customImageTag = imageInspector.SlimImageRepo
+	if outputImagePath == "" {
+		outputImagePath = imageInspector.SlimImageRepo
 	}
 
 	cmdReport.ImageBuildEngine = imageBuildEngine
@@ -366,9 +376,9 @@ func buildOutputImage(
 			},
 		}
 
-		if customImageTag != "" {
+		if outputImagePath != "" {
 			//must be first
-			opts.Tags = append(opts.Tags, customImageTag)
+			opts.Tags = append(opts.Tags, outputImagePath)
 		}
 
 		if len(additionalTags) > 0 {
@@ -439,15 +449,15 @@ func buildOutputImage(
 			onError(err)
 		}
 
-		outputImageName = imageResult.Name // customImageTag // engine.RepoName
+		outputImageName = imageResult.Name // outputImagePath // engine.RepoName
 		cmdReport.MinifiedImageID = imageResult.ID
 		cmdReport.MinifiedImageDigest = imageResult.Digest
 		imageCreated = true
 	case IBEBuildKit:
 	case IBEDocker:
-		engine, err := builder.NewImageBuilder(
+		engine, err := slimbuilder.NewSlimImageBuilder(
 			client,
-			customImageTag,
+			outputImagePath,
 			additionalTags,
 			imageInspector.ImageInfo,
 			imageInspector.ArtifactLocation,
@@ -466,7 +476,7 @@ func buildOutputImage(
 		if doShowBuildLogs || err != nil {
 			xc.Out.LogDump("optimized.image.build", engine.BuildLog.String(),
 				ovars{
-					"tag": customImageTag,
+					"tag": outputImagePath,
 				})
 		}
 
@@ -518,7 +528,7 @@ func UpdateBuildOptionsWithNewInstructions(
 	options *imagebuilder.SimpleBuildOptions,
 	instructions *config.ImageNewInstructions) {
 	if instructions != nil {
-		log.Debugf("NewImageBuilder: Using new image instructions => %+v", instructions)
+		log.Debugf("UpdateBuildOptionsWithNewInstructions: Using new image instructions => %+v", instructions)
 
 		if instructions.Workdir != "" {
 			options.ImageConfig.Config.WorkingDir = instructions.Workdir

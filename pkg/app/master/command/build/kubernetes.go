@@ -87,8 +87,8 @@ type kubeHandleOptions struct {
 	SensorIPCEndpoint         string
 	CBOpts                    *config.ContainerBuildOptions
 
-	CustomImageTag string
-	AdditionalTags []string
+	OutputImagePath string
+	AdditionalTags  []string
 
 	PortBindings          map[dockerapi.Port][]dockerapi.PortBinding
 	DoPublishExposedPorts bool
@@ -207,7 +207,7 @@ func (h *kubeHandler) Handle(
 
 	minifiedImageName := buildOutputImage(
 		h.ExecutionContext,
-		opts.CustomImageTag,
+		opts.OutputImagePath,
 		opts.AdditionalTags,
 		opts.CBOpts,
 		nil, // TODO: overrrides
