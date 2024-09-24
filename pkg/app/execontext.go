@@ -107,9 +107,15 @@ func (ref *ExecutionContext) exit(exitCode int) {
 func NewExecutionContext(
 	cmdName string,
 	quiet bool,
-	outputFormat string) *ExecutionContext {
+	outputFormat string,
+	dataChannels ...map[string]chan interface{}) *ExecutionContext {
+	var chs map[string]chan interface{}
+	if len(dataChannels) > 0 {
+		chs = dataChannels[0]
+	}
+
 	ref := &ExecutionContext{
-		Out: NewOutput(cmdName, quiet, outputFormat),
+		Out: NewOutput(cmdName, quiet, outputFormat, chs),
 	}
 
 	return ref
@@ -119,13 +125,15 @@ type Output struct {
 	CmdName      string
 	Quiet        bool
 	OutputFormat string
+	DataChannels map[string]chan interface{}
 }
 
-func NewOutput(cmdName string, quiet bool, outputFormat string) *Output {
+func NewOutput(cmdName string, quiet bool, outputFormat string, channels map[string]chan interface{}) *Output {
 	ref := &Output{
 		CmdName:      cmdName,
 		Quiet:        quiet,
 		OutputFormat: outputFormat,
+		DataChannels: channels,
 	}
 
 	return ref

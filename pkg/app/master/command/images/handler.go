@@ -33,7 +33,8 @@ type ovars = app.OutVars
 func OnCommand(
 	xc *app.ExecutionContext,
 	gparams *command.GenericParams,
-	cparams *CommandParams) map[string]crt.BasicImageInfo {
+	cparams *CommandParams,
+) {
 	const cmdName = Name
 
 	logger := log.WithFields(log.Fields{"app": appName, "cmd": cmdName})
@@ -43,6 +44,7 @@ func OnCommand(
 
 	cmdReport.State = cmd.StateStarted
 
+	// We will want to communicate this completed state to the TUI.
 	xc.Out.State(cmd.StateStarted)
 	rr := command.ResolveAutoRuntime(cparams.Runtime)
 	if rr != cparams.Runtime {
@@ -131,17 +133,17 @@ func OnCommand(
 	if cparams.TUI { // `images --tui`
 		initialTUI := InitialTUI(images, true)
 		tui.RunTUI(initialTUI, true)
-		return nil
 	} else if cparams.GlobalTUI { // `tui` -> `i`
-		return images
+		// TODO - create a central store for the lookup key.
+		// As this key needs to be the same on the sender and the receiver.
+		xc.Out.DataChannels["images"] <- images
+		close(xc.Out.DataChannels["images"])
 	} else if xc.Out.Quiet {
 		if xc.Out.OutputFormat == command.OutputFormatJSON {
 			fmt.Printf("%s\n", jsonutil.ToPretty(images))
-			return nil
 		}
 
 		printImagesTable(images)
-		return nil
 	} else {
 		xc.Out.Info("image.list", ovars{"count": len(images)})
 		for name, info := range images {
@@ -156,7 +158,10 @@ func OnCommand(
 		}
 	}
 
+	// We will want to communicate this completed state to the TUI.
 	xc.Out.State("completed")
+	// Upon hitting "completed", this is when we could pass the 'complete' images data
+	// to the TUI.
 	cmdReport.State = cmd.StateCompleted
 	xc.Out.State("done")
 
@@ -170,7 +175,6 @@ func OnCommand(
 				"file": cmdReport.ReportLocation(),
 			})
 	}
-	return nil
 }
 
 func printImagesTable(images map[string]crt.BasicImageInfo) {

@@ -109,10 +109,17 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case common.Event:
+		imagesCh := make(chan interface{})
+		imagesChannelMap := map[string]chan interface{}{
+			// TODO - move the name of this channel to a centralized location
+			// to be reused by `handler.go`'s `OnCommand` function.
+			"images": imagesCh,
+		}
 		xc := app.NewExecutionContext(
 			"tui",
 			true,
 			"json",
+			imagesChannelMap,
 		)
 
 		cparams := &CommandParams{
@@ -125,7 +132,12 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return nil, nil
 		}
 
-		images := OnCommand(xc, gcValue, cparams)
+		go OnCommand(xc, gcValue, cparams)
+		imagesData := <-imagesCh
+		images, ok := imagesData.(map[string]crt.BasicImageInfo)
+		if !ok || images == nil {
+			return nil, nil
+		}
 		m.table = generateTable(images)
 		return m, nil
 	case tea.WindowSizeMsg:
