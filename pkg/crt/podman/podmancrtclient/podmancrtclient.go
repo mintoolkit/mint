@@ -3,27 +3,176 @@ package podmancrtclient
 import (
 	"io"
 	//"fmt"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
-	//log "github.com/sirupsen/logrus"
+	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/podman/v5/pkg/bindings/images"
 	"github.com/containers/storage"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/crt"
 	"github.com/mintoolkit/mint/pkg/crt/podman/podmanutil"
+	"github.com/mintoolkit/mint/pkg/imagebuilder"
+	"github.com/mintoolkit/mint/pkg/util/fsutil"
 )
 
 type Instance struct {
-	pclient context.Context
+	pclient       context.Context
+	showBuildLogs bool
+	buildLog      bytes.Buffer
 }
 
 func New(providerClient context.Context) *Instance {
 	return &Instance{
 		pclient: providerClient,
 	}
+}
+
+func NewBuilder(providerClient context.Context, showBuildLogs bool) *Instance {
+	ref := New(providerClient)
+	ref.showBuildLogs = showBuildLogs
+	return ref
+}
+
+func (ref *Instance) BuildImage(options imagebuilder.DockerfileBuildOptions) error {
+	if len(options.Labels) > 0 {
+		//todo: check if Podman has a limit on how long the labels can be
+		labels := map[string]string{}
+		for k, v := range options.Labels {
+			lineLen := len(k) + len(v) + 7
+			if lineLen > 65535 {
+				//TODO: improve JSON data splitting
+				valueLen := len(v)
+				parts := valueLen / 50000
+				parts++
+				offset := 0
+				for i := 0; i < parts && offset < valueLen; i++ {
+					chunkSize := 50000
+					if (offset + chunkSize) > valueLen {
+						chunkSize = valueLen - offset
+					}
+					value := v[offset:(offset + chunkSize)]
+					offset += chunkSize
+					key := fmt.Sprintf("%s.%d", k, i)
+					labels[key] = value
+				}
+			} else {
+				labels[k] = v
+			}
+		}
+		options.Labels = labels
+	}
+
+	var labelsList []string
+	for k, v := range options.Labels {
+		if v != "" {
+			labelsList = append(labelsList, fmt.Sprintf("%s=%s", k, v))
+		} else {
+			labelsList = append(labelsList, k)
+		}
+	}
+
+	var contextDir string
+	if strings.HasPrefix(options.BuildContext, "http://") ||
+		strings.HasPrefix(options.BuildContext, "https://") {
+		log.Debugf("podmancrtclient.Instance.BuildImage: not using remote build context - '%s'", options.BuildContext)
+		//hacky...
+		contextDir = "."
+	} else {
+		if exists := fsutil.DirExists(options.BuildContext); exists {
+			contextDir = options.BuildContext
+		} else {
+			return imagebuilder.ErrInvalidContextDir
+		}
+	}
+
+	fullDockerfileName := options.Dockerfile
+	if !fsutil.Exists(fullDockerfileName) || !fsutil.IsRegularFile(fullDockerfileName) {
+		//a slightly hacky behavior using the build context directory if the dockerfile flag doesn't include a usable path
+		fullDockerfileName = filepath.Join(contextDir, fullDockerfileName)
+		if !fsutil.Exists(fullDockerfileName) || !fsutil.IsRegularFile(fullDockerfileName) {
+			return fmt.Errorf("invalid dockerfile reference - %s", fullDockerfileName)
+		}
+	}
+
+	buildOptions := images.BuildOptions{
+		BuildOptions: buildahDefine.BuildOptions{
+			Output:                 options.ImagePath,
+			ContextDirectory:       contextDir,
+			Target:                 options.Target,
+			IgnoreFile:             options.IgnoreFile,
+			Labels:                 labelsList,
+			RemoveIntermediateCtrs: true,
+			PullPolicy:             buildahDefine.PullIfMissing,
+			OutputFormat:           buildahDefine.Dockerv2ImageManifest, //buildah.OCIv1ImageManifest
+			CommonBuildOpts: &buildahDefine.CommonBuildOptions{
+				AddHost: strings.Split(options.ExtraHosts, ","),
+			},
+
+			//ConfigureNetwork: tbd <- options.NetworkMode
+			//CacheFrom: tbd <- options.CacheFrom
+			//CacheTo: tbd <- options.CacheFrom
+		},
+		ContainerFiles: []string{fullDockerfileName},
+	}
+
+	if len(options.Platforms) > 0 {
+		for _, val := range options.Platforms {
+			if strings.Contains(val, "/") {
+				parts := strings.Split(val, "/")
+				if len(parts) > 2 {
+					buildOptions.Platforms = append(buildOptions.Platforms,
+						struct{ OS, Arch, Variant string }{
+							OS:      parts[0],
+							Arch:    parts[1],
+							Variant: parts[2],
+						})
+				} else {
+					buildOptions.Platforms = append(buildOptions.Platforms,
+						struct{ OS, Arch, Variant string }{
+							OS:   parts[0],
+							Arch: parts[1],
+						})
+				}
+			} else {
+				buildOptions.Platforms = append(buildOptions.Platforms,
+					struct{ OS, Arch, Variant string }{
+						OS:   "linux",
+						Arch: val,
+					})
+			}
+		}
+	}
+
+	for _, nv := range options.BuildArgs {
+		buildOptions.Args[nv.Name] = nv.Value
+	}
+
+	if options.OutputStream != nil {
+		buildOptions.Out = options.OutputStream
+		buildOptions.Err = options.OutputStream
+	} else if ref.showBuildLogs {
+		ref.buildLog.Reset()
+		buildOptions.Out = &ref.buildLog
+		buildOptions.Err = &ref.buildLog
+	}
+
+	report, err := images.Build(ref.pclient, buildOptions.ContainerFiles, buildOptions)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("podmancrtclient.Instance.BuildImage: report{ID=%s,SaveFormat=%s}", report.ID, report.SaveFormat)
+	return nil
+}
+
+func (ref *Instance) BuildOutputLog() string {
+	return ref.buildLog.String()
 }
 
 func (ref *Instance) HasImage(imageRef string) (*crt.ImageIdentity, error) {

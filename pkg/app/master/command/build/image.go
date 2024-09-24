@@ -255,7 +255,9 @@ func buildFatImage(
 			"context":    cbOpts.DockerfileContext,
 		})
 
-	fatBuilder, err := standardbuilder.New(client, doShowBuildLogs)
+	crtClient := dockercrtclient.NewBuilder(client, doShowBuildLogs)
+	fatBuilder, err := standardbuilder.New(crtClient)
+
 	options := imagebuilder.DockerfileBuildOptions{
 		Dockerfile:   cbOpts.Dockerfile,
 		BuildContext: cbOpts.DockerfileContext,

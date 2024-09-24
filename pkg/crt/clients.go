@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/mintoolkit/mint/pkg/imagebuilder"
 )
 
 var (
@@ -131,10 +133,16 @@ type ImageLoaderAPIClient interface {
 	LoadImage(localPath string, outputStream io.Writer) error
 }
 
+type ImageBuilderAPIClient interface {
+	BuildImage(options imagebuilder.DockerfileBuildOptions) error
+	BuildOutputLog() string
+}
+
 type APIClient interface {
 	InspectorAPIClient
 	ImageSaverAPIClient
 	ImageLoaderAPIClient
+	ImageBuilderAPIClient
 }
 
 func ImageToIdentity(info *ImageInfo) *ImageIdentity {

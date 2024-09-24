@@ -158,6 +158,7 @@ type NVParam struct {
 type DockerfileBuildOptions struct {
 	Dockerfile   string
 	BuildContext string
+	IgnoreFile   string
 	ImagePath    string
 	BuildArgs    []NVParam
 	Labels       map[string]string

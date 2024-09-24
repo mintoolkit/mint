@@ -701,7 +701,6 @@ func GetContainerBuildOptions(ctx *cli.Context) (*config.ContainerBuildOptions, 
 	cbo.ExtraHosts = strings.Join(hosts, ",")
 
 	cbo.BuildArgs = command.ParseKVParams(ctx.StringSlice(FlagCBOBuildArg))
-
 	kvLabels := command.ParseKVParams(ctx.StringSlice(FlagCBOLabel))
 	for _, kv := range kvLabels {
 		cbo.Labels[kv.Name] = kv.Value

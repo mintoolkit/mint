@@ -1,6 +1,8 @@
 package imagebuild
 
 import (
+	"runtime"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -37,6 +39,9 @@ const (
 	FlagBuildArg      = "build-arg"
 	FlagBuildArgUsage = "build time variable (ARG)"
 
+	FlagLabel      = "label"
+	FlagLabelUsage = "image label to add"
+
 	FlagArchitecture      = "architecture"
 	FlagArchitectureUsage = "build architecture"
 )
@@ -65,10 +70,20 @@ const (
 	Amd64Arch = "amd64"
 	Arm64Arch = "arm64"
 
-	DefaultBuildArch   = Amd64Arch
 	DefaultRuntimeLoad = NoneRuntimeLoad
 	DefaultEngineName  = DockerBuildEngine
 )
+
+func GetDefaultBuildArch() string {
+	switch runtime.GOARCH {
+	case Amd64Arch:
+		return Amd64Arch
+	case Arm64Arch:
+		return Arm64Arch
+	default:
+		return Amd64Arch
+	}
+}
 
 type BuildEngineProps struct {
 	Info                  string
@@ -167,6 +182,12 @@ var Flags = map[string]cli.Flag{
 		Usage:   FlagBuildArgUsage,
 		EnvVars: []string{"DSLIM_IMAGEBUILD_BUILD_ARGS"},
 	},
+	FlagLabel: &cli.StringSliceFlag{
+		Name:    FlagLabel,
+		Value:   cli.NewStringSlice(""),
+		Usage:   FlagLabelUsage,
+		EnvVars: []string{"DSLIM_IMAGEBUILD_LABELS"},
+	},
 	FlagRuntimeLoad: &cli.StringFlag{
 		Name:    FlagRuntimeLoad,
 		Value:   DefaultRuntimeLoad,
@@ -175,7 +196,7 @@ var Flags = map[string]cli.Flag{
 	},
 	FlagArchitecture: &cli.StringFlag{
 		Name:    FlagArchitecture,
-		Value:   DefaultBuildArch,
+		Value:   GetDefaultBuildArch(),
 		Usage:   FlagArchitectureUsage,
 		EnvVars: []string{"DSLIM_IMAGEBUILD_ARCH"},
 	},

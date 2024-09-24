@@ -10,6 +10,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
 	cmd "github.com/mintoolkit/mint/pkg/command"
+	"github.com/mintoolkit/mint/pkg/imagebuilder"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
 )
 
@@ -20,17 +21,18 @@ const (
 )
 
 type CommandParams struct {
-	Engine           string   `json:"engine,omitempty"`
-	EngineEndpoint   string   `json:"engine_endpoint,omitempty"`
-	EngineToken      string   `json:"engine_token,omitempty"`
-	EngineNamespace  string   `json:"engine_namespace,omitempty"`
-	ImageName        string   `json:"image_name,omitempty"`
-	ImageArchiveFile string   `json:"image_archive_file,omitempty"`
-	Runtime          string   `json:"runtime,omitempty"` //runtime where to load the created image
-	Dockerfile       string   `json:"dockerfile,omitempty"`
-	ContextDir       string   `json:"context_dir,omitempty"`
-	BuildArgs        []string `json:"build_args,omitempty"`
-	Architecture     string   `json:"architecture,omitempty"`
+	Engine           string                 `json:"engine,omitempty"`
+	EngineEndpoint   string                 `json:"engine_endpoint,omitempty"`
+	EngineToken      string                 `json:"engine_token,omitempty"`
+	EngineNamespace  string                 `json:"engine_namespace,omitempty"`
+	ImageName        string                 `json:"image_name,omitempty"`
+	ImageArchiveFile string                 `json:"image_archive_file,omitempty"`
+	Runtime          string                 `json:"runtime,omitempty"` //runtime where to load the created image
+	Dockerfile       string                 `json:"dockerfile,omitempty"`
+	ContextDir       string                 `json:"context_dir,omitempty"`
+	BuildArgs        []imagebuilder.NVParam `json:"build_args,omitempty"`
+	Labels           map[string]string      `json:"labels,omitempty"`
+	Architecture     string                 `json:"architecture,omitempty"`
 }
 
 var ImageBuildFlags = useAllFlags()
@@ -60,9 +62,19 @@ var CLI = &cli.Command{
 			ImageArchiveFile: ctx.String(FlagImageArchiveFile),
 			Dockerfile:       ctx.String(FlagDockerfile),
 			ContextDir:       ctx.String(FlagContextDir),
-			BuildArgs:        ctx.StringSlice(FlagBuildArg),
 			Runtime:          ctx.String(FlagRuntimeLoad),
 			Architecture:     ctx.String(FlagArchitecture),
+		}
+
+		cboBuildArgs := command.ParseKVParams(ctx.StringSlice(FlagBuildArg))
+		for _, val := range cboBuildArgs {
+			cparams.BuildArgs = append(cparams.BuildArgs,
+				imagebuilder.NVParam{Name: val.Name, Value: val.Value})
+		}
+
+		kvLabels := command.ParseKVParams(ctx.StringSlice(FlagLabel))
+		for _, kv := range kvLabels {
+			cparams.Labels[kv.Name] = kv.Value
 		}
 
 		engineProps, found := BuildEngines[cparams.Engine]
@@ -83,7 +95,7 @@ var CLI = &cli.Command{
 		}
 
 		if cparams.Architecture == "" {
-			cparams.Architecture = DefaultBuildArch
+			cparams.Architecture = GetDefaultBuildArch()
 		}
 
 		if !IsArchValue(cparams.Architecture) {

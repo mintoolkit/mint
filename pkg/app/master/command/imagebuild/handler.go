@@ -97,9 +97,13 @@ func OnCommand(
 		}
 	}
 
+	var isSame bool
 	switch cparams.Engine {
 	case DockerBuildEngine:
 		initDockerClient()
+		if cparams.Runtime == DockerRuntimeLoad {
+			isSame = true
+		}
 
 		if gparams.Debug {
 			version.Print(xc, cmdName, logger, dclient, false, gparams.InContainer, gparams.IsDSImage)
@@ -126,6 +130,9 @@ func OnCommand(
 		HandleSimpleEngine(logger, xc, gparams, cparams)
 	case PodmanBuildEngine:
 		initPodmanClient()
+		if cparams.Runtime == PodmanRuntimeLoad {
+			isSame = true
+		}
 
 		if gparams.Debug {
 			version.Print(xc, Name, logger, nil, false, gparams.InContainer, gparams.IsDSImage)
@@ -166,8 +173,12 @@ func OnCommand(
 			"image.archive.file": cparams.ImageArchiveFile,
 		})
 
-		err = crtLoaderClient.LoadImage(cparams.ImageArchiveFile, os.Stdout)
-		xc.FailOn(err)
+		if !isSame {
+			err = crtLoaderClient.LoadImage(cparams.ImageArchiveFile, os.Stdout)
+			xc.FailOn(err)
+		} else {
+			xc.Out.Info("same.image.engine.runtime")
+		}
 	} else {
 		xc.Out.Info("runtime.load.image.none")
 	}

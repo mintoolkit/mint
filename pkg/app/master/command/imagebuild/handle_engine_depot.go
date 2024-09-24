@@ -22,6 +22,7 @@ func HandleDepotEngine(
 	cparams *CommandParams) {
 	logger.Trace("HandleDepotEngine.call")
 	defer logger.Trace("HandleDepotEngine.exit")
+	xc.Out.State("depot.engine.image.build.started")
 	ctx := context.Background()
 
 	var doLoad bool
@@ -51,9 +52,8 @@ func HandleDepotEngine(
 
 	logger.Trace("depot.build.NewBuild")
 	build, err := build.NewBuild(ctx, req, cparams.EngineToken)
-	if err != nil {
-		panic(err)
-	}
+	xc.FailOn(err)
+
 	logger.Tracef("depot.build.NewBuild -> id=%s buildURL='%s' useLocalRegistry=%v proxyImage=%s",
 		build.ID, build.BuildURL, build.UseLocalRegistry, build.ProxyImage)
 
@@ -85,4 +85,6 @@ func HandleDepotEngine(
 	if berr != nil {
 		return
 	}
+
+	xc.Out.State("depot.engine.image.build.completed")
 }

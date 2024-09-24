@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -28,6 +27,7 @@ func HandleBuildkitEngine(
 	cparams *CommandParams) {
 	logger.Trace("HandleBuildkitEngine.call")
 	defer logger.Trace("HandleBuildkitEngine.exit")
+	xc.Out.State("buildkit.engine.image.build.started")
 	ctx := context.Background()
 
 	logger.Trace("buildkit.client.New")
@@ -36,6 +36,8 @@ func HandleBuildkitEngine(
 
 	berr = buildkitBuildImage(logger, xc, cparams, ctx, bclient)
 	xc.FailOn(berr)
+
+	xc.Out.State("buildkit.engine.image.build.completed")
 }
 
 func buildkitBuildImage(
@@ -92,19 +94,26 @@ func buildkitBuildImage(
 		},
 	}
 
-	for _, kvStr := range cparams.BuildArgs {
-		kv := strings.SplitN(kvStr, "=", 2)
-		if len(kv) != 2 {
-			logger.Debugf("malformed build arg: %s", kvStr)
-			continue
-		}
+	for _, kv := range cparams.BuildArgs {
+		/*
+			kv := strings.SplitN(kvStr, "=", 2)
+			if len(kv) != 2 {
+				logger.Debugf("malformed build arg: %s", kvStr)
+				continue
+			}
 
-		opts.FrontendAttrs["build-arg:"+kv[0]] = kv[1]
+			opts.FrontendAttrs["build-arg:"+kv[0]] = kv[1]
+		*/
+
+		opts.FrontendAttrs["build-arg:"+kv.Name] = kv.Value
+	}
+
+	for k, v := range cparams.Labels {
+		opts.FrontendAttrs["label:"+k] = v
 	}
 
 	var res *client.SolveResponse
 	eg.Go(func() error {
-		//res, err = bclient.Build(ctx, opts, "", dockerfile.Build, ch)
 		res, err = bclient.Solve(ctx, nil, opts, ch)
 		return err
 	})
