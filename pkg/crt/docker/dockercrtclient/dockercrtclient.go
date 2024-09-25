@@ -63,6 +63,10 @@ func (ref *Instance) BuildImage(options imagebuilder.DockerfileBuildOptions) err
 		options.Labels = labels
 	}
 
+	if options.BuildContext == "" {
+		options.BuildContext = "."
+	}
+
 	//not using options.CacheTo in this image builder...
 	buildOptions := docker.BuildImageOptions{
 		Dockerfile: options.Dockerfile,
@@ -90,19 +94,14 @@ func (ref *Instance) BuildImage(options imagebuilder.DockerfileBuildOptions) err
 	} else {
 		if exists := fsutil.DirExists(options.BuildContext); exists {
 			buildOptions.ContextDir = options.BuildContext
+			//Dockerfile path is expected to be relative to build context
+			fullDockerfileName := filepath.Join(buildOptions.ContextDir, buildOptions.Dockerfile)
+			if !fsutil.Exists(fullDockerfileName) || !fsutil.IsRegularFile(fullDockerfileName) {
+				return fmt.Errorf("invalid dockerfile reference (%s) - %s", buildOptions.Dockerfile, fullDockerfileName)
+			}
 		} else {
 			return imagebuilder.ErrInvalidContextDir
 		}
-	}
-
-	if !fsutil.Exists(buildOptions.Dockerfile) || !fsutil.IsRegularFile(buildOptions.Dockerfile) {
-		//a slightly hacky behavior using the build context directory if the dockerfile flag doesn't include a usable path
-		fullDockerfileName := filepath.Join(buildOptions.ContextDir, buildOptions.Dockerfile)
-		if !fsutil.Exists(fullDockerfileName) || !fsutil.IsRegularFile(fullDockerfileName) {
-			return fmt.Errorf("invalid dockerfile reference - %s", fullDockerfileName)
-		}
-
-		buildOptions.Dockerfile = fullDockerfileName
 	}
 
 	if options.OutputStream != nil {

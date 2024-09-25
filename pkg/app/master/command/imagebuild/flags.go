@@ -31,7 +31,7 @@ const (
 	FlagImageArchiveFileUsage = "local file path for the image tar archive file"
 
 	FlagDockerfile      = "dockerfile"
-	FlagDockerfileUsage = "local Dockerfile path"
+	FlagDockerfileUsage = "local Dockerfile path (for buildkit and depot) or a relative to the build context directory (for docker or podman)"
 
 	FlagContextDir      = "context-dir"
 	FlagContextDirUsage = "local build context directory"

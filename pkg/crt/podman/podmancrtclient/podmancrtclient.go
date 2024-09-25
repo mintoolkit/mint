@@ -77,6 +77,10 @@ func (ref *Instance) BuildImage(options imagebuilder.DockerfileBuildOptions) err
 		}
 	}
 
+	if options.BuildContext == "" {
+		options.BuildContext = "."
+	}
+
 	var contextDir string
 	if strings.HasPrefix(options.BuildContext, "http://") ||
 		strings.HasPrefix(options.BuildContext, "https://") {
@@ -86,17 +90,13 @@ func (ref *Instance) BuildImage(options imagebuilder.DockerfileBuildOptions) err
 	} else {
 		if exists := fsutil.DirExists(options.BuildContext); exists {
 			contextDir = options.BuildContext
+			//Dockerfile path is expected to be relative to build context
+			fullDockerfileName := filepath.Join(contextDir, options.Dockerfile)
+			if !fsutil.Exists(fullDockerfileName) || !fsutil.IsRegularFile(fullDockerfileName) {
+				return fmt.Errorf("invalid dockerfile reference (%s) - %s", options.Dockerfile, fullDockerfileName)
+			}
 		} else {
 			return imagebuilder.ErrInvalidContextDir
-		}
-	}
-
-	fullDockerfileName := options.Dockerfile
-	if !fsutil.Exists(fullDockerfileName) || !fsutil.IsRegularFile(fullDockerfileName) {
-		//a slightly hacky behavior using the build context directory if the dockerfile flag doesn't include a usable path
-		fullDockerfileName = filepath.Join(contextDir, fullDockerfileName)
-		if !fsutil.Exists(fullDockerfileName) || !fsutil.IsRegularFile(fullDockerfileName) {
-			return fmt.Errorf("invalid dockerfile reference - %s", fullDockerfileName)
 		}
 	}
 
@@ -110,15 +110,18 @@ func (ref *Instance) BuildImage(options imagebuilder.DockerfileBuildOptions) err
 			RemoveIntermediateCtrs: true,
 			PullPolicy:             buildahDefine.PullIfMissing,
 			OutputFormat:           buildahDefine.Dockerv2ImageManifest, //buildah.OCIv1ImageManifest
-			CommonBuildOpts: &buildahDefine.CommonBuildOptions{
-				AddHost: strings.Split(options.ExtraHosts, ","),
+			CommonBuildOpts:        &buildahDefine.CommonBuildOptions{
+				//AddHost: strings.Split(options.ExtraHosts, ","),
 			},
-
-			//ConfigureNetwork: tbd <- options.NetworkMode
+			ConfigureNetwork: buildahDefine.NetworkDefault, //tbd <- options.NetworkMode
 			//CacheFrom: tbd <- options.CacheFrom
 			//CacheTo: tbd <- options.CacheFrom
 		},
-		ContainerFiles: []string{fullDockerfileName},
+		ContainerFiles: []string{options.Dockerfile},
+	}
+
+	if options.ExtraHosts != "" {
+		buildOptions.CommonBuildOpts.AddHost = strings.Split(options.ExtraHosts, ",")
 	}
 
 	if len(options.Platforms) > 0 {
@@ -149,8 +152,11 @@ func (ref *Instance) BuildImage(options imagebuilder.DockerfileBuildOptions) err
 		}
 	}
 
-	for _, nv := range options.BuildArgs {
-		buildOptions.Args[nv.Name] = nv.Value
+	if len(options.BuildArgs) > 0 {
+		buildOptions.Args = map[string]string{}
+		for _, nv := range options.BuildArgs {
+			buildOptions.Args[nv.Name] = nv.Value
+		}
 	}
 
 	if options.OutputStream != nil {

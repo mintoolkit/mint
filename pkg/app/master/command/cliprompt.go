@@ -26,6 +26,7 @@ import (
 type InteractiveApp struct {
 	appPrompt     *prompt.Prompt
 	fpCompleter   completer.FilePathCompleter
+	dpCompleter   completer.FilePathCompleter
 	app           *cli.App
 	dclient       *dockerapi.Client
 	crtConnection string
@@ -37,6 +38,10 @@ func NewInteractiveApp(app *cli.App, gparams *GenericParams) *InteractiveApp {
 		app:           app,
 		fpCompleter: completer.FilePathCompleter{
 			IgnoreCase: true,
+		},
+		dpCompleter: completer.FilePathCompleter{
+			IgnoreCase: true,
+			Filter:     func(fi os.FileInfo) bool { return fi.IsDir() },
 		},
 	}
 
@@ -505,6 +510,10 @@ func CompleteNetwork(ia *InteractiveApp, token string, params prompt.Document) [
 
 func CompleteFile(ia *InteractiveApp, token string, params prompt.Document) []prompt.Suggest {
 	return ia.fpCompleter.Complete(params)
+}
+
+func CompleteDir(ia *InteractiveApp, token string, params prompt.Document) []prompt.Suggest {
+	return ia.dpCompleter.Complete(params)
 }
 
 // Runtime

@@ -54,11 +54,13 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		{Text: command.FullFlagName(FlagDockerfile), Description: FlagDockerfileUsage},
 		{Text: command.FullFlagName(FlagContextDir), Description: FlagContextDirUsage},
 		{Text: command.FullFlagName(FlagBuildArg), Description: FlagBuildArgUsage},
+		{Text: command.FullFlagName(FlagLabel), Description: FlagLabelUsage},
 		{Text: command.FullFlagName(FlagArchitecture), Description: FlagArchitectureUsage},
 	},
 	Values: map[string]command.CompleteValue{
 		command.FullFlagName(FlagEngine):       completeBuildEngine,
 		command.FullFlagName(FlagRuntimeLoad):  completeRuntimeLoad,
 		command.FullFlagName(FlagArchitecture): completeArchitecture,
+		command.FullFlagName(FlagContextDir):   command.CompleteDir,
 	},
 }

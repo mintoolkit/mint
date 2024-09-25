@@ -3,8 +3,10 @@ package imagebuild
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
 	"github.com/mintoolkit/mint/pkg/app"
@@ -43,8 +45,11 @@ var CLI = &cli.Command{
 	Usage:   Usage,
 	Flags:   ImageBuildFlags,
 	Action: func(ctx *cli.Context) error {
+		logger := log.WithFields(log.Fields{"app": command.AppName, "cmd": Name, "op": "cli.Action"})
+
 		gcvalues, ok := command.CLIContextGet(ctx.Context, command.GlobalParams).(*command.GenericParams)
 		if !ok || gcvalues == nil {
+			logger.Error("no gcvalues")
 			return command.ErrNoGlobalParams
 		}
 
@@ -64,6 +69,7 @@ var CLI = &cli.Command{
 			ContextDir:       ctx.String(FlagContextDir),
 			Runtime:          ctx.String(FlagRuntimeLoad),
 			Architecture:     ctx.String(FlagArchitecture),
+			Labels:           map[string]string{},
 		}
 
 		cboBuildArgs := command.ParseKVParams(ctx.StringSlice(FlagBuildArg))
@@ -79,6 +85,7 @@ var CLI = &cli.Command{
 
 		engineProps, found := BuildEngines[cparams.Engine]
 		if !found {
+			logger.Errorf("engine not found - %s", cparams.Engine)
 			return command.ErrBadParamValue
 		}
 
@@ -86,12 +93,23 @@ var CLI = &cli.Command{
 			cparams.Dockerfile = DefaultDockerfilePath
 		}
 
-		if !fsutil.Exists(cparams.Dockerfile) {
+		if !fsutil.DirExists(cparams.ContextDir) {
+			logger.Errorf("context dir not found - %s", cparams.ContextDir)
 			return command.ErrBadParamValue
 		}
 
-		if !fsutil.DirExists(cparams.ContextDir) {
-			return command.ErrBadParamValue
+		switch cparams.Engine {
+		case BuildkitBuildEngine, DepotBuildEngine:
+			if !fsutil.Exists(cparams.Dockerfile) {
+				logger.Errorf("Dockerfile not found - '%s'", cparams.Dockerfile)
+				return command.ErrBadParamValue
+			}
+		default:
+			fullDockerfilePath := filepath.Join(cparams.ContextDir, cparams.Dockerfile)
+			if !fsutil.Exists(fullDockerfilePath) {
+				logger.Errorf("Dockerfile not found - '%s' ('%s')", cparams.Dockerfile, fullDockerfilePath)
+				return command.ErrBadParamValue
+			}
 		}
 
 		if cparams.Architecture == "" {
@@ -99,6 +117,7 @@ var CLI = &cli.Command{
 		}
 
 		if !IsArchValue(cparams.Architecture) {
+			logger.Errorf("architecture not supported - %s", cparams.Architecture)
 			return command.ErrBadParamValue
 		}
 
