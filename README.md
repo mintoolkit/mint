@@ -21,7 +21,7 @@ Note that **DockerSlim** is now **MinToolkit** or just **Mint** (it was also cal
 
 ## Overview
 
-**Mint** allows developers to inspect, optimize and debug their containers using its `xray`, `slim` (aka `build`), `debug`, `lint`, `run`, `images`, `merge`, `registry`, `vulnerability` (and other) commands. It simplifies and improves your developer experience building, customizing and using containers. It makes your containers better, smaller and more secure while providing advanced visibility and improved usability working with the original and minified containers.
+**Mint** allows developers to inspect, optimize and debug their containers using its `xray`, `slim` (aka `build`), `debug`, `lint`, `run`, `images`, `imagebuild`, `merge`, `registry`, `vulnerability` (and other) commands. It simplifies and improves your developer experience building, customizing and using containers. It makes your containers better, smaller and more secure while providing advanced visibility and improved usability working with the original and minified containers.
 
 Don't change anything in your container image and minify it by up to 30x making it secure too! Optimizing images isn't the only thing it can do though. It can also help you understand and author better container images.
 
@@ -153,6 +153,7 @@ Elixir application images:
   - [`XRAY` COMMAND OPTIONS](#xray-command-options)
   - [`SLIM` (aka `BUILD`) COMMAND OPTIONS](#slim-command-options)
   - [`DEBUG` COMMAND OPTIONS](#debug-command-options)
+  - [`IMAGEBUILD` COMMAND OPTIONS](#imagebuild-command-options)
   - [`RUN` COMMAND OPTIONS](#run-command-options)
   - [`REGISTRY` COMMAND OPTIONS](#registry-command-options)
   - [`VULNERABILITY` COMMAND OPTIONS](#vulnerability-command-options)
@@ -264,24 +265,25 @@ See the [RUNNING CONTAINERIZED](#running-containerized) section for more usage i
 
 ## BASIC USAGE INFO
 
-`mint [global flags] [xray|slim|debug|profile|run|lint|merge|images|registry|vulnerability|app|help] [command-specific flags] <IMAGE_ID_OR_NAME>`
+`mint [global flags] [xray|slim|debug|profile|imagebuild|run|lint|merge|images|registry|vulnerability|app|help] [command-specific flags] <IMAGE_ID_OR_NAME>`
 
 If you don't specify any command `mint` will start in the interactive prompt mode.
 
 ### COMMANDS
 
-- `slim` - Create a minimal container image for your selected image generating the supported security profiles. This is the most popular command. (aka `build`)
+- `slim` - Create a minimal container image for your selected image generating the supported security profiles. This is the most popular command. (aka `build`).
 - `debug` - Debug minimal or regular container images running in Docker, Podman, Kubernetes and ContainerD.
 - `xray` - Performs static analysis for the target container image (including 'reverse engineering' the Dockerfile for the image). Use this command if you want to know what's inside of your container image and what makes it fat.
-- `lint` - Analyzes container instructions in Dockerfiles (Docker image support is WIP)
+- `lint` - Analyzes container instructions in Dockerfiles (Docker image support is WIP).
 - `registry` - Execute registry operations (`pull`, `push`, `copy`, `server`).
 - `profile` - Performs basic container image analysis and dynamic container analysis, but it doesn't generate an optimized image.
-- `run` - Runs one or more containers (for now runs a single container similar to `docker run`)
+- `run` - Runs one or more containers (for now runs a single container similar to `docker run`).
 - `merge` - Merge two container images (optimized to merge minified images).
+- `imagebuild` - Build container image using selected build engine.
 - `images` - Get information about container images (example: `mint --quiet images`).
 - `vulnerability` - Execute vulnerability related tools and operations (`epss`).
 - `app` - Execute app management, maintenance, debugging and query operations (`bom`, `version`, `remove-sensor-volumes`, `update`, `install` operations).
-- `help` - Show the available commands and global flags
+- `help` - Show the available commands and global flags.
 
 Example: `mint slim my/sample-app`
 
@@ -295,17 +297,18 @@ If you run `mint` without any parameters you'll get an interactive prompt that w
 
 Commands:
 
-- `slim` - Create a minimal container image for your selected image generating the supported security profiles. (aka `build`)
+- `slim` - Create a minimal container image for your selected image generating the supported security profiles. (aka `build`).
 - `debug` - Debug minimal or regular container images running in Docker, Podman, Kubernetes and ContainerD.
-- `xray` - Show what's in the container image and reverse engineer its Dockerfile
+- `xray` - Show what's in the container image and reverse engineer its Dockerfile.
 - `lint` - Lint the target Dockerfile (or image, in the future)
 - `registry` - Execute registry operations (`pull`, `push`, `copy`, `server`).
-- `profile` - Collect fat image information and generate a fat container report
-- `merge` - Merge two container images (optimized to merge minified images)
+- `profile` - Collect fat image information and generate a fat container report.
+- `merge` - Merge two container images (optimized to merge minified images).
+- `imagebuild` - Build container image using selected build engine.
 - `images` - Get information about container images.
 - `vulnerability` - Execute vulnerability related tools and operations (`epss`).
 - `app` - Execute app management, maintenance, debugging and query operations (`bom`, `version`, `remove-sensor-volumes`, `update`, `install` operations).
-- `help` - Show help info
+- `help` - Show help info.
 
 Global options:
 
@@ -316,7 +319,7 @@ Global options:
 - `--verbose` - enable info logs
 - `--log-level` - set the logging level ('debug', 'info', 'warn' (default), 'error', 'fatal', 'panic')
 - `--log-format` - set the format used by logs ('text' (default), or 'json')
-- `--crt-api-version` - Container runtime API version
+- `--crt-api-version` - Container runtime API version, right now applies only to the Docker runtime API version (default: 1.32)
 - `--quiet` - less verbose CLI execution mode
 - `--output-format` - set the output format to use ('text' (default), or 'json')
 - `--log` - log file to store logs
@@ -603,6 +606,27 @@ Debug minimal or regular container images running in Docker, Podman, Kubernetes 
 - `--help` show help (default: false)
 
 See the "Debugging Using the `debug` Command" section for more information about this command.
+
+### `IMAGEBUILD` COMMAND OPTIONS
+
+Build container image using selected build engine
+
+USAGE: `mint [GLOBAL FLAGS] imagebuild [FLAGS] [IMAGE]`
+
+Flags:
+
+- `--engine` - Container image build engine to use: `docker` (Native Docker container build engine), `podman` (Native Podman/Buildah container build engine), `buildkit` (BuildKit container build engine), `depot` (Depot.dev cloud-based container build engine).
+- `--image-name` - Container image name to use (including tag).
+- `--image-archive-file` - Local file path for the image tar archive file (used for the `depot` and `buildkit` engines).
+- `--dockerfile` - Local Dockerfile path (for `buildkit` and `depot`) or a relative to the build context directory (for `docker` or `podman`). Default: `Dockerfile`.
+- `--context-dir` - Local build context directory. Default: `.`.
+- `--build-arg` - Build time variable (ARG). [can use this flag multiple times]
+- `--label` - Image label to add. [can use this flag multiple times]
+- `--architecture` - Build architecture (`amd64` or `arm64`).
+- `--engine-endpoint` - Build engine endpoint address (for `buildkit`).
+- `--engine-token` - Build engine specific API token (for `depot`).
+- `--engine-namespace` - Build engine specific namespace (for `depot`).
+- `--runtime-load` - Container runtime where to load to created image: `none`, `docker`, `podman`.
 
 ### `RUN` COMMAND OPTIONS
 
