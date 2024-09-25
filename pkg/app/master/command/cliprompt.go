@@ -365,6 +365,7 @@ var GlobalFlagSuggestions = []prompt.Suggest{
 	{Text: FullFlagName(FlagTLSCertPath), Description: FlagTLSCertPathUsage},
 	{Text: FullFlagName(FlagHost), Description: FlagHostUsage},
 	{Text: FullFlagName(FlagCRTConnection), Description: FlagCRTConnectionUsage},
+	{Text: FullFlagName(FlagAPIVersion), Description: FlagAPIVersionUsage},
 	{Text: FullFlagName(FlagArchiveState), Description: FlagArchiveStateUsage},
 	{Text: FullFlagName(FlagInContainer), Description: FlagInContainerUsage},
 	{Text: FullFlagName(FlagCheckVersion), Description: FlagCheckVersionUsage},
