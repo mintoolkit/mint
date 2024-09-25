@@ -1,5 +1,19 @@
 # Releases
 
+## 1.41.7 (9/24/2024)
+
+### New Features
+
+- `imagebuild` command to build container images using different build engines.
+- `--http-probe-concurrency` - new flag to control HTTP probe command execution concurrency
+- `--http-probe-fail-on-status-5xx` - new flag to treat 5xx (e.g., 500) response status codes as errors
+
+### Improvements
+
+- `--http-probe-full` is now enabled by default, so all specified custom HTTP probe commands are executed.
+- Improved global `--host` flag and Docker runtime client connection setup
+
+
 ## 1.41.6 (8/24/2024)
 
 ### New Features

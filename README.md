@@ -174,6 +174,7 @@ Elixir application images:
   - [What if my Docker images uses the USER command?](#what-if-my-docker-images-uses-the-user-command)
   - [Nginx fails in my minified image](#nginx-fails-in-my-minified-image)
   - [Mint fails with a 'no permission to read from' error](#mint-fails-with-a-no-permission-to-read-from-error)
+- [EXPLORE SOURCE CODE WITH AI](#explore-source-code-with-ai)
 - [BUILD PROCESS](#build-process)
   - [Build Steps](#build-steps)
 - [CONTRIBUTING](#contributing)
@@ -190,9 +191,9 @@ Elixir application images:
 
 ## RECENT UPDATES
 
-Latest version: `1.41.6` (`8/24/2024`)
+Latest version: `1.41.7` (`9/24/2024`)
 
-The 1.41.6 version adds support for the Podman runtime in `xray` and a number of improvements with HTTP probing.
+The 1.41.7 version adds the `imagebuild` command to build container images using different build engines and it also adds a number of improvements with HTTP probing.
 
 For more info about the latest release see the [`CHANGELOG`](CHANGELOG.md).
 
@@ -209,15 +210,15 @@ mint update
 
 1. Download the zip package for your platform.
 
-   - [Latest Mac binaries](https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_mac.zip) (`curl -L -o ds.zip https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_mac.zip`)
+   - [Latest Mac binaries](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_mac.zip) (`curl -L -o ds.zip https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_mac.zip`)
 
-   - [Latest Mac M1 binaries](https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_mac_m1.zip) (`curl -L -o ds.zip https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_mac_m1.zip)`)
+   - [Latest Mac M1 binaries](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_mac_m1.zip) (`curl -L -o ds.zip https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_mac_m1.zip)`)
 
-   - [Latest Linux binaries](https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_linux.tar.gz) (`curl -L -o ds.tar.gz https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_linux.tar.gz`)
+   - [Latest Linux binaries](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux.tar.gz) (`curl -L -o ds.tar.gz https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux.tar.gz`)
 
-   - [Latest Linux ARM binaries](https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_linux_arm.tar.gz) (`curl -L -o ds.tar.gz https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_linux_arm.tar.gz`)
+   - [Latest Linux ARM binaries](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux_arm.tar.gz) (`curl -L -o ds.tar.gz https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux_arm.tar.gz`)
 
-   - [Latest Linux ARM64 binaries](https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_linux_arm64.tar.gz) (`curl -L -o ds.tar.gz https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_linux_arm64.tar.gz`)
+   - [Latest Linux ARM64 binaries](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux_arm64.tar.gz) (`curl -L -o ds.tar.gz https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux_arm64.tar.gz`)
 
 2. Unzip the package and optionally move it to your bin directory.
 
@@ -609,7 +610,7 @@ See the "Debugging Using the `debug` Command" section for more information about
 
 ### `IMAGEBUILD` COMMAND OPTIONS
 
-Build container image using selected build engine
+Build container image using selected build engine. The created image will be saved as a tar file. You can also load the new image into one of the supported runtimes.
 
 USAGE: `mint [GLOBAL FLAGS] imagebuild [FLAGS] [IMAGE]`
 
@@ -626,7 +627,41 @@ Flags:
 - `--engine-endpoint` - Build engine endpoint address (for `buildkit`).
 - `--engine-token` - Build engine specific API token (for `depot`).
 - `--engine-namespace` - Build engine specific namespace (for `depot`).
-- `--runtime-load` - Container runtime where to load to created image: `none`, `docker`, `podman`.
+- `--runtime-load` - Container runtime where to load the created image: `none`, `docker`, `podman`.
+
+Examples:
+
+An example showing how to use the cloud-based `depot.dev` build engine:
+
+```bash
+export DEPOT_TOKEN=your_token
+export DEPOT_PROJECT_ID=your_project
+mint imagebuild --engine depot --dockerfile Dockerfile --context-dir .
+```
+
+Another `depot.dev` engine example that also loads the created image into the local `Docker` instance:
+
+```bash
+mint imagebuild --engine depot --engine-token your_depot_token --engine-namespace your_depot_project --dockerfile Dockerfile --context-dir . --runtime-load docker
+```
+
+A `BuildKit` engine example that uses a local `BuildKit` instance running on tcp port 1234:
+
+```bash
+mint imagebuild --engine buildkit --engine-endpoint tcp://localhost:12345 --image-name imagebuild-buildkit-app:latest --dockerfile ./node_app/Dockerfile --context-dir ./node_app --runtime-load docker
+```
+
+With this `BuildKit` example the new image name is set to `imagebuild-buildkit-app:latest`. Make sure to use the `--image-name` flag if you don't want to use the default container image name.
+
+Note that the `--dockerfile` flag is a path to the Dockerfile you want to use and it's not related to the context directory path provided with the `--context-dir`. This works for the `depot` and `buildkit` engines, but not for the `docker` or `podman` engines where the `--dockerfile` flag value is relative to the context directory.
+
+A `Podman` engine example:
+
+```bash
+mint imagebuild --engine podman --image-name imagebuild-podman-app:latest --build-arg BA=1 --label LONE=value --label LTWO="label two value" --dockerfile Dockerfile --context-dir node_app
+```
+
+Note that this example also building the same image in the `node_app` directory, but here the `--dockerfile` flag value is set to `Dockerfile`. In this case, setting the `--dockerfile` flag was not necessary, because `Dockerfile` is the default `--dockerfile` flag value.
 
 ### `RUN` COMMAND OPTIONS
 
@@ -1286,15 +1321,15 @@ The demo runs on Mac OS X, but you can build a linux version. Note that these st
 
 1. Get the **Mint** app binaries:
 
-* [Mac](https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_mac.zip),
-* [Mac M1](https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_mac_m1.zip), 
-* [Linux](https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_linux.tar.gz), 
-* [Linux ARM](https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_linux_arm.tar.gz),
-* [Linux ARM64](https://github.com/mintoolkit/mint/releases/download/1.41.6/dist_linux_arm64.tar.gz) 
+* [Mac](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_mac.zip),
+* [Mac M1](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_mac_m1.zip), 
+* [Linux](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux.tar.gz), 
+* [Linux ARM](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux_arm.tar.gz),
+* [Linux ARM64](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux_arm64.tar.gz) 
 
 Unzip them and optionally add their directory to your `PATH` environment variable if you want to use the app from other locations.
 
-The extracted directory contains two binaries (and now it also contains a symlink for the old name):
+The extracted directory contains two binaries (and now it also contains a symlink for the old n ame):
 
 - `mint` <- the main **Mint** application binary
 - `mint-sensor` <- the sensor application used to collect information from running containers
@@ -1412,6 +1447,10 @@ This problem shouldn't happen anymore because the exported artifacts are saved i
 If you run older versions of **Mint** you can get around this problem by running **Mint** from a root shell. That way it will have access to all exported files.
 
 **Mint** copies the relevant image artifacts trying to preserve their permissions. If the permissions are too restrictive the master app might not have sufficient priviledge to access these files when it's building the new minified image.
+
+## EXPLORE SOURCE CODE WITH AI
+
+You can explore the project code and ask questions about the code using a Perplexity-like [`Code Sage`](https://sage.storia.ai/) portal created by [`Storia AI`](https://storia.ai/): https://sage.storia.ai/mintoolkit
 
 ## BUILD PROCESS
 
