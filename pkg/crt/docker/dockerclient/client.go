@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 
@@ -17,6 +18,8 @@ import (
 )
 
 const (
+	EnvDockerConfig      = "DOCKER_CONFIG"
+	EnvDockerContext     = "DOCKER_CONTEXT"
 	EnvDockerAPIVer      = "DOCKER_API_VERSION"
 	EnvDockerHost        = "DOCKER_HOST"
 	EnvDockerTLSVerify   = "DOCKER_TLS_VERIFY"
@@ -31,14 +34,34 @@ var EnvVarNames = []string{
 	EnvDockerTLSVerify,
 	EnvDockerCertPath,
 	EnvDockerAPIVer,
+	EnvDockerContext,
 }
 
 var (
 	ErrNoDockerInfo = errors.New("no docker info")
 )
 
+func UserHomeDir() string {
+	output, err := os.UserHomeDir()
+	if err != nil {
+		log.Debugf("dockerclient.UserHomeDir: os.UserHomeDir error - %v", err)
+	}
+
+	if output != "" {
+		return output
+	}
+
+	info, err := user.Current()
+	if err == nil {
+		return info.HomeDir
+	}
+
+	log.Debugf("dockerclient.UserHomeDir: user.Current error - %v", err)
+	return ""
+}
+
 func UserDockerSocket() string {
-	home, _ := os.UserHomeDir()
+	home := UserHomeDir()
 	return filepath.Join(home, unixUserSocketSuffix)
 }
 
@@ -182,6 +205,62 @@ func New(config *config.DockerClient) (*docker.Client, error) {
 		return docker.NewVersionedTLSClientFromBytes(host, cert, key, ca, apiVersion)
 	}
 
+	//NOTE:
+	//go-dockerclient doesn't support DOCKER_CONTEXT natively
+	//so we need to lookup the context first to extract its connection info
+	var currentDockerContext string
+	if dcf, err := ReadConfigFile(ConfigFilePath()); err == nil {
+		currentDockerContext = dcf.CurrentContext
+		log.Debugf("dockerclient.New: currentDockerContext - '%s'", currentDockerContext)
+	} else {
+		log.Debugf("dockerclient.New: ReadConfigFile error - %v", err)
+	}
+
+	contextName := config.Context
+	if contextName == "" {
+		contextName = config.Env[EnvDockerContext]
+	}
+	if contextName == "" &&
+		currentDockerContext != "" &&
+		currentDockerContext != DefaultContextName {
+		contextName = currentDockerContext
+	}
+
+	//note: don't use context host if the host parameter is specified explicitly
+	var contextHost string
+	var contextVerifyTLS bool
+	if contextName != "" {
+		log.Debugf("dockerclient.New: contextName - '%s' - loading contexts", contextName)
+		cmList, err := ListContextsMetadata(ContextsMetaDir())
+		if err == nil {
+			var targetContext *DockerContextMetadata
+			for _, cm := range cmList {
+				if cm.Name == contextName {
+					targetContext = cm
+					break
+				}
+			}
+
+			if targetContext != nil {
+				info := targetContext.Endpoint()
+				if info != nil {
+					contextHost = info.Host
+					if info.SkipTLSVerify {
+						contextVerifyTLS = false
+					} else {
+						contextVerifyTLS = true
+					}
+				} else {
+					log.Debugf("dockerclient.New: endpoint in target context ('%s') not found - %+v", contextName, targetContext)
+				}
+			} else {
+				log.Debugf("dockerclient.New: target context ('%s') not found - %+v", contextName, cmList)
+			}
+		} else {
+			log.Debugf("dockerclient.New: ListContextsMetadata error - %v", err)
+		}
+	}
+
 	switch {
 	case config.Host != "" &&
 		config.UseTLS &&
@@ -266,6 +345,43 @@ func New(config *config.DockerClient) (*docker.Client, error) {
 
 		if config.APIVersion != "" {
 			client.SkipServerVersionCheck = true
+		}
+
+	case config.Host == "" && config.Env[EnvDockerHost] == "" && contextHost != "":
+		log.Debugf("dockerclient.New: new Docker client - from context ('%s') contextVerifyTLS=%v", contextHost, contextVerifyTLS)
+		if strings.HasPrefix(contextHost, "/") ||
+			strings.HasPrefix(contextHost, "unix://") {
+
+			socketPath := strings.TrimPrefix(contextHost, "unix://")
+			if !HasSocket(socketPath) {
+				log.Errorf("dockerclient.New: new Docker client - from context ('%s') - no unix socket => '%s'", contextHost, socketPath)
+				return nil, ErrNoDockerInfo
+			}
+
+			socketInfo, err := getSocketInfo(socketPath)
+			if err != nil {
+				return nil, err
+			}
+
+			socketInfo.Address = fmt.Sprintf("unix://%s", socketPath)
+
+			if socketInfo.CanRead == false || socketInfo.CanWrite == false {
+				return nil, fmt.Errorf("insufficient socket permissions (can_read=%v can_write=%v)", socketInfo.CanRead, socketInfo.CanWrite)
+			}
+
+			config.Host = socketInfo.Address
+			client, err = docker.NewVersionedClient(config.Host, config.APIVersion)
+			if err != nil {
+				return nil, err
+			}
+
+			if config.APIVersion != "" {
+				client.SkipServerVersionCheck = true
+			}
+
+			log.Debugf("dockerclient.New: new Docker client - from context ('%s') - [7]", contextHost)
+		} else {
+			log.Debugf("dockerclient.New: new Docker client - from context - non-unix socket host (%s) [todo]", contextHost)
 		}
 
 	case config.Host == "" && config.Env[EnvDockerHost] == "":

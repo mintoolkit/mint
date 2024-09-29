@@ -326,6 +326,7 @@ Global options:
 - `--log` - log file to store logs
 - `--host` - Docker host address or socket (prefix with `tcp://` or `unix://`)
 - `--crt-connection` - Container runtime connection (for non-Docker runtimes / for Docker user --host)
+- `--crt-context` - Container runtime context name if supported (for Docker similar to setting '--context' or DOCKER_CONTEXT)
 - `--tls` - use TLS connecting to Docker
 - `--tls-verify` - do TLS verification
 - `--tls-cert-path` - path to TLS cert files
@@ -999,7 +1000,9 @@ If the Docker environment variables are configured to use TLS and to verify the 
 
 `mint --tls-verify=false build my/sample-node-app-multi`
 
-You can override all Docker connection options using these flags: `--host`, `--tls`, `--tls-verify`, `--tls-cert-path`. These flags correspond to the standard Docker options (and the environment variables). Note that you can also use the `--host` flag (similar to `DOCKER_HOST`) to point to a Unix socket (e.g., `--host=unix:///var/run/docker.sock`).
+You can override all Docker connection options using these flags: `--host`, `--tls`, `--tls-verify`, `--tls-cert-path`, `--crt-context`. These flags correspond to the standard Docker options (and the environment variables). Note that you can also use the `--host` flag (similar to `DOCKER_HOST`) to point to a Unix socket (e.g., `--host=unix:///var/run/docker.sock`).
+
+The `--crt-context` flag is currently supported with the Docker runtime and it's similar to using the `--context` flag or `DOCKER_CONTEXT`. Note that Mint will use `DOCKER_CONTEXT` if it's configured.
 
 If you want to use TLS with verification:
 

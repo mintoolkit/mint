@@ -392,6 +392,10 @@ func UpdateGlobalFlagValues(appOpts *config.AppOptions, values *GenericParams) *
 		values.CRTConnection = *appOpts.Global.CRTConnection
 	}
 
+	if appOpts.Global.CRTContext != nil {
+		values.CRTContext = *appOpts.Global.CRTContext
+	}
+
 	if appOpts.Global.UseTLS != nil {
 		values.ClientConfig.UseTLS = *appOpts.Global.UseTLS
 	}
@@ -429,6 +433,7 @@ func GlobalFlagValues(ctx *cli.Context) *GenericParams {
 		StatePath:      ctx.String(FlagStatePath),
 		ReportLocation: ctx.String(FlagCommandReport),
 		CRTConnection:  ctx.String(FlagCRTConnection),
+		CRTContext:     ctx.String(FlagCRTContext),
 	}
 
 	if values.ReportLocation == "off" {
@@ -444,16 +449,23 @@ func GlobalFlagValues(ctx *cli.Context) *GenericParams {
 }
 
 func GetDockerClientConfig(ctx *cli.Context) *config.DockerClient {
+	const op = "commands.GetDockerClientConfig"
+
 	config := &config.DockerClient{
+		Context:     ctx.String(FlagCRTContext),
+		Host:        ctx.String(FlagHost),
 		APIVersion:  ctx.String(FlagAPIVersion),
 		UseTLS:      ctx.Bool(FlagUseTLS),
 		VerifyTLS:   ctx.Bool(FlagVerifyTLS),
 		TLSCertPath: ctx.String(FlagTLSCertPath),
-		Host:        ctx.String(FlagHost),
 		Env:         map[string]string{},
 	}
 
 	getEnv := func(name string) {
+		log.WithFields(log.Fields{
+			"op":  op,
+			"var": name,
+		}).Trace("loading")
 		if value, exists := os.LookupEnv(name); exists {
 			config.Env[name] = value
 		}

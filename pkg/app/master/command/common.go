@@ -72,6 +72,7 @@ type GenericParams struct {
 	IsDSImage      bool
 	ArchiveState   string
 	CRTConnection  string
+	CRTContext     string
 	ClientConfig   *config.DockerClient
 }
 

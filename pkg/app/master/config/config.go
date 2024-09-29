@@ -41,6 +41,7 @@ type GlobalAppOptions struct {
 	StatePath      *string `json:"state_path,omitempty"`
 	ReportLocation *string `json:"report_location,omitempty"`
 	CRTConnection  *string `json:"crt_connection,omitempty"`
+	CRTContext     *string `json:"crt_context,omitempty"`
 	ArchiveState   *string `json:"archive_state,omitempty"`
 }
 
@@ -145,6 +146,7 @@ type DockerClient struct {
 	TLSCertPath string
 	Host        string
 	APIVersion  string
+	Context     string
 	Env         map[string]string
 }
 

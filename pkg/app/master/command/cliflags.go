@@ -29,6 +29,7 @@ const (
 	FlagTLSCertPath   = "tls-cert-path"
 	FlagHost          = "host"
 	FlagCRTConnection = "crt-connection"
+	FlagCRTContext    = "crt-context"
 	FlagStatePath     = "state-path"
 	FlagInContainer   = "in-container"
 	FlagArchiveState  = "archive-state"
@@ -58,6 +59,7 @@ const (
 	FlagAPIVersionUsage    = "Container runtime API version"
 	FlagHostUsage          = "Docker host address or socket (prefix with 'tcp://' or 'unix://')"
 	FlagCRTConnectionUsage = "Container runtime connection (for non-Docker runtimes / for Docker user --host)"
+	FlagCRTContextUsage    = "Container runtime context name if supported (for Docker similar to setting '--context' or DOCKER_CONTEXT)"
 	FlagStatePathUsage     = "app state base path"
 	FlagInContainerUsage   = "app is running in a container"
 	FlagArchiveStateUsage  = "archive app state to the selected Docker volume (default volume - mint-state). By default, enabled when app is running in a container (disabled otherwise). Set it to 'off' to disable explicitly."
@@ -393,6 +395,12 @@ func GlobalFlags() []cli.Flag {
 			Value:   "",
 			Usage:   FlagCRTConnectionUsage,
 			EnvVars: []string{"DSLIM_CRT_CONN"},
+		},
+		&cli.StringFlag{
+			Name:    FlagCRTContext,
+			Value:   "",
+			Usage:   FlagCRTContextUsage,
+			EnvVars: []string{"DSLIM_CRT_CTX"},
 		},
 		&cli.StringFlag{
 			Name:  FlagStatePath,
