@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"strconv"
 
 	"github.com/docker/docker/pkg/archive"
 	dockerapi "github.com/fsouza/go-dockerclient"
@@ -30,6 +31,11 @@ const (
 	volumeBasePath       = "/data"
 	emptyImageName       = "docker-slim-empty-image:latest"
 	emptyImageDockerfile = "FROM scratch\nCMD\n"
+)
+
+const (
+	EnvExportImageInactivityTimeout = "SLIM_EXPORT_IMAGE_INACTIVITY_TIMEOUT"
+	EnvExportDownloadInactivityTimeout = "SLIM_DOWNLOAD_INACTIVITY_TIMEOUT"
 )
 
 type BasicImageProps struct {
@@ -360,10 +366,19 @@ func SaveImage(dclient *dockerapi.Client, imageRef, local string, extract, remov
 		return err
 	}
 
+	
+	// Default export image inactivity timeout value in seconds
+	var exportTimeoutValue time.Duration = time.Duration(20)
+	if value, exists := os.LookupEnv(EnvExportImageInactivityTimeout); exists {
+		if timeout, err := strconv.Atoi(value); err == nil && timeout > 0 {
+			exportTimeoutValue = time.Duration(timeout)
+		}
+	}
+	
 	options := dockerapi.ExportImageOptions{
 		Name:              imageRef,
 		OutputStream:      dfile,
-		InactivityTimeout: 20 * time.Second,
+		InactivityTimeout: exportTimeoutValue * time.Second,
 	}
 
 	err = dclient.ExportImage(options)
@@ -800,10 +815,18 @@ func CopyFromContainer(dclient *dockerapi.Client, containerID, remote, local str
 		return err
 	}
 
+	// Default download from container inactivity timeout value in seconds
+	var downloadTimeoutValue time.Duration = time.Duration(20)
+	if value, exists := os.LookupEnv(EnvExportDownloadInactivityTimeout); exists {
+		if timeout, err := strconv.Atoi(value); err == nil && timeout > 0 {
+			downloadTimeoutValue = time.Duration(timeout)
+		}
+	}
+
 	downloadOptions := dockerapi.DownloadFromContainerOptions{
 		Path:              remote,
 		OutputStream:      dfile,
-		InactivityTimeout: 20 * time.Second,
+		InactivityTimeout: downloadTimeoutValue * time.Second,
 	}
 
 	err = dclient.DownloadFromContainer(containerID, downloadOptions)
