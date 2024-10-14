@@ -141,7 +141,8 @@ func SaveImage(
 	local string,
 	extract bool,
 	removeOrig bool,
-	useDockerFormat bool) error {
+	useDockerFormat bool,
+	inactivityTimeout int) error {
 	if local == "" {
 		return ErrBadParam
 	}

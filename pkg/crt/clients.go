@@ -126,7 +126,7 @@ type InspectorAPIClient interface {
 }
 
 type ImageSaverAPIClient interface {
-	SaveImage(imageRef, localPath string, extract, removeOrig bool) error
+	SaveImage(imageRef, localPath string, extract, removeOrig bool, inactivityTimeout int) error
 }
 
 type ImageLoaderAPIClient interface {

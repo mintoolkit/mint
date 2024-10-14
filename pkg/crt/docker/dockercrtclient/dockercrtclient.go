@@ -328,8 +328,8 @@ func (ref *Instance) GetRegistryAuthConfig(account, secret, configPath, registry
 	return cred, nil
 }
 
-func (ref *Instance) SaveImage(imageRef, localPath string, extract, removeOrig bool) error {
-	err := dockerutil.SaveImage(ref.pclient, imageRef, localPath, extract, removeOrig)
+func (ref *Instance) SaveImage(imageRef, localPath string, extract, removeOrig bool, inactivityTimeout int) error {
+	err := dockerutil.SaveImage(ref.pclient, imageRef, localPath, extract, removeOrig, inactivityTimeout)
 	if err != nil {
 		if err == dockerutil.ErrBadParam {
 			err = crt.ErrBadParam

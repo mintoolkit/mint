@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"strconv"
 
 	"github.com/docker/docker/pkg/archive"
 	dockerapi "github.com/fsouza/go-dockerclient"
@@ -34,8 +33,8 @@ const (
 )
 
 const (
-	EnvExportImageInactivityTimeout = "SLIM_EXPORT_IMAGE_INACTIVITY_TIMEOUT"
-	EnvExportDownloadInactivityTimeout = "SLIM_DOWNLOAD_INACTIVITY_TIMEOUT"
+	SaveImageInactivityTimeout         = 30
+	CopyFromContainerInactivityTimeout = 30
 )
 
 type BasicImageProps struct {
@@ -324,9 +323,13 @@ func LoadImage(dclient *dockerapi.Client,
 	return nil
 }
 
-func SaveImage(dclient *dockerapi.Client, imageRef, local string, extract, removeOrig bool) error {
+func SaveImage(dclient *dockerapi.Client, imageRef, local string, extract, removeOrig bool, inactivityTimeout int) error {
 	if local == "" {
 		return ErrBadParam
+	}
+
+	if inactivityTimeout <= 0 {
+		inactivityTimeout = SaveImageInactivityTimeout
 	}
 
 	var err error
@@ -366,19 +369,10 @@ func SaveImage(dclient *dockerapi.Client, imageRef, local string, extract, remov
 		return err
 	}
 
-	
-	// Default export image inactivity timeout value in seconds
-	var exportTimeoutValue time.Duration = time.Duration(20)
-	if value, exists := os.LookupEnv(EnvExportImageInactivityTimeout); exists {
-		if timeout, err := strconv.Atoi(value); err == nil && timeout > 0 {
-			exportTimeoutValue = time.Duration(timeout)
-		}
-	}
-	
 	options := dockerapi.ExportImageOptions{
 		Name:              imageRef,
 		OutputStream:      dfile,
-		InactivityTimeout: exportTimeoutValue * time.Second,
+		InactivityTimeout: time.Duration(inactivityTimeout) * time.Second,
 	}
 
 	err = dclient.ExportImage(options)
@@ -787,9 +781,13 @@ func CreateVolumeWithData(
 	return nil
 }
 
-func CopyFromContainer(dclient *dockerapi.Client, containerID, remote, local string, extract, removeOrig bool) error {
+func CopyFromContainer(dclient *dockerapi.Client, containerID, remote, local string, extract, removeOrig bool, inactivityTimeout int) error {
 	if containerID == "" || remote == "" || local == "" {
 		return ErrBadParam
+	}
+
+	if inactivityTimeout <= 0 {
+		inactivityTimeout = CopyFromContainerInactivityTimeout
 	}
 
 	var err error
@@ -815,18 +813,10 @@ func CopyFromContainer(dclient *dockerapi.Client, containerID, remote, local str
 		return err
 	}
 
-	// Default download from container inactivity timeout value in seconds
-	var downloadTimeoutValue time.Duration = time.Duration(20)
-	if value, exists := os.LookupEnv(EnvExportDownloadInactivityTimeout); exists {
-		if timeout, err := strconv.Atoi(value); err == nil && timeout > 0 {
-			downloadTimeoutValue = time.Duration(timeout)
-		}
-	}
-
 	downloadOptions := dockerapi.DownloadFromContainerOptions{
 		Path:              remote,
 		OutputStream:      dfile,
-		InactivityTimeout: downloadTimeoutValue * time.Second,
+		InactivityTimeout: time.Duration(inactivityTimeout) * time.Second,
 	}
 
 	err = dclient.DownloadFromContainer(containerID, downloadOptions)

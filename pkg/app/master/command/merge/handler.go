@@ -314,7 +314,6 @@ func OnCommand(
 
 	ensureImage("output", outputTags[0], cmdReport)
 	xc.Out.State("output.image.generate.done")
-	//////////////////////////////////////////////////
 
 	xc.Out.State(cmd.StateCompleted)
 	cmdReport.State = cmd.StateCompleted

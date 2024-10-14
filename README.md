@@ -327,6 +327,9 @@ Global options:
 - `--host` - Docker host address or socket (prefix with `tcp://` or `unix://`)
 - `--crt-connection` - Container runtime connection (for non-Docker runtimes / for Docker user --host)
 - `--crt-context` - Container runtime context name if supported (for Docker similar to setting '--context' or DOCKER_CONTEXT)
+- `--crt-io-inactivity-timeout` - CRT I/O general inactivity timeout.
+- `--crt-save-inactivity-timeout` - CRT save image operation inactivity timeout (overrides the general I/O timeout). If not set, defaults to 30 seconds.
+- `--crt-copy-inactivity-timeout` - CRT copy from container operation inactivity timeout (overrides the general I/O timeout). If not set, defaults to 30 seconds.
 - `--tls` - use TLS connecting to Docker
 - `--tls-verify` - do TLS verification
 - `--tls-cert-path` - path to TLS cert files

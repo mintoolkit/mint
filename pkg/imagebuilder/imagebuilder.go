@@ -101,7 +101,7 @@ type SimpleBuildOptions struct {
 	From        string
 	Tags        []string
 	Layers      []LayerDataInfo
-	ImageConfig ImageConfig
+	ImageConfig *ImageConfig
 
 	/*
 	   //todo:  add 'Healthcheck'
@@ -122,14 +122,18 @@ type SimpleBuildOptions struct {
 type LayerSourceType string
 
 const (
-	TarSource LayerSourceType = "lst.tar"
-	DirSource LayerSourceType = "lst.dir"
+	TarSource      LayerSourceType = "lst.tar"
+	DirSource      LayerSourceType = "lst.dir"
+	FileSource     LayerSourceType = "lst.file"
+	FileListSource LayerSourceType = "lst.file_list"
 )
 
 type LayerDataInfo struct {
-	Type   LayerSourceType
-	Source string
-	Params *DataParams
+	Type            LayerSourceType
+	Source          string
+	Params          *DataParams
+	EntrypointLayer bool
+	ResetCmd        bool
 	//TODO: add other common layer metadata...
 }
 
@@ -249,5 +253,5 @@ func SimpleBuildOptionsFromDockerfile(path string, ignoreExeInstructions bool) (
 }
 
 func SimpleBuildOptionsFromImageConfig(data *ImageConfig) (*SimpleBuildOptions, error) {
-	return &SimpleBuildOptions{ImageConfig: *data}, nil
+	return &SimpleBuildOptions{ImageConfig: data}, nil
 }

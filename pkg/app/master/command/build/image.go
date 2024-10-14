@@ -368,7 +368,7 @@ func buildOutputImage(
 		xc.FailOn(err)
 
 		opts := imagebuilder.SimpleBuildOptions{
-			ImageConfig: imagebuilder.ImageConfig{
+			ImageConfig: &imagebuilder.ImageConfig{
 				Architecture: imageBuildArch,
 				Config: imagebuilder.RunConfig{
 					ExposedPorts: map[string]struct{}{},

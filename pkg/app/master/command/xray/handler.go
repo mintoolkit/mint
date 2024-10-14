@@ -454,7 +454,13 @@ func OnCommand(
 		}
 
 		xc.Out.Info("image.data.inspection.save.image.start")
-		err = crtClient.SaveImage(imageID, iaPath, false, false)
+		var saveInactivityTimeout int
+		if gparams.CRTSaveInactivityTimeout > 0 {
+			saveInactivityTimeout = gparams.CRTSaveInactivityTimeout
+		} else if gparams.CRTIOInactivityTimeout > 0 {
+			saveInactivityTimeout = gparams.CRTIOInactivityTimeout
+		}
+		err = crtClient.SaveImage(imageID, iaPath, false, false, saveInactivityTimeout)
 		errutil.FailOn(err)
 
 		err = fsutil.Touch(iaPathReady)

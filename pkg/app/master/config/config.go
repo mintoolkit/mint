@@ -24,25 +24,28 @@ type AppOptions struct {
 
 // GlobalAppOptions provides a set of global application parameters
 type GlobalAppOptions struct {
-	NoColor        *bool   `json:"no_color,omitempty"`
-	CheckVersion   *bool   `json:"check_version,omitempty"`
-	Debug          *bool   `json:"debug,omitempty"`
-	Verbose        *bool   `json:"verbose,omitempty"`
-	Quiet          *bool   `json:"quiet,omitempty"`
-	OutputFormat   *string `json:"output_format,omitempty"`
-	LogLevel       *string `json:"log_level,omitempty"`
-	Log            *string `json:"log,omitempty"`
-	LogFormat      *string `json:"log_format,omitempty"`
-	UseTLS         *bool   `json:"tls,omitempty"`
-	VerifyTLS      *bool   `json:"tls_verify,omitempty"`
-	TLSCertPath    *string `json:"tls_cert_path,omitempty"`
-	APIVersion     *string `json:"api_version,omitempty"`
-	Host           *string `json:"host,omitempty"`
-	StatePath      *string `json:"state_path,omitempty"`
-	ReportLocation *string `json:"report_location,omitempty"`
-	CRTConnection  *string `json:"crt_connection,omitempty"`
-	CRTContext     *string `json:"crt_context,omitempty"`
-	ArchiveState   *string `json:"archive_state,omitempty"`
+	NoColor                  *bool   `json:"no_color,omitempty"`
+	CheckVersion             *bool   `json:"check_version,omitempty"`
+	Debug                    *bool   `json:"debug,omitempty"`
+	Verbose                  *bool   `json:"verbose,omitempty"`
+	Quiet                    *bool   `json:"quiet,omitempty"`
+	OutputFormat             *string `json:"output_format,omitempty"`
+	LogLevel                 *string `json:"log_level,omitempty"`
+	Log                      *string `json:"log,omitempty"`
+	LogFormat                *string `json:"log_format,omitempty"`
+	UseTLS                   *bool   `json:"tls,omitempty"`
+	VerifyTLS                *bool   `json:"tls_verify,omitempty"`
+	TLSCertPath              *string `json:"tls_cert_path,omitempty"`
+	APIVersion               *string `json:"api_version,omitempty"`
+	Host                     *string `json:"host,omitempty"`
+	StatePath                *string `json:"state_path,omitempty"`
+	ReportLocation           *string `json:"report_location,omitempty"`
+	CRTConnection            *string `json:"crt_connection,omitempty"`
+	CRTContext               *string `json:"crt_context,omitempty"`
+	ArchiveState             *string `json:"archive_state,omitempty"`
+	CRTIOInactivityTimeout   *int    `json:"crt_io_inactivity_timeout,omitempty"`
+	CRTSaveInactivityTimeout *int    `json:"crt_save_inactivity_timeout,omitempty"`
+	CRTCopyInactivityTimeout *int    `json:"crt_copy_inactivity_timeout,omitempty"`
 }
 
 func NewAppOptionsFromFile(dir string) (*AppOptions, error) {

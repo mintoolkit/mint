@@ -670,7 +670,14 @@ func OnCommand(
 				}
 
 				xc.Out.Info("image.data.inspection.save.image.start")
-				err = dockerutil.SaveImage(client, imageID, iaPath, false, false)
+				var saveInactivityTimeout int
+				if gparams.CRTSaveInactivityTimeout > 0 {
+					saveInactivityTimeout = gparams.CRTSaveInactivityTimeout
+				} else if gparams.CRTIOInactivityTimeout > 0 {
+					saveInactivityTimeout = gparams.CRTIOInactivityTimeout
+				}
+
+				err = dockerutil.SaveImage(client, imageID, iaPath, false, false, saveInactivityTimeout)
 				errutil.FailOn(err)
 
 				err = fsutil.Touch(iaPathReady)
@@ -1113,6 +1120,8 @@ func OnCommand(
 		gparams.LogLevel,
 		gparams.LogFormat,
 		gparams.InContainer,
+		gparams.CRTIOInactivityTimeout,
+		gparams.CRTCopyInactivityTimeout,
 		rtaSourcePT,
 		doObfuscateMetadata,
 		obfuscateAppPackageNames,

@@ -373,8 +373,8 @@ func (ref *Instance) GetRegistryAuthConfig(account, secret, configPath, registry
 	return output, nil
 }
 
-func (ref *Instance) SaveImage(imageRef, localPath string, extract, removeOrig bool) error {
-	err := podmanutil.SaveImage(ref.pclient, imageRef, localPath, extract, removeOrig, true)
+func (ref *Instance) SaveImage(imageRef, localPath string, extract, removeOrig bool, inactivityTimeout int) error {
+	err := podmanutil.SaveImage(ref.pclient, imageRef, localPath, extract, removeOrig, true, inactivityTimeout)
 	if err != nil {
 		if err == podmanutil.ErrBadParam {
 			err = crt.ErrBadParam

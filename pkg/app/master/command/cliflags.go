@@ -15,26 +15,29 @@ import (
 
 // Global flag names
 const (
-	FlagCommandReport = "report"
-	FlagCheckVersion  = "check-version"
-	FlagDebug         = "debug"
-	FlagVerbose       = "verbose"
-	FlagQuietCLIMode  = "quiet"
-	FlagLogLevel      = "log-level"
-	FlagLog           = "log"
-	FlagLogFormat     = "log-format"
-	FlagAPIVersion    = "crt-api-version"
-	FlagUseTLS        = "tls"
-	FlagVerifyTLS     = "tls-verify"
-	FlagTLSCertPath   = "tls-cert-path"
-	FlagHost          = "host"
-	FlagCRTConnection = "crt-connection"
-	FlagCRTContext    = "crt-context"
-	FlagStatePath     = "state-path"
-	FlagInContainer   = "in-container"
-	FlagArchiveState  = "archive-state"
-	FlagNoColor       = "no-color"
-	FlagOutputFormat  = "output-format"
+	FlagCommandReport            = "report"
+	FlagCheckVersion             = "check-version"
+	FlagDebug                    = "debug"
+	FlagVerbose                  = "verbose"
+	FlagQuietCLIMode             = "quiet"
+	FlagLogLevel                 = "log-level"
+	FlagLog                      = "log"
+	FlagLogFormat                = "log-format"
+	FlagAPIVersion               = "crt-api-version"
+	FlagUseTLS                   = "tls"
+	FlagVerifyTLS                = "tls-verify"
+	FlagTLSCertPath              = "tls-cert-path"
+	FlagHost                     = "host"
+	FlagCRTConnection            = "crt-connection"
+	FlagCRTContext               = "crt-context"
+	FlagStatePath                = "state-path"
+	FlagInContainer              = "in-container"
+	FlagArchiveState             = "archive-state"
+	FlagNoColor                  = "no-color"
+	FlagOutputFormat             = "output-format"
+	FlagCRTIOInactivityTimeout   = "crt-io-inactivity-timeout"
+	FlagCRTSaveInactivityTimeout = "crt-save-inactivity-timeout"
+	FlagCRTCopyInactivityTimeout = "crt-copy-inactivity-timeout"
 )
 
 const (
@@ -64,6 +67,10 @@ const (
 	FlagInContainerUsage   = "app is running in a container"
 	FlagArchiveStateUsage  = "archive app state to the selected Docker volume (default volume - mint-state). By default, enabled when app is running in a container (disabled otherwise). Set it to 'off' to disable explicitly."
 	FlagNoColorUsage       = "disable color output"
+
+	FlagCRTIOInactivityTimeoutUsage   = "CRT I/O general inactivity timeout"
+	FlagCRTSaveInactivityTimeoutUsage = "CRT save image operation inactivity timeout (overrides the general I/O timeout)"
+	FlagCRTCopyInactivityTimeoutUsage = "CRT copy from container operation inactivity timeout (overrides the general I/O timeout)"
 )
 
 // Shared command flag names
@@ -401,6 +408,24 @@ func GlobalFlags() []cli.Flag {
 			Value:   "",
 			Usage:   FlagCRTContextUsage,
 			EnvVars: []string{"DSLIM_CRT_CTX"},
+		},
+		&cli.IntFlag{
+			Name:    FlagCRTIOInactivityTimeout,
+			Value:   0,
+			Usage:   FlagCRTIOInactivityTimeoutUsage,
+			EnvVars: []string{"DSLIM_CRT_IO_INACTIVITY_TIMEOUT"},
+		},
+		&cli.IntFlag{
+			Name:    FlagCRTSaveInactivityTimeout,
+			Value:   0,
+			Usage:   FlagCRTSaveInactivityTimeoutUsage,
+			EnvVars: []string{"DSLIM_CRT_SAVE_INACTIVITY_TIMEOUT"},
+		},
+		&cli.IntFlag{
+			Name:    FlagCRTCopyInactivityTimeout,
+			Value:   0,
+			Usage:   FlagCRTCopyInactivityTimeoutUsage,
+			EnvVars: []string{"DSLIM_CRT_COPY_INACTIVITY_TIMEOUT"},
 		},
 		&cli.StringFlag{
 			Name:  FlagStatePath,

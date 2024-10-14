@@ -276,6 +276,8 @@ func OnCommand(
 		logLevel,
 		logFormat,
 		gparams.InContainer,
+		gparams.CRTIOInactivityTimeout,
+		gparams.CRTCopyInactivityTimeout,
 		true,  //rtaSourcePT
 		false, //doObfuscateMetadata
 		"",    //doObfuscateAPN

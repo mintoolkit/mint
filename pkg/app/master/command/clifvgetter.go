@@ -396,6 +396,18 @@ func UpdateGlobalFlagValues(appOpts *config.AppOptions, values *GenericParams) *
 		values.CRTContext = *appOpts.Global.CRTContext
 	}
 
+	if appOpts.Global.CRTIOInactivityTimeout != nil {
+		values.CRTIOInactivityTimeout = *appOpts.Global.CRTIOInactivityTimeout
+	}
+
+	if appOpts.Global.CRTSaveInactivityTimeout != nil {
+		values.CRTSaveInactivityTimeout = *appOpts.Global.CRTSaveInactivityTimeout
+	}
+
+	if appOpts.Global.CRTCopyInactivityTimeout != nil {
+		values.CRTCopyInactivityTimeout = *appOpts.Global.CRTCopyInactivityTimeout
+	}
+
 	if appOpts.Global.UseTLS != nil {
 		values.ClientConfig.UseTLS = *appOpts.Global.UseTLS
 	}
@@ -421,19 +433,22 @@ func UpdateGlobalFlagValues(appOpts *config.AppOptions, values *GenericParams) *
 
 func GlobalFlagValues(ctx *cli.Context) *GenericParams {
 	values := GenericParams{
-		NoColor:        ctx.Bool(FlagNoColor),
-		CheckVersion:   ctx.Bool(FlagCheckVersion),
-		Debug:          ctx.Bool(FlagDebug),
-		Verbose:        ctx.Bool(FlagVerbose),
-		QuietCLIMode:   ctx.Bool(FlagQuietCLIMode),
-		LogLevel:       ctx.String(FlagLogLevel),
-		LogFormat:      ctx.String(FlagLogFormat),
-		OutputFormat:   ctx.String(FlagOutputFormat),
-		Log:            ctx.String(FlagLog),
-		StatePath:      ctx.String(FlagStatePath),
-		ReportLocation: ctx.String(FlagCommandReport),
-		CRTConnection:  ctx.String(FlagCRTConnection),
-		CRTContext:     ctx.String(FlagCRTContext),
+		NoColor:                  ctx.Bool(FlagNoColor),
+		CheckVersion:             ctx.Bool(FlagCheckVersion),
+		Debug:                    ctx.Bool(FlagDebug),
+		Verbose:                  ctx.Bool(FlagVerbose),
+		QuietCLIMode:             ctx.Bool(FlagQuietCLIMode),
+		LogLevel:                 ctx.String(FlagLogLevel),
+		LogFormat:                ctx.String(FlagLogFormat),
+		OutputFormat:             ctx.String(FlagOutputFormat),
+		Log:                      ctx.String(FlagLog),
+		StatePath:                ctx.String(FlagStatePath),
+		ReportLocation:           ctx.String(FlagCommandReport),
+		CRTConnection:            ctx.String(FlagCRTConnection),
+		CRTContext:               ctx.String(FlagCRTContext),
+		CRTIOInactivityTimeout:   ctx.Int(FlagCRTIOInactivityTimeout),
+		CRTSaveInactivityTimeout: ctx.Int(FlagCRTSaveInactivityTimeout),
+		CRTCopyInactivityTimeout: ctx.Int(FlagCRTCopyInactivityTimeout),
 	}
 
 	if values.ReportLocation == "off" {

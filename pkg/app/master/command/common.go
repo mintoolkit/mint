@@ -57,23 +57,26 @@ func CLIContextGet(ctx context.Context, key CLIContextKey) interface{} {
 /////////////////////////////////////////////////////////
 
 type GenericParams struct {
-	NoColor        bool
-	CheckVersion   bool
-	Debug          bool
-	Verbose        bool
-	QuietCLIMode   bool
-	LogLevel       string
-	LogFormat      string
-	OutputFormat   string
-	Log            string
-	StatePath      string
-	ReportLocation string
-	InContainer    bool
-	IsDSImage      bool
-	ArchiveState   string
-	CRTConnection  string
-	CRTContext     string
-	ClientConfig   *config.DockerClient
+	NoColor                  bool
+	CheckVersion             bool
+	Debug                    bool
+	Verbose                  bool
+	QuietCLIMode             bool
+	LogLevel                 string
+	LogFormat                string
+	OutputFormat             string
+	Log                      string
+	StatePath                string
+	ReportLocation           string
+	InContainer              bool
+	IsDSImage                bool
+	ArchiveState             string
+	CRTConnection            string
+	CRTContext               string
+	ClientConfig             *config.DockerClient
+	CRTIOInactivityTimeout   int
+	CRTSaveInactivityTimeout int
+	CRTCopyInactivityTimeout int
 }
 
 // TODO: spread these code types across all command definition, so it's not all defined here

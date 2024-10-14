@@ -137,6 +137,8 @@ type Inspector struct {
 	LogFormat                string
 	PrintState               bool
 	InContainer              bool
+	CRTIOInactivityTimeout   int
+	CRTCopyInactivityTimeout int
 	RTASourcePT              bool
 	DoObfuscateMetadata      bool
 	ObfuscateAppPackageNames string
@@ -221,6 +223,8 @@ func NewInspector(
 	logLevel string,
 	logFormat string,
 	inContainer bool,
+	crtIOInactivityTimeout int,
+	crtCopyInactivityTimeout int,
 	rtaSourcePT bool,
 	doObfuscateMetadata bool,
 	obfuscateAppPackageNames string,
@@ -282,6 +286,8 @@ func NewInspector(
 		LogFormat:                logFormat,
 		PrintState:               printState,
 		InContainer:              inContainer,
+		CRTIOInactivityTimeout:   crtIOInactivityTimeout,
+		CRTCopyInactivityTimeout: crtCopyInactivityTimeout,
 		RTASourcePT:              rtaSourcePT,
 		DoObfuscateMetadata:      doObfuscateMetadata,
 		ObfuscateAppPackageNames: obfuscateAppPackageNames,
@@ -1247,10 +1253,17 @@ func (i *Inspector) ShutdownContainer(terminateOnly bool) error {
 				deleteOrig = false
 			}
 
+			var copyInactivityTimeout int
+			if i.CRTCopyInactivityTimeout > 0 {
+				copyInactivityTimeout = i.CRTCopyInactivityTimeout
+			} else if i.CRTIOInactivityTimeout > 0 {
+				copyInactivityTimeout = i.CRTIOInactivityTimeout
+			}
+
 			//copy the container report
 			reportLocalPath := filepath.Join(i.LocalVolumePath, ArtifactsDir, ReportArtifactTar)
 			reportRemotePath := filepath.Join(app.DefaultArtifactsDirPath, report.DefaultContainerReportFileName)
-			err := dockerutil.CopyFromContainer(i.APIClient, i.ContainerID, reportRemotePath, reportLocalPath, true, deleteOrig)
+			err := dockerutil.CopyFromContainer(i.APIClient, i.ContainerID, reportRemotePath, reportLocalPath, true, deleteOrig, copyInactivityTimeout)
 			if err != nil {
 				logger.WithError(err).WithField("container", i.ContainerID).Error("dockerutil.CopyFromContainer")
 				//can't call errutil.FailOn() because we won't cleanup the target container
@@ -1261,7 +1274,7 @@ func (i *Inspector) ShutdownContainer(terminateOnly bool) error {
 				//copy the monitor data event log (if available)
 				mondelLocalPath := filepath.Join(i.LocalVolumePath, ArtifactsDir, MondelArtifactTar)
 				mondelRemotePath := filepath.Join(app.DefaultArtifactsDirPath, report.DefaultMonDelFileName)
-				err = dockerutil.CopyFromContainer(i.APIClient, i.ContainerID, mondelRemotePath, mondelLocalPath, true, deleteOrig)
+				err = dockerutil.CopyFromContainer(i.APIClient, i.ContainerID, mondelRemotePath, mondelLocalPath, true, deleteOrig, copyInactivityTimeout)
 				if err != nil {
 					//not a failure because the log might not be there (just log it)
 					logger.WithFields(log.Fields{
@@ -1290,7 +1303,7 @@ func (i *Inspector) ShutdownContainer(terminateOnly bool) error {
 
 			filesOutLocalPath := filepath.Join(i.LocalVolumePath, ArtifactsDir, FileArtifactsOutTar)
 			filesRemotePath := filepath.Join(app.DefaultArtifactsDirPath, app.ArtifactFilesDirName)
-			err = dockerutil.CopyFromContainer(i.APIClient, i.ContainerID, filesRemotePath, filesOutLocalPath, false, false)
+			err = dockerutil.CopyFromContainer(i.APIClient, i.ContainerID, filesRemotePath, filesOutLocalPath, false, false, copyInactivityTimeout)
 			if err != nil {
 				logger.WithError(err).WithField("container", i.ContainerID).Error("dockerutil.CopyFromContainer")
 				//can't call errutil.FailOn() because we won't cleanup the target container

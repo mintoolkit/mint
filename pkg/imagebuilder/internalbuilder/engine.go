@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -15,6 +16,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/daemon"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	log "github.com/sirupsen/logrus"
 
@@ -53,7 +55,13 @@ func (ref *Engine) Name() string {
 }
 
 func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder.ImageResult, error) {
-	if len(options.ImageConfig.Config.Entrypoint) == 0 &&
+	if options.From == "" && options.ImageConfig == nil {
+		return nil, fmt.Errorf("missing image config metadata - set options.From or options.ImageConfig")
+	}
+
+	if options.From == "" &&
+		options.ImageConfig != nil &&
+		len(options.ImageConfig.Config.Entrypoint) == 0 &&
 		len(options.ImageConfig.Config.Cmd) == 0 {
 		return nil, fmt.Errorf("missing startup info")
 	}
@@ -66,89 +74,128 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 		return nil, fmt.Errorf("too many layers")
 	}
 
-	switch options.ImageConfig.Architecture {
-	case "":
-		options.ImageConfig.Architecture = "amd64"
-	case "arm64", "amd64":
-	default:
-		return nil, fmt.Errorf("bad architecture value")
-	}
-
 	var img v1.Image
+	var baseImageOS string
+	var baseImageArch string
 	if options.From == "" {
 		//same as FROM scratch
 		img = empty.Image
 	} else {
-		return nil, fmt.Errorf("custom base images are not supported yet")
-	}
-
-	imgRunConfig := v1.Config{
-		User:            options.ImageConfig.Config.User,
-		ExposedPorts:    options.ImageConfig.Config.ExposedPorts,
-		Env:             options.ImageConfig.Config.Env,
-		Entrypoint:      options.ImageConfig.Config.Entrypoint,
-		Cmd:             options.ImageConfig.Config.Cmd,
-		Volumes:         options.ImageConfig.Config.Volumes,
-		WorkingDir:      options.ImageConfig.Config.WorkingDir,
-		Labels:          options.ImageConfig.Config.Labels,
-		StopSignal:      options.ImageConfig.Config.StopSignal,
-		ArgsEscaped:     options.ImageConfig.Config.ArgsEscaped,
-		AttachStderr:    options.ImageConfig.Config.AttachStderr,
-		AttachStdin:     options.ImageConfig.Config.AttachStdin,
-		AttachStdout:    options.ImageConfig.Config.AttachStdout,
-		Domainname:      options.ImageConfig.Config.Domainname,
-		Hostname:        options.ImageConfig.Config.Hostname,
-		Image:           options.ImageConfig.Config.Image,
-		OnBuild:         options.ImageConfig.Config.OnBuild,
-		OpenStdin:       options.ImageConfig.Config.OpenStdin,
-		StdinOnce:       options.ImageConfig.Config.StdinOnce,
-		Tty:             options.ImageConfig.Config.Tty,
-		NetworkDisabled: options.ImageConfig.Config.NetworkDisabled,
-		MacAddress:      options.ImageConfig.Config.MacAddress,
-		Shell:           options.ImageConfig.Config.Shell,
-	}
-
-	if options.ImageConfig.Config.Healthcheck != nil {
-		imgRunConfig.Healthcheck = &v1.HealthConfig{
-			Test:        options.ImageConfig.Config.Healthcheck.Test,
-			Interval:    options.ImageConfig.Config.Healthcheck.Interval,
-			Timeout:     options.ImageConfig.Config.Healthcheck.Timeout,
-			StartPeriod: options.ImageConfig.Config.Healthcheck.StartPeriod,
-			Retries:     options.ImageConfig.Config.Healthcheck.Retries,
+		ref, err := name.ParseReference(options.From)
+		if err != nil {
+			log.WithError(err).Error("name.ParseReference")
+			return nil, err
 		}
+
+		//TODO/FUTURE: add other image source options (not just local Docker daemon)
+		//TODO/ASAP: need to pass the 'daemon' client otherwise it'll fail if the default client isn't enough
+		img, err := daemon.Image(ref)
+		if err != nil {
+			log.WithError(err).Debugf("daemon.Image(%s)", options.From)
+			//return nil, err
+			//TODO: have a flag to control the 'pull' behavior (also need to consider auth)
+			//try to pull...
+			img, err = remote.Image(ref)
+			if err != nil {
+				log.WithError(err).Errorf("remote.Image(%s)", options.From)
+				return nil, err
+			}
+		}
+
+		cf, err := img.ConfigFile()
+		if err != nil {
+			log.WithError(err).Error("v1.Image.ConfigFile")
+			return nil, err
+		}
+
+		baseImageArch = cf.Architecture
+		baseImageOS = cf.OS
 	}
 
-	imgConfig := &v1.ConfigFile{
-		Created:      v1.Time{Time: time.Now()},
-		Author:       options.ImageConfig.Author,
-		Architecture: options.ImageConfig.Architecture,
-		OS:           options.ImageConfig.OS,
-		OSVersion:    options.ImageConfig.OSVersion,
-		OSFeatures:   options.ImageConfig.OSFeatures,
-		Variant:      options.ImageConfig.Variant,
-		Config:       imgRunConfig,
-		//History - not setting for now (actual history needs to match the added layers)
-		Container:     options.ImageConfig.Container,
-		DockerVersion: options.ImageConfig.DockerVersion,
-	}
+	if options.ImageConfig != nil {
+		switch options.ImageConfig.Architecture {
+		case "":
+			options.ImageConfig.Architecture = baseImageArch
+			if options.ImageConfig.Architecture == "" {
+				options.ImageConfig.Architecture = "amd64"
+			}
+		case "arm64", "amd64":
+		default:
+			return nil, fmt.Errorf("bad architecture value")
+		}
 
-	if imgConfig.OS == "" {
-		imgConfig.OS = "linux"
-	}
+		imgRunConfig := v1.Config{
+			User:            options.ImageConfig.Config.User,
+			ExposedPorts:    options.ImageConfig.Config.ExposedPorts,
+			Env:             options.ImageConfig.Config.Env,
+			Entrypoint:      options.ImageConfig.Config.Entrypoint,
+			Cmd:             options.ImageConfig.Config.Cmd,
+			Volumes:         options.ImageConfig.Config.Volumes,
+			WorkingDir:      options.ImageConfig.Config.WorkingDir,
+			Labels:          options.ImageConfig.Config.Labels,
+			StopSignal:      options.ImageConfig.Config.StopSignal,
+			ArgsEscaped:     options.ImageConfig.Config.ArgsEscaped,
+			AttachStderr:    options.ImageConfig.Config.AttachStderr,
+			AttachStdin:     options.ImageConfig.Config.AttachStdin,
+			AttachStdout:    options.ImageConfig.Config.AttachStdout,
+			Domainname:      options.ImageConfig.Config.Domainname,
+			Hostname:        options.ImageConfig.Config.Hostname,
+			Image:           options.ImageConfig.Config.Image,
+			OnBuild:         options.ImageConfig.Config.OnBuild,
+			OpenStdin:       options.ImageConfig.Config.OpenStdin,
+			StdinOnce:       options.ImageConfig.Config.StdinOnce,
+			Tty:             options.ImageConfig.Config.Tty,
+			NetworkDisabled: options.ImageConfig.Config.NetworkDisabled,
+			MacAddress:      options.ImageConfig.Config.MacAddress,
+			Shell:           options.ImageConfig.Config.Shell,
+		}
 
-	if imgConfig.Author == "" {
-		imgConfig.Author = "mintoolkit"
-	}
+		if options.ImageConfig.Config.Healthcheck != nil {
+			imgRunConfig.Healthcheck = &v1.HealthConfig{
+				Test:        options.ImageConfig.Config.Healthcheck.Test,
+				Interval:    options.ImageConfig.Config.Healthcheck.Interval,
+				Timeout:     options.ImageConfig.Config.Healthcheck.Timeout,
+				StartPeriod: options.ImageConfig.Config.Healthcheck.StartPeriod,
+				Retries:     options.ImageConfig.Config.Healthcheck.Retries,
+			}
+		}
 
-	if !options.ImageConfig.Created.IsZero() {
-		imgConfig.Created = v1.Time{Time: options.ImageConfig.Created}
-	}
+		imgConfig := &v1.ConfigFile{
+			Created:      v1.Time{Time: time.Now()},
+			Author:       options.ImageConfig.Author,
+			Architecture: options.ImageConfig.Architecture,
+			OS:           options.ImageConfig.OS,
+			OSVersion:    options.ImageConfig.OSVersion,
+			OSFeatures:   options.ImageConfig.OSFeatures,
+			Variant:      options.ImageConfig.Variant,
+			Config:       imgRunConfig,
+			//History - not setting for now (actual history needs to match the added layers)
+			Container:     options.ImageConfig.Container,
+			DockerVersion: options.ImageConfig.DockerVersion,
+		}
 
-	log.Debug("DefaultSimpleBuilder.Build: config image")
+		if imgConfig.OS == "" {
+			imgConfig.OS = baseImageOS
+			if imgConfig.OS == "" {
+				imgConfig.OS = "linux"
+			}
+		}
 
-	img, err := mutate.ConfigFile(img, imgConfig)
-	if err != nil {
-		return nil, err
+		if imgConfig.Author == "" {
+			imgConfig.Author = "mintoolkit"
+		}
+
+		if !options.ImageConfig.Created.IsZero() {
+			imgConfig.Created = v1.Time{Time: options.ImageConfig.Created}
+		}
+
+		log.Debug("DefaultSimpleBuilder.Build: config image")
+
+		var err error
+		img, err = mutate.ConfigFile(img, imgConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var layersToAdd []v1.Layer
@@ -166,6 +213,17 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 		}
 
 		switch layerInfo.Type {
+		case imagebuilder.FileSource:
+			if !fsutil.IsRegularFile(layerInfo.Source) {
+				return nil, fmt.Errorf("image layer data source path is not a file - %s", layerInfo.Source)
+			}
+
+			layer, err := layerFromFile(layerInfo)
+			if err != nil {
+				return nil, err
+			}
+
+			layersToAdd = append(layersToAdd, layer)
 		case imagebuilder.TarSource:
 			if !fsutil.IsRegularFile(layerInfo.Source) {
 				return nil, fmt.Errorf("image layer data source path is not a file - %s", layerInfo.Source)
@@ -266,6 +324,86 @@ func layerFromTar(input imagebuilder.LayerDataInfo) (v1.Layer, error) {
 	}
 
 	return tarball.LayerFromFile(input.Source)
+}
+
+func layerFromFile(input imagebuilder.LayerDataInfo) (v1.Layer, error) {
+	if !fsutil.Exists(input.Source) ||
+		!fsutil.IsRegularFile(input.Source) {
+		return nil, fmt.Errorf("bad input data")
+	}
+
+	f, err := os.Open(input.Source)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	finfo, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	var b bytes.Buffer
+	tw := tar.NewWriter(&b)
+
+	var layerFilePath string
+	if input.Params != nil && input.Params.TargetPath != "" {
+		layerFilePath = input.Params.TargetPath
+	}
+
+	if layerFilePath == "" {
+		layerFilePath = path.Join("/opt/app", filepath.Base(input.Source))
+	}
+
+	layerFilePath = strings.TrimLeft(layerFilePath, "/")
+	layerFileDir := filepath.Dir(layerFilePath)
+	layerFileDirParts := strings.Split(layerFileDir, "/")
+
+	var dirPrefix string
+	for _, part := range layerFileDirParts {
+		var currentDirPath string
+		if dirPrefix != "" {
+			dirPrefix = path.Join(dirPrefix, part)
+		} else {
+			dirPrefix = part
+		}
+
+		currentDirPath = path.Join(dirPrefix, "/")
+		if err := tw.WriteHeader(
+			&tar.Header{
+				Name:     currentDirPath,
+				Mode:     0755,
+				Typeflag: tar.TypeDir,
+			}); err != nil {
+			return nil, fmt.Errorf("failed to write tar header for dir: %w", err)
+		}
+	}
+
+	hdr := &tar.Header{
+		Name: layerFilePath,
+		Mode: int64(finfo.Mode()),
+		Size: finfo.Size(),
+	}
+
+	if finfo.Mode().IsRegular() {
+		hdr.Typeflag = tar.TypeReg
+	} else {
+		return nil, fmt.Errorf("not implemented archiving file type %s (%s)", finfo.Mode(), layerFilePath)
+	}
+
+	if err := tw.WriteHeader(hdr); err != nil {
+		return nil, fmt.Errorf("failed to write tar header for file(%s): %w", layerFilePath, err)
+	}
+
+	if _, err := io.Copy(tw, f); err != nil {
+		return nil, fmt.Errorf("failed to read file(%s) into the tar: %w", layerFilePath, err)
+	}
+
+	if err := tw.Close(); err != nil {
+		return nil, fmt.Errorf("failed to finish tar: %w", err)
+	}
+
+	return tarball.LayerFromReader(&b)
 }
 
 func layerFromDir(input imagebuilder.LayerDataInfo) (v1.Layer, error) {
