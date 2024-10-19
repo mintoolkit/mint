@@ -450,15 +450,17 @@ probeLoop:
 				}
 
 				if p.printState {
-					p.xc.Out.Info("redis.probe.call",
-						ovars{
-							"status":  statusCode,
-							"output":  output,
-							"port":    port,
-							"attempt": i + 1,
-							"error":   callErrorStr,
-							"time":    time.Now().UTC().Format(time.RFC3339),
-						})
+					ov := ovars{
+						"status":  statusCode,
+						"output":  output,
+						"port":    port,
+						"attempt": i + 1,
+						"time":    time.Now().UTC().Format(time.RFC3339),
+					}
+					if callErrorStr != "none" {
+						ov["error"] = callErrorStr
+					}
+					p.xc.Out.Info("redis.probe.call", ov)
 				}
 
 				if err == nil {
@@ -490,15 +492,18 @@ probeLoop:
 				}
 
 				if p.printState {
-					p.xc.Out.Info("dns.probe.call",
-						ovars{
-							"status":  statusCode,
-							"output":  output,
-							"port":    port,
-							"attempt": i + 1,
-							"error":   callErrorStr,
-							"time":    time.Now().UTC().Format(time.RFC3339),
-						})
+					ov := ovars{
+						"status":  statusCode,
+						"output":  output,
+						"port":    port,
+						"attempt": i + 1,
+						"time":    time.Now().UTC().Format(time.RFC3339),
+					}
+					if callErrorStr != "none" {
+						ov["error"] = callErrorStr
+					}
+
+					p.xc.Out.Info("dns.probe.call", ov)
 				}
 
 				if err == nil {
@@ -718,17 +723,21 @@ probeLoop:
 								callErrorStr = err.Error()
 							}
 
-							p.xc.Out.Info("http.probe.call.ws",
-								ovars{
-									"status":    statusCode,
-									"stats.rc":  wc.ReadCount,
-									"stats.pic": wc.PingCount,
-									"stats.poc": wc.PongCount,
-									"endpoint":  wc.Addr,
-									"attempt":   i + 1,
-									"error":     callErrorStr,
-									"time":      time.Now().UTC().Format(time.RFC3339),
-								})
+							ov := ovars{
+								"status":    statusCode,
+								"stats.rc":  wc.ReadCount,
+								"stats.pic": wc.PingCount,
+								"stats.poc": wc.PongCount,
+								"endpoint":  wc.Addr,
+								"attempt":   i + 1,
+								"time":      time.Now().UTC().Format(time.RFC3339),
+							}
+
+							if callErrorStr != "none" {
+								ov["error"] = callErrorStr
+							}
+
+							p.xc.Out.Info("http.probe.call.ws", ov)
 						}
 
 						if err != nil {
@@ -930,15 +939,17 @@ func (p *CustomProbe) call(
 		}
 
 		if p.printState {
-			p.xc.Out.Info("http.probe.call",
-				ovars{
-					"status":   statusCode,
-					"method":   cmd.Method,
-					"endpoint": addr,
-					"attempt":  i + 1,
-					"error":    callErrorStr,
-					"time":     time.Now().UTC().Format(time.RFC3339),
-				})
+			ov := ovars{
+				"status":   statusCode,
+				"method":   cmd.Method,
+				"endpoint": addr,
+				"attempt":  i + 1,
+				"time":     time.Now().UTC().Format(time.RFC3339),
+			}
+			if callErrorStr != "none" {
+				ov["error"] = callErrorStr
+			}
+			p.xc.Out.Info("http.probe.call", ov)
 		}
 
 		if err == nil {
