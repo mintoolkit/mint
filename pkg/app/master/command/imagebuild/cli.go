@@ -35,6 +35,9 @@ type CommandParams struct {
 	BuildArgs        []imagebuilder.NVParam `json:"build_args,omitempty"`
 	Labels           map[string]string      `json:"labels,omitempty"`
 	Architecture     string                 `json:"architecture,omitempty"`
+	BaseImage        string                 `json:"base_image,omitempty"`
+	BaseImageTar     string                 `json:"base_image_tar,omitempty"`
+	ExePath          string                 `json:"exe_path,omitempty"`
 }
 
 var ImageBuildFlags = useAllFlags()
@@ -69,6 +72,9 @@ var CLI = &cli.Command{
 			ContextDir:       ctx.String(FlagContextDir),
 			Runtime:          ctx.String(FlagRuntimeLoad),
 			Architecture:     ctx.String(FlagArchitecture),
+			BaseImage:        ctx.String(FlagBase),
+			BaseImageTar:     ctx.String(FlagBaseTar),
+			ExePath:          ctx.String(FlagExePath),
 			Labels:           map[string]string{},
 		}
 
@@ -102,6 +108,11 @@ var CLI = &cli.Command{
 		case BuildkitBuildEngine, DepotBuildEngine:
 			if !fsutil.Exists(cparams.Dockerfile) {
 				logger.Errorf("Dockerfile not found - '%s'", cparams.Dockerfile)
+				return command.ErrBadParamValue
+			}
+		case SimpleBuildEngine:
+			if cparams.ExePath == "" && !fsutil.Exists(cparams.Dockerfile) {
+				logger.Errorf("no exe-path and no Dockerfile - '%s'", cparams.Dockerfile)
 				return command.ErrBadParamValue
 			}
 		default:

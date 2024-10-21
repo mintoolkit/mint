@@ -123,11 +123,12 @@ func OnCommand(
 
 		HandleBuildkitEngine(logger, xc, gparams, cparams)
 	case SimpleBuildEngine:
+		initDockerClient() //tmp
 		if gparams.Debug {
 			version.Print(xc, cmdName, logger, nil, false, gparams.InContainer, gparams.IsDSImage)
 		}
 
-		HandleSimpleEngine(logger, xc, gparams, cparams)
+		HandleSimpleEngine(logger, xc, gparams, cparams, dclient)
 	case PodmanBuildEngine:
 		initPodmanClient()
 		if cparams.Runtime == PodmanRuntimeLoad {

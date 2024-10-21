@@ -30,8 +30,9 @@ type ImageConfig struct {
 	OSFeatures   []string  `json:"os.features,omitempty"`
 	Variant      string    `json:"variant,omitempty"`
 	Config       RunConfig `json:"config"`
-	RootFS       *RootFS   `json:"rootfs"`            //not used building images
-	History      []History `json:"history,omitempty"` //not used building images
+	RootFS       *RootFS   `json:"rootfs"` //not used building images
+	History      []History `json:"history,omitempty"`
+	AddHistory   []History `json:"add_history,omitempty"` //extra field
 	//Extra fields
 	Container     string `json:"container,omitempty"`
 	DockerVersion string `json:"docker_version,omitempty"`
@@ -60,17 +61,24 @@ type History struct {
 // Note: related to pkg/docker/dockerimage/ContainerConfig
 // TODO: refactor into one set of common structs later
 type RunConfig struct {
-	User         string              `json:"User,omitempty"`
-	ExposedPorts map[string]struct{} `json:"ExposedPorts,omitempty"`
-	Env          []string            `json:"Env,omitempty"`
-	Entrypoint   []string            `json:"Entrypoint,omitempty"`
-	Cmd          []string            `json:"Cmd,omitempty"`
-	Volumes      map[string]struct{} `json:"Volumes,omitempty"`
-	WorkingDir   string              `json:"WorkingDir,omitempty"`
-	Labels       map[string]string   `json:"Labels,omitempty"`
-	StopSignal   string              `json:"StopSignal,omitempty"`
-	ArgsEscaped  bool                `json:"ArgsEscaped,omitempty"`
-	Healthcheck  *HealthConfig       `json:"Healthcheck,omitempty"`
+	User               string              `json:"User,omitempty"`
+	ExposedPorts       map[string]struct{} `json:"ExposedPorts,omitempty"`
+	AddExposedPorts    map[string]struct{} `json:"AddExposedPorts,omitempty"`    //extra field
+	RemoveExposedPorts []string            `json:"RemoveExposedPorts,omitempty"` //extra field
+	Env                []string            `json:"Env,omitempty"`
+	AddEnv             []string            `json:"AddEnv,omitempty"` //extra field
+	Entrypoint         []string            `json:"Entrypoint,omitempty"`
+	IsShellEntrypoint  bool                `json:"IsShellEntrypoint,omitempty"` //extra field
+	Cmd                []string            `json:"Cmd,omitempty"`
+	IsShellCmd         bool                `json:"IsShellCmd,omitempty"` //extra field
+	Volumes            map[string]struct{} `json:"Volumes,omitempty"`
+	AddVolumes         map[string]struct{} `json:"AddVolumes,omitempty"` //extra field
+	WorkingDir         string              `json:"WorkingDir,omitempty"`
+	Labels             map[string]string   `json:"Labels,omitempty"`
+	AddLabels          map[string]string   `json:"AddLabels,omitempty"` //extra field
+	StopSignal         string              `json:"StopSignal,omitempty"`
+	ArgsEscaped        bool                `json:"ArgsEscaped,omitempty"`
+	Healthcheck        *HealthConfig       `json:"Healthcheck,omitempty"`
 	//Extra fields
 	AttachStderr    bool     `json:"AttachStderr,omitempty"`
 	AttachStdin     bool     `json:"AttachStdin,omitempty"`
@@ -98,10 +106,12 @@ type HealthConfig struct {
 }
 
 type SimpleBuildOptions struct {
-	From        string
-	Tags        []string
-	Layers      []LayerDataInfo
-	ImageConfig *ImageConfig
+	From             string
+	FromTar          string
+	Tags             []string
+	Layers           []LayerDataInfo
+	ImageConfig      *ImageConfig
+	HideBuildHistory bool
 
 	/*
 	   //todo:  add 'Healthcheck'

@@ -44,6 +44,15 @@ const (
 
 	FlagArchitecture      = "architecture"
 	FlagArchitectureUsage = "build architecture"
+
+	FlagBase      = "base"
+	FlagBaseUsage = "base image to use (from selected runtime, docker by default, or pulled if not available)"
+
+	FlagBaseTar      = "base-tar"
+	FlagBaseTarUsage = "base image from a local tar file"
+
+	FlagExePath      = "exe-path"
+	FlagExePathUsage = "local (linux) executable file that will be used as the entrypoint for the new image (added to the selected base image or scratch image if no base image is provided)"
 )
 
 const (
@@ -199,6 +208,24 @@ var Flags = map[string]cli.Flag{
 		Value:   GetDefaultBuildArch(),
 		Usage:   FlagArchitectureUsage,
 		EnvVars: []string{"DSLIM_IMAGEBUILD_ARCH"},
+	},
+	FlagBase: &cli.StringFlag{
+		Name:    FlagBase,
+		Value:   "",
+		Usage:   FlagBaseUsage,
+		EnvVars: []string{"DSLIM_IMAGEBUILD_BASE"},
+	},
+	FlagBaseTar: &cli.StringFlag{
+		Name:    FlagBaseTar,
+		Value:   "",
+		Usage:   FlagBaseTarUsage,
+		EnvVars: []string{"DSLIM_IMAGEBUILD_BASE_TAR"},
+	},
+	FlagExePath: &cli.StringFlag{
+		Name:    FlagExePath,
+		Value:   "",
+		Usage:   FlagExePathUsage,
+		EnvVars: []string{"DSLIM_IMAGEBUILD_EXE_PATH"},
 	},
 }
 

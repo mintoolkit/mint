@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -25,7 +26,9 @@ import (
 )
 
 const (
-	Name = "internal.container.build.engine"
+	Name                   = "internal.container.build.engine"
+	DefaultAppDir          = "/opt/app"
+	DefaultOutputImageName = "mint-built-image:latest"
 )
 
 // Engine is the default simple build engine
@@ -55,15 +58,34 @@ func (ref *Engine) Name() string {
 }
 
 func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder.ImageResult, error) {
-	if options.From == "" && options.ImageConfig == nil {
-		return nil, fmt.Errorf("missing image config metadata - set options.From or options.ImageConfig")
+	if len(options.Tags) == 0 {
+		options.Tags = append(options.Tags, DefaultOutputImageName)
+	}
+
+	fileSourceLayerIndex := -1
+	for i, layerInfo := range options.Layers {
+		if layerInfo.Source == "" || !fsutil.Exists(layerInfo.Source) {
+			continue
+		}
+
+		if layerInfo.Type == imagebuilder.FileSource {
+			if !fsutil.IsRegularFile(layerInfo.Source) {
+				continue
+			}
+		}
+
+		if layerInfo.EntrypointLayer {
+			fileSourceLayerIndex = i
+		}
 	}
 
 	if options.From == "" &&
-		options.ImageConfig != nil &&
-		len(options.ImageConfig.Config.Entrypoint) == 0 &&
-		len(options.ImageConfig.Config.Cmd) == 0 {
-		return nil, fmt.Errorf("missing startup info")
+		options.FromTar == "" &&
+		(options.ImageConfig == nil && fileSourceLayerIndex < 0) &&
+		(options.ImageConfig != nil &&
+			len(options.ImageConfig.Config.Entrypoint) == 0 &&
+			len(options.ImageConfig.Config.Cmd) == 0) {
+		return nil, fmt.Errorf("missing startup info - set options.From, options.FromTar or options.ImageConfig")
 	}
 
 	if len(options.Layers) == 0 {
@@ -74,31 +96,45 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 		return nil, fmt.Errorf("too many layers")
 	}
 
+	var err error
 	var img v1.Image
 	var baseImageOS string
 	var baseImageArch string
-	if options.From == "" {
-		//same as FROM scratch
+	var baseIsScratch bool
+	if options.From == "" && options.FromTar == "" {
 		img = empty.Image
+		baseIsScratch = true
 	} else {
-		ref, err := name.ParseReference(options.From)
-		if err != nil {
-			log.WithError(err).Error("name.ParseReference")
-			return nil, err
-		}
+		if options.FromTar != "" {
+			if !fsutil.Exists(options.FromTar) || !fsutil.IsTarFile(options.FromTar) {
+				return nil, fmt.Errorf("bad base image tar reference - %s", options.FromTar)
+			}
 
-		//TODO/FUTURE: add other image source options (not just local Docker daemon)
-		//TODO/ASAP: need to pass the 'daemon' client otherwise it'll fail if the default client isn't enough
-		img, err := daemon.Image(ref)
-		if err != nil {
-			log.WithError(err).Debugf("daemon.Image(%s)", options.From)
-			//return nil, err
-			//TODO: have a flag to control the 'pull' behavior (also need to consider auth)
-			//try to pull...
-			img, err = remote.Image(ref)
+			img, err = tarball.ImageFromPath(options.FromTar, nil)
 			if err != nil {
-				log.WithError(err).Errorf("remote.Image(%s)", options.From)
+				log.WithError(err).Error("tarball.ImageFromPath")
 				return nil, err
+			}
+		} else {
+			ref, err := name.ParseReference(options.From)
+			if err != nil {
+				log.WithError(err).Error("name.ParseReference")
+				return nil, err
+			}
+
+			//TODO/FUTURE: add other image source options (not just local Docker daemon)
+			//TODO/ASAP: need to pass the 'daemon' client otherwise it'll fail if the default client isn't enough
+			img, err = daemon.Image(ref)
+			if err != nil {
+				log.WithError(err).Debugf("daemon.Image(%s)", options.From)
+				//return nil, err
+				//TODO: have a flag to control the 'pull' behavior (also need to consider auth)
+				//try to pull...
+				img, err = remote.Image(ref)
+				if err != nil {
+					log.WithError(err).Errorf("remote.Image(%s)", options.From)
+					return nil, err
+				}
 			}
 		}
 
@@ -112,94 +148,15 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 		baseImageOS = cf.OS
 	}
 
-	if options.ImageConfig != nil {
-		switch options.ImageConfig.Architecture {
-		case "":
-			options.ImageConfig.Architecture = baseImageArch
-			if options.ImageConfig.Architecture == "" {
-				options.ImageConfig.Architecture = "amd64"
-			}
-		case "arm64", "amd64":
-		default:
-			return nil, fmt.Errorf("bad architecture value")
-		}
-
-		imgRunConfig := v1.Config{
-			User:            options.ImageConfig.Config.User,
-			ExposedPorts:    options.ImageConfig.Config.ExposedPorts,
-			Env:             options.ImageConfig.Config.Env,
-			Entrypoint:      options.ImageConfig.Config.Entrypoint,
-			Cmd:             options.ImageConfig.Config.Cmd,
-			Volumes:         options.ImageConfig.Config.Volumes,
-			WorkingDir:      options.ImageConfig.Config.WorkingDir,
-			Labels:          options.ImageConfig.Config.Labels,
-			StopSignal:      options.ImageConfig.Config.StopSignal,
-			ArgsEscaped:     options.ImageConfig.Config.ArgsEscaped,
-			AttachStderr:    options.ImageConfig.Config.AttachStderr,
-			AttachStdin:     options.ImageConfig.Config.AttachStdin,
-			AttachStdout:    options.ImageConfig.Config.AttachStdout,
-			Domainname:      options.ImageConfig.Config.Domainname,
-			Hostname:        options.ImageConfig.Config.Hostname,
-			Image:           options.ImageConfig.Config.Image,
-			OnBuild:         options.ImageConfig.Config.OnBuild,
-			OpenStdin:       options.ImageConfig.Config.OpenStdin,
-			StdinOnce:       options.ImageConfig.Config.StdinOnce,
-			Tty:             options.ImageConfig.Config.Tty,
-			NetworkDisabled: options.ImageConfig.Config.NetworkDisabled,
-			MacAddress:      options.ImageConfig.Config.MacAddress,
-			Shell:           options.ImageConfig.Config.Shell,
-		}
-
-		if options.ImageConfig.Config.Healthcheck != nil {
-			imgRunConfig.Healthcheck = &v1.HealthConfig{
-				Test:        options.ImageConfig.Config.Healthcheck.Test,
-				Interval:    options.ImageConfig.Config.Healthcheck.Interval,
-				Timeout:     options.ImageConfig.Config.Healthcheck.Timeout,
-				StartPeriod: options.ImageConfig.Config.Healthcheck.StartPeriod,
-				Retries:     options.ImageConfig.Config.Healthcheck.Retries,
-			}
-		}
-
-		imgConfig := &v1.ConfigFile{
-			Created:      v1.Time{Time: time.Now()},
-			Author:       options.ImageConfig.Author,
-			Architecture: options.ImageConfig.Architecture,
-			OS:           options.ImageConfig.OS,
-			OSVersion:    options.ImageConfig.OSVersion,
-			OSFeatures:   options.ImageConfig.OSFeatures,
-			Variant:      options.ImageConfig.Variant,
-			Config:       imgRunConfig,
-			//History - not setting for now (actual history needs to match the added layers)
-			Container:     options.ImageConfig.Container,
-			DockerVersion: options.ImageConfig.DockerVersion,
-		}
-
-		if imgConfig.OS == "" {
-			imgConfig.OS = baseImageOS
-			if imgConfig.OS == "" {
-				imgConfig.OS = "linux"
-			}
-		}
-
-		if imgConfig.Author == "" {
-			imgConfig.Author = "mintoolkit"
-		}
-
-		if !options.ImageConfig.Created.IsZero() {
-			imgConfig.Created = v1.Time{Time: options.ImageConfig.Created}
-		}
-
-		log.Debug("DefaultSimpleBuilder.Build: config image")
-
-		var err error
-		img, err = mutate.ConfigFile(img, imgConfig)
-		if err != nil {
-			return nil, err
-		}
+	if baseImageArch == "" {
+		baseImageArch = runtime.GOARCH
 	}
 
-	var layersToAdd []v1.Layer
+	if baseImageOS == "" {
+		baseImageOS = "linux"
+	}
 
+	var newLayers []mutate.Addendum
 	for i, layerInfo := range options.Layers {
 		log.Debugf("DefaultSimpleBuilder.Build: [%d] create image layer (type=%v source=%s)",
 			i, layerInfo.Type, layerInfo.Source)
@@ -209,7 +166,7 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 		}
 
 		if !fsutil.Exists(layerInfo.Source) {
-			return nil, fmt.Errorf("image layer data source path doesnt exist - %s", layerInfo.Source)
+			return nil, fmt.Errorf("image layer data source path does not exist - %s", layerInfo.Source)
 		}
 
 		switch layerInfo.Type {
@@ -223,7 +180,27 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 				return nil, err
 			}
 
-			layersToAdd = append(layersToAdd, layer)
+			var layerFilePath string
+			if layerInfo.Params != nil && layerInfo.Params.TargetPath != "" {
+				layerFilePath = layerInfo.Params.TargetPath
+			}
+
+			if layerFilePath == "" {
+				layerFilePath = path.Join(DefaultAppDir, filepath.Base(layerInfo.Source))
+			}
+
+			add := mutate.Addendum{
+				Layer: layer,
+			}
+
+			if !options.HideBuildHistory {
+				add.History = v1.History{
+					Created:   v1.Time{Time: time.Now()},
+					CreatedBy: fmt.Sprintf("COPY %s %s", layerInfo.Source, layerFilePath),
+				}
+			}
+
+			newLayers = append(newLayers, add)
 		case imagebuilder.TarSource:
 			if !fsutil.IsRegularFile(layerInfo.Source) {
 				return nil, fmt.Errorf("image layer data source path is not a file - %s", layerInfo.Source)
@@ -238,7 +215,18 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 				return nil, err
 			}
 
-			layersToAdd = append(layersToAdd, layer)
+			add := mutate.Addendum{
+				Layer: layer,
+			}
+
+			if !options.HideBuildHistory {
+				add.History = v1.History{
+					Created:   v1.Time{Time: time.Now()},
+					CreatedBy: fmt.Sprintf("ADD %s /", layerInfo.Source),
+				}
+			}
+
+			newLayers = append(newLayers, add)
 		case imagebuilder.DirSource:
 			if !fsutil.IsDir(layerInfo.Source) {
 				return nil, fmt.Errorf("image layer data source path is not a directory - %s", layerInfo.Source)
@@ -249,20 +237,32 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 				return nil, err
 			}
 
-			layersToAdd = append(layersToAdd, layer)
+			layerBasePath := "/"
+			if layerInfo.Params != nil && layerInfo.Params.TargetPath != "" {
+				layerBasePath = layerInfo.Params.TargetPath
+			}
+
+			add := mutate.Addendum{
+				Layer: layer,
+			}
+
+			if !options.HideBuildHistory {
+				add.History = v1.History{
+					Created:   v1.Time{Time: time.Now()},
+					CreatedBy: fmt.Sprintf("COPY %s %s", layerInfo.Source, layerBasePath),
+				}
+			}
+
+			newLayers = append(newLayers, add)
 		default:
 			return nil, fmt.Errorf("unknown image data source - %v", layerInfo.Source)
 		}
 	}
 
-	log.Debug("DefaultSimpleBuilder.Build: adding layers to image")
-	newImg, err := mutate.AppendLayers(img, layersToAdd...)
+	log.Debug("DefaultSimpleBuilder.Build: adding new layers to image")
+	newImg, err := mutate.Append(img, newLayers...)
 	if err != nil {
 		return nil, err
-	}
-
-	if len(options.Tags) == 0 {
-		return nil, fmt.Errorf("missing tags")
 	}
 
 	tag, err := name.NewTag(options.Tags[0])
@@ -271,6 +271,331 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 	}
 
 	otherTags := options.Tags[1:]
+
+	newImageConfig, err := newImg.ConfigFile()
+	if err != nil {
+		log.WithError(err).Error("newImg.ConfigFile")
+		return nil, err
+	}
+
+	s2t := func(val string) v1.Time {
+		ptime, err := time.Parse(time.RFC3339, val)
+		if err != nil {
+			log.WithError(err).Error("time.Parse")
+			return v1.Time{Time: time.Now()}
+		}
+		return v1.Time{Time: ptime}
+	}
+
+	if options.ImageConfig != nil {
+		if len(options.ImageConfig.History) > 0 {
+			var history []v1.History
+			for _, h := range options.ImageConfig.History {
+				history = append(history, v1.History{
+					Created:    s2t(h.Created),
+					CreatedBy:  h.CreatedBy,
+					Comment:    h.Comment,
+					Author:     h.Author,
+					EmptyLayer: h.EmptyLayer,
+				})
+			}
+
+			newImageConfig.History = history
+		}
+
+		for _, h := range options.ImageConfig.AddHistory {
+			newImageConfig.History = append(newImageConfig.History, v1.History{
+				Created:    s2t(h.Created),
+				CreatedBy:  h.CreatedBy,
+				Comment:    h.Comment,
+				Author:     h.Author,
+				EmptyLayer: h.EmptyLayer,
+			})
+		}
+	}
+
+	vaupdate := func(current *[]string, next []string) {
+		if len(next) != 0 {
+			*current = next
+		}
+	}
+
+	vbupdate := func(current *bool, next bool) {
+		//ok to have this simple update logic here
+		if next {
+			*current = next
+		}
+	}
+
+	vupdate := func(current *string, next string) {
+		if next != "" {
+			*current = next
+		}
+	}
+
+	vset := func(current *string, val string) {
+		if *current == "" {
+			*current = val
+		}
+	}
+
+	configHist := func(inst string) v1.History {
+		return v1.History{
+			Created:    v1.Time{Time: time.Now()},
+			CreatedBy:  inst,
+			Comment:    "mintoolkit",
+			EmptyLayer: true,
+		}
+	}
+
+	var newConfigHistory []v1.History
+	if options.ImageConfig != nil {
+		switch options.ImageConfig.Architecture {
+		case "", "arm64", "amd64":
+		default:
+			log.Errorf("bad architecture value - %s", options.ImageConfig.Architecture)
+			return nil, fmt.Errorf("bad architecture value - %s", options.ImageConfig.Architecture)
+		}
+
+		vupdate(&newImageConfig.Config.User, options.ImageConfig.Config.User)
+		if !options.HideBuildHistory && options.ImageConfig.Config.User != "" {
+			newConfigHistory = append(newConfigHistory, configHist(
+				fmt.Sprintf("USER %s", options.ImageConfig.Config.User),
+			))
+		}
+
+		vupdate(&newImageConfig.Config.WorkingDir, options.ImageConfig.Config.WorkingDir)
+		if !options.HideBuildHistory && options.ImageConfig.Config.WorkingDir != "" {
+			newConfigHistory = append(newConfigHistory, configHist(
+				fmt.Sprintf("WORKDIR %s", options.ImageConfig.Config.WorkingDir),
+			))
+		}
+
+		vaupdate(&newImageConfig.Config.Entrypoint, options.ImageConfig.Config.Entrypoint)
+		if !options.HideBuildHistory && options.ImageConfig.Config.Entrypoint != nil {
+			var value string
+			if options.ImageConfig.Config.IsShellEntrypoint {
+				value = strings.Join(options.ImageConfig.Config.Entrypoint, " ")
+			} else {
+				value = fmt.Sprintf("[\"%s\"]",
+					strings.Join(options.ImageConfig.Config.Entrypoint, `", "`))
+			}
+			newConfigHistory = append(newConfigHistory, configHist(
+				fmt.Sprintf("ENTRYPOINT %s", value),
+			))
+		}
+
+		vaupdate(&newImageConfig.Config.Cmd, options.ImageConfig.Config.Cmd)
+		if !options.HideBuildHistory && options.ImageConfig.Config.Cmd != nil {
+			var value string
+			if options.ImageConfig.Config.IsShellCmd {
+				value = strings.Join(options.ImageConfig.Config.Cmd, " ")
+			} else {
+				value = fmt.Sprintf("[\"%s\"]",
+					strings.Join(options.ImageConfig.Config.Cmd, `", "`))
+			}
+			newConfigHistory = append(newConfigHistory, configHist(
+				fmt.Sprintf("CMD %s", value),
+			))
+		}
+
+		vupdate(&newImageConfig.Config.StopSignal, options.ImageConfig.Config.StopSignal)
+		vbupdate(&newImageConfig.Config.ArgsEscaped, options.ImageConfig.Config.ArgsEscaped)
+		vbupdate(&newImageConfig.Config.AttachStderr, options.ImageConfig.Config.AttachStderr)
+		vbupdate(&newImageConfig.Config.AttachStdin, options.ImageConfig.Config.AttachStdin)
+		vbupdate(&newImageConfig.Config.AttachStdout, options.ImageConfig.Config.AttachStdout)
+		vupdate(&newImageConfig.Config.Domainname, options.ImageConfig.Config.Domainname)
+		vupdate(&newImageConfig.Config.Hostname, options.ImageConfig.Config.Hostname)
+		vupdate(&newImageConfig.Config.Image, options.ImageConfig.Config.Image)
+		vaupdate(&newImageConfig.Config.OnBuild, options.ImageConfig.Config.OnBuild)
+		vbupdate(&newImageConfig.Config.OpenStdin, options.ImageConfig.Config.OpenStdin)
+		vbupdate(&newImageConfig.Config.StdinOnce, options.ImageConfig.Config.StdinOnce)
+		vbupdate(&newImageConfig.Config.Tty, options.ImageConfig.Config.Tty)
+		vbupdate(&newImageConfig.Config.NetworkDisabled, options.ImageConfig.Config.NetworkDisabled)
+		vupdate(&newImageConfig.Config.MacAddress, options.ImageConfig.Config.MacAddress)
+		vaupdate(&newImageConfig.Config.Shell, options.ImageConfig.Config.Shell)
+
+		if newImageConfig.Config.ExposedPorts == nil {
+			newImageConfig.Config.ExposedPorts = map[string]struct{}{}
+		}
+
+		if len(options.ImageConfig.Config.ExposedPorts) > 0 {
+			newImageConfig.Config.ExposedPorts = options.ImageConfig.Config.ExposedPorts
+			if !options.HideBuildHistory {
+				for k := range options.ImageConfig.Config.ExposedPorts {
+					newConfigHistory = append(newConfigHistory, configHist(
+						fmt.Sprintf("EXPOSE %s", k),
+					))
+				}
+			}
+		}
+
+		if len(options.ImageConfig.Config.AddExposedPorts) > 0 {
+			for k, v := range options.ImageConfig.Config.AddExposedPorts {
+				newImageConfig.Config.ExposedPorts[k] = v
+			}
+		}
+
+		if len(options.ImageConfig.Config.RemoveExposedPorts) > 0 {
+			for _, v := range options.ImageConfig.Config.RemoveExposedPorts {
+				if _, found := newImageConfig.Config.ExposedPorts[v]; found {
+					delete(newImageConfig.Config.ExposedPorts, v)
+				}
+			}
+		}
+
+		if options.ImageConfig.Config.Env != nil {
+			//an empty Env will clear all env vars,
+			//but a nil Env will leave the existing env vars as-is
+			newImageConfig.Config.Env = options.ImageConfig.Config.Env
+			if !options.HideBuildHistory {
+				for _, v := range options.ImageConfig.Config.Env {
+					newConfigHistory = append(newConfigHistory, configHist(
+						fmt.Sprintf("ENV %s", v),
+					))
+				}
+			}
+		}
+
+		for _, v := range options.ImageConfig.Config.AddEnv {
+			newImageConfig.Config.Env = append(newImageConfig.Config.Env, v)
+		}
+
+		if newImageConfig.Config.Volumes == nil {
+			newImageConfig.Config.Volumes = map[string]struct{}{}
+		}
+
+		if options.ImageConfig.Config.Volumes != nil {
+			//an empty Volumes will clear all existing volume records,
+			//but a nil Volumes will leave the existing volumes as-is
+			newImageConfig.Config.Volumes = options.ImageConfig.Config.Volumes
+			if !options.HideBuildHistory {
+				for k := range options.ImageConfig.Config.Volumes {
+					newConfigHistory = append(newConfigHistory, configHist(
+						fmt.Sprintf("VOLUME %s", k),
+					))
+				}
+			}
+		}
+
+		if len(options.ImageConfig.Config.AddVolumes) > 0 {
+			for k, v := range options.ImageConfig.Config.AddVolumes {
+				newImageConfig.Config.Volumes[k] = v
+			}
+		}
+
+		if newImageConfig.Config.Labels == nil {
+			newImageConfig.Config.Labels = map[string]string{}
+		}
+
+		if options.ImageConfig.Config.Labels != nil {
+			//an empty Labels will clear all existing label records,
+			//but a nil Labels will leave the existing labels as-is
+			newImageConfig.Config.Labels = options.ImageConfig.Config.Labels
+			if !options.HideBuildHistory {
+				for k, v := range options.ImageConfig.Config.Labels {
+					newConfigHistory = append(newConfigHistory, configHist(
+						fmt.Sprintf("LABEL %s=%s", k, v),
+					))
+				}
+			}
+		}
+
+		if len(options.ImageConfig.Config.AddLabels) > 0 {
+			for k, v := range options.ImageConfig.Config.AddLabels {
+				newImageConfig.Config.Labels[k] = v
+			}
+		}
+
+		if options.ImageConfig.Config.Healthcheck != nil {
+			newImageConfig.Config.Healthcheck = &v1.HealthConfig{
+				Test:        options.ImageConfig.Config.Healthcheck.Test,
+				Interval:    options.ImageConfig.Config.Healthcheck.Interval,
+				Timeout:     options.ImageConfig.Config.Healthcheck.Timeout,
+				StartPeriod: options.ImageConfig.Config.Healthcheck.StartPeriod,
+				Retries:     options.ImageConfig.Config.Healthcheck.Retries,
+			}
+			//todo: add the HEALTHCHECK instruction history
+		}
+
+		newImageConfig.Created = v1.Time{Time: time.Now()}
+		if !options.ImageConfig.Created.IsZero() {
+			newImageConfig.Created = v1.Time{Time: options.ImageConfig.Created}
+		}
+
+		vupdate(&newImageConfig.Author, options.ImageConfig.Author)
+		vset(&newImageConfig.Author, "mintoolkit")
+
+		vupdate(&newImageConfig.Architecture, options.ImageConfig.Architecture)
+		vset(&newImageConfig.Architecture, baseImageArch)
+
+		vupdate(&newImageConfig.OS, options.ImageConfig.OS)
+		vset(&newImageConfig.OS, baseImageOS)
+
+		vupdate(&newImageConfig.OSVersion, options.ImageConfig.OSVersion)
+		vaupdate(&newImageConfig.OSFeatures, options.ImageConfig.OSFeatures)
+		vupdate(&newImageConfig.Variant, options.ImageConfig.Variant)
+		vupdate(&newImageConfig.Container, options.ImageConfig.Container)
+		vupdate(&newImageConfig.DockerVersion, options.ImageConfig.DockerVersion)
+	} else {
+		// a minor optimization when creating a simple single binary image from scratch
+		// without an explicitly configured options.ImageConfig passed in
+		if fileSourceLayerIndex > -1 {
+			layerInfo := options.Layers[fileSourceLayerIndex]
+
+			var layerFilePath string
+			if layerInfo.Params != nil && layerInfo.Params.TargetPath != "" {
+				layerFilePath = layerInfo.Params.TargetPath
+			}
+
+			if layerFilePath == "" {
+				layerFilePath = path.Join(DefaultAppDir, filepath.Base(layerInfo.Source))
+			}
+
+			layerFileDir := filepath.Dir(layerFilePath)
+
+			newImageConfig.Created = v1.Time{Time: time.Now()}
+			newImageConfig.Author = "mintoolkit"
+			if newImageConfig.Architecture == "" {
+				newImageConfig.Architecture = baseImageArch
+			}
+			if newImageConfig.OS == "" {
+				newImageConfig.OS = baseImageOS
+			}
+
+			newImageConfig.Config.Entrypoint = []string{layerFilePath}
+			if !options.HideBuildHistory {
+				newConfigHistory = append(newConfigHistory, configHist(
+					fmt.Sprintf(`ENTRYPOINT ["%s"]`, layerFilePath),
+				))
+			}
+
+			newImageConfig.Config.WorkingDir = layerFileDir
+
+			if !baseIsScratch && layerInfo.ResetCmd {
+				newImageConfig.Config.Cmd = []string{}
+				//when you set entrypoint you reset the old cmd anyways...
+				if !options.HideBuildHistory {
+					newConfigHistory = append(newConfigHistory, configHist(
+						"CMD []",
+					))
+				}
+			}
+		} else {
+			return nil, fmt.Errorf("missing startup config info")
+		}
+	}
+
+	if !options.HideBuildHistory && len(newConfigHistory) > 0 {
+		newImageConfig.History = append(newImageConfig.History, newConfigHistory...)
+	}
+
+	log.Debug("DefaultSimpleBuilder.Build: update new image config metadata")
+	newImg, err = mutate.ConfigFile(newImg, newImageConfig)
+	if err != nil {
+		log.WithError(err).Error("mutate.ConfigFile")
+		return nil, err
+	}
 
 	if ref.PushToDaemon {
 		log.Debug("DefaultSimpleBuilder.Build: saving image to Docker")
@@ -352,7 +677,7 @@ func layerFromFile(input imagebuilder.LayerDataInfo) (v1.Layer, error) {
 	}
 
 	if layerFilePath == "" {
-		layerFilePath = path.Join("/opt/app", filepath.Base(input.Source))
+		layerFilePath = path.Join(DefaultAppDir, filepath.Base(input.Source))
 	}
 
 	layerFilePath = strings.TrimLeft(layerFilePath, "/")
@@ -381,7 +706,8 @@ func layerFromFile(input imagebuilder.LayerDataInfo) (v1.Layer, error) {
 
 	hdr := &tar.Header{
 		Name: layerFilePath,
-		Mode: int64(finfo.Mode()),
+		//need to make sure if it's an executable we have the right perms even if the source file exe bits are not set
+		Mode: 0755, //int64(finfo.Mode()), //todo/later: don't assume it's an executable file (check if it's an exe or a script)
 		Size: finfo.Size(),
 	}
 
