@@ -112,6 +112,7 @@ type SimpleBuildOptions struct {
 	Layers           []LayerDataInfo
 	ImageConfig      *ImageConfig
 	HideBuildHistory bool
+	OutputImageTar   string
 
 	/*
 	   //todo:  add 'Healthcheck'

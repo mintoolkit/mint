@@ -278,16 +278,17 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 		return nil, err
 	}
 
-	s2t := func(val string) v1.Time {
-		ptime, err := time.Parse(time.RFC3339, val)
-		if err != nil {
-			log.WithError(err).Error("time.Parse")
-			return v1.Time{Time: time.Now()}
-		}
-		return v1.Time{Time: ptime}
-	}
-
+	newImageConfig = newImageConfig.DeepCopy()
 	if options.ImageConfig != nil {
+		s2t := func(val string) v1.Time {
+			ptime, err := time.Parse(time.RFC3339, val)
+			if err != nil {
+				log.WithError(err).Error("time.Parse")
+				return v1.Time{Time: time.Now()}
+			}
+			return v1.Time{Time: ptime}
+		}
+
 		if len(options.ImageConfig.History) > 0 {
 			var history []v1.History
 			for _, h := range options.ImageConfig.History {
@@ -595,6 +596,13 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 	if err != nil {
 		log.WithError(err).Error("mutate.ConfigFile")
 		return nil, err
+	}
+
+	if options.OutputImageTar != "" {
+		if err := tarball.WriteToFile(options.OutputImageTar, tag, newImg); err != nil {
+			log.WithError(err).Errorf("tarball.WriteToFile(%s, %s)", options.OutputImageTar, options.Tags[0])
+			return nil, err
+		}
 	}
 
 	if ref.PushToDaemon {

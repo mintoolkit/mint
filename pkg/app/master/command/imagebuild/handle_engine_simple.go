@@ -61,9 +61,10 @@ func HandleSimpleEngine(
 	doShowBuildLogs := true
 	builder, err := internalbuilder.New(doShowBuildLogs, false, false)
 	options := imagebuilder.SimpleBuildOptions{
-		From:    cparams.BaseImage,
-		FromTar: cparams.BaseImageTar,
-		Tags:    []string{cparams.ImageName},
+		OutputImageTar: cparams.ImageArchiveFile,
+		From:           cparams.BaseImage,
+		FromTar:        cparams.BaseImageTar,
+		Tags:           []string{cparams.ImageName},
 		Layers: []imagebuilder.LayerDataInfo{
 			{
 				Type:   imagebuilder.FileSource,

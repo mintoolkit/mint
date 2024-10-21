@@ -155,7 +155,7 @@ func pushImageFromTar(
 	remoteImageName string,
 	nameOpts []name.Option,
 	remoteOpts []remote.Option) error {
-	logger = logger.WithField("op", "registry.saveDockerImage")
+	logger = logger.WithField("op", "registry.pushImageFromTar")
 	logger.Trace("call")
 	defer logger.Trace("exit")
 
