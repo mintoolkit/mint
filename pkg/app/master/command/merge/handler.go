@@ -19,7 +19,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/crt/docker/dockerclient"
 	"github.com/mintoolkit/mint/pkg/crt/docker/dockercrtclient"
 	"github.com/mintoolkit/mint/pkg/imagebuilder"
-	"github.com/mintoolkit/mint/pkg/imagebuilder/internalbuilder"
+	"github.com/mintoolkit/mint/pkg/imagebuilder/simplebuilder"
 	"github.com/mintoolkit/mint/pkg/imagereader"
 	"github.com/mintoolkit/mint/pkg/report"
 	"github.com/mintoolkit/mint/pkg/util/errutil"
@@ -295,7 +295,7 @@ func OnCommand(
 
 	ibo.Layers = append(ibo.Layers, layerInfo)
 
-	engine, err := internalbuilder.New(
+	engine, err := simplebuilder.New(
 		false, //show build logs doShowBuildLogs,
 		true,  //push to daemon - TODO: have a param to control this later
 		//output image tar (if not 'saving' to daemon)

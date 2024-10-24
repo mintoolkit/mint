@@ -620,7 +620,7 @@ USAGE: `mint [GLOBAL FLAGS] imagebuild [FLAGS] [IMAGE]`
 
 Flags:
 
-- `--engine` - Container image build engine to use: `docker` (Native Docker container build engine), `podman` (Native Podman/Buildah container build engine), `buildkit` (BuildKit container build engine), `depot` (Depot.dev cloud-based container build engine).
+- `--engine` - Container image build engine to use: `docker` (Native Docker container build engine), `podman` (Native Podman/Buildah container build engine), `buildkit` (BuildKit container build engine), `depot` (Depot.dev cloud-based container build engine), `simple` (built-in simple image build engine)
 - `--image-name` - Container image name to use (including tag).
 - `--image-archive-file` - Local file path for the image tar archive file (used for the `depot` and `buildkit` engines).
 - `--dockerfile` - Local Dockerfile path (for `buildkit` and `depot`) or a relative to the build context directory (for `docker` or `podman`). Default: `Dockerfile`.
@@ -632,6 +632,11 @@ Flags:
 - `--engine-token` - Build engine specific API token (for `depot`).
 - `--engine-namespace` - Build engine specific namespace (for `depot`).
 - `--runtime-load` - Container runtime where to load the created image: `none`, `docker`, `podman`.
+- `--base` - `simple` build engine: base image to use (from selected runtime, docker by default, or pulled if not available)
+- `--base-tar` - `simple` build engine: base image from a local tar file
+- `--base-with-certs` - `simple` build engine: boolean flat to use the static-debian12 distroless base image - contains only certs and timezone info
+- `--exe-path` - `simple` build engine: local (linux) executable file that will be used as the entrypoint for the new image (added to the selected base image or scratch image if no base image is provided)
+
 
 Examples:
 

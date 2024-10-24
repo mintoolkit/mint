@@ -20,7 +20,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/crt"
 	"github.com/mintoolkit/mint/pkg/crt/docker/dockercrtclient"
 	"github.com/mintoolkit/mint/pkg/imagebuilder"
-	"github.com/mintoolkit/mint/pkg/imagebuilder/internalbuilder"
+	"github.com/mintoolkit/mint/pkg/imagebuilder/simplebuilder"
 	"github.com/mintoolkit/mint/pkg/imagebuilder/slimbuilder"
 	"github.com/mintoolkit/mint/pkg/imagebuilder/standardbuilder"
 	"github.com/mintoolkit/mint/pkg/report"
@@ -361,7 +361,7 @@ func buildOutputImage(
 	switch imageBuildEngine {
 	case IBENone:
 	case IBEInternal:
-		engine, err := internalbuilder.New(doShowBuildLogs,
+		engine, err := simplebuilder.New(doShowBuildLogs,
 			true, //pushToDaemon - TODO: have a param to control this &
 			//output image tar (if not 'saving' to daemon)
 			false)

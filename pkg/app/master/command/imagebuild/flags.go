@@ -51,6 +51,9 @@ const (
 	FlagBaseTar      = "base-tar"
 	FlagBaseTarUsage = "base image from a local tar file"
 
+	FlagBaseWithCerts      = "base-with-certs"
+	FlagBaseWithCertsUsage = "static-debian12 distroless base image - contains only certs and timezone info"
+
 	FlagExePath      = "exe-path"
 	FlagExePathUsage = "local (linux) executable file that will be used as the entrypoint for the new image (added to the selected base image or scratch image if no base image is provided)"
 )
@@ -220,6 +223,11 @@ var Flags = map[string]cli.Flag{
 		Value:   "",
 		Usage:   FlagBaseTarUsage,
 		EnvVars: []string{"DSLIM_IMAGEBUILD_BASE_TAR"},
+	},
+	FlagBaseWithCerts: &cli.BoolFlag{
+		Name:    FlagBaseWithCerts,
+		Usage:   FlagBaseWithCertsUsage,
+		EnvVars: []string{"DSLIM_IMAGEBUILD_BASE_WITH_CERTS"},
 	},
 	FlagExePath: &cli.StringFlag{
 		Name:    FlagExePath,

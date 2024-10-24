@@ -1,4 +1,4 @@
-package internalbuilder
+package simplebuilder
 
 import (
 	"archive/tar"
@@ -29,6 +29,7 @@ const (
 	Name                   = "internal.container.build.engine"
 	DefaultAppDir          = "/opt/app"
 	DefaultOutputImageName = "mint-built-image:latest"
+	BaseImageWithCerts     = "gcr.io/distroless/static-debian12:latest"
 )
 
 // Engine is the default simple build engine
@@ -58,6 +59,8 @@ func (ref *Engine) Name() string {
 }
 
 func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder.ImageResult, error) {
+	logger := log.WithField("op", "simplebuilder.Engine.Build")
+
 	if len(options.Tags) == 0 {
 		options.Tags = append(options.Tags, DefaultOutputImageName)
 	}
@@ -112,27 +115,29 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 
 			img, err = tarball.ImageFromPath(options.FromTar, nil)
 			if err != nil {
-				log.WithError(err).Error("tarball.ImageFromPath")
+				logger.WithError(err).Error("tarball.ImageFromPath")
 				return nil, err
 			}
 		} else {
 			ref, err := name.ParseReference(options.From)
 			if err != nil {
-				log.WithError(err).Error("name.ParseReference")
+				logger.WithError(err).Error("name.ParseReference")
 				return nil, err
 			}
 
 			//TODO/FUTURE: add other image source options (not just local Docker daemon)
 			//TODO/ASAP: need to pass the 'daemon' client otherwise it'll fail if the default client isn't enough
+			logger.Debugf("getting base image from Docker daemon - %s", options.From)
 			img, err = daemon.Image(ref)
 			if err != nil {
-				log.WithError(err).Debugf("daemon.Image(%s)", options.From)
+				logger.WithError(err).Debugf("daemon.Image(%s)", options.From)
 				//return nil, err
 				//TODO: have a flag to control the 'pull' behavior (also need to consider auth)
 				//try to pull...
+				logger.Debugf("getting base image from registry - %s", options.From)
 				img, err = remote.Image(ref)
 				if err != nil {
-					log.WithError(err).Errorf("remote.Image(%s)", options.From)
+					logger.WithError(err).Errorf("remote.Image(%s)", options.From)
 					return nil, err
 				}
 			}

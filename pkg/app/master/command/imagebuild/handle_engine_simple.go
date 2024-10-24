@@ -11,7 +11,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/imagebuilder"
-	"github.com/mintoolkit/mint/pkg/imagebuilder/internalbuilder"
+	"github.com/mintoolkit/mint/pkg/imagebuilder/simplebuilder"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
 	v "github.com/mintoolkit/mint/pkg/version"
 )
@@ -35,7 +35,7 @@ func HandleSimpleEngine(
 		targetExePath = parts[1]
 	} else {
 		localExePath = cparams.ExePath
-		targetExePath = path.Join(internalbuilder.DefaultAppDir, filepath.Base(localExePath))
+		targetExePath = path.Join(simplebuilder.DefaultAppDir, filepath.Base(localExePath))
 	}
 
 	if !fsutil.Exists(localExePath) || !fsutil.IsRegularFile(localExePath) {
@@ -59,7 +59,7 @@ func HandleSimpleEngine(
 	}
 
 	doShowBuildLogs := true
-	builder, err := internalbuilder.New(doShowBuildLogs, false, false)
+	builder, err := simplebuilder.New(doShowBuildLogs, false, false)
 	options := imagebuilder.SimpleBuildOptions{
 		OutputImageTar: cparams.ImageArchiveFile,
 		From:           cparams.BaseImage,
@@ -81,6 +81,10 @@ func HandleSimpleEngine(
 				Entrypoint: []string{targetExePath},
 			},
 		},
+	}
+
+	if cparams.BaseImageWithCerts {
+		options.From = simplebuilder.BaseImageWithCerts
 	}
 
 	bresult, err := builder.Build(options)
