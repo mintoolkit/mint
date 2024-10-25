@@ -130,7 +130,7 @@ func LoadImage(client context.Context,
 		return err
 	}
 
-	log.Errorf("podmanutil.LoadImage: images.Load() report = %+v", report)
+	log.Debugf("podmanutil.LoadImage: images.Load() report = %+v", report)
 	//todo: if outputStream != nil write report to it (report.Names)
 	return nil
 }

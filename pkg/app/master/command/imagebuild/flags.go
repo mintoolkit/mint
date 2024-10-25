@@ -108,6 +108,20 @@ type BuildEngineProps struct {
 	DefaultEndpoint       string
 }
 
+var Runtimes = map[string]struct{}{
+	NoneRuntimeLoad:   {},
+	DockerRuntimeLoad: {},
+	PodmanRuntimeLoad: {},
+}
+
+func IsRuntimeValue(name string) bool {
+	if _, ok := Runtimes[name]; ok {
+		return true
+	}
+
+	return false
+}
+
 var Architectures = map[string]struct{}{
 	Amd64Arch: {},
 	Arm64Arch: {},
@@ -200,9 +214,8 @@ var Flags = map[string]cli.Flag{
 		Usage:   FlagLabelUsage,
 		EnvVars: []string{"DSLIM_IMAGEBUILD_LABELS"},
 	},
-	FlagRuntimeLoad: &cli.StringFlag{
+	FlagRuntimeLoad: &cli.StringSliceFlag{
 		Name:    FlagRuntimeLoad,
-		Value:   DefaultRuntimeLoad,
 		Usage:   FlagRuntimeLoadUsage,
 		EnvVars: []string{"DSLIM_IMAGEBUILD_RUNTIME_LOAD"},
 	},

@@ -29,7 +29,7 @@ type CommandParams struct {
 	EngineNamespace    string                 `json:"engine_namespace,omitempty"`
 	ImageName          string                 `json:"image_name,omitempty"`
 	ImageArchiveFile   string                 `json:"image_archive_file,omitempty"`
-	Runtime            string                 `json:"runtime,omitempty"` //runtime where to load the created image
+	LoadRuntimes       []string               `json:"runtime,omitempty"` //runtime where to load the created image
 	Dockerfile         string                 `json:"dockerfile,omitempty"`
 	ContextDir         string                 `json:"context_dir,omitempty"`
 	BuildArgs          []imagebuilder.NVParam `json:"build_args,omitempty"`
@@ -71,13 +71,23 @@ var CLI = &cli.Command{
 			ImageArchiveFile:   ctx.String(FlagImageArchiveFile),
 			Dockerfile:         ctx.String(FlagDockerfile),
 			ContextDir:         ctx.String(FlagContextDir),
-			Runtime:            ctx.String(FlagRuntimeLoad),
 			Architecture:       ctx.String(FlagArchitecture),
 			BaseImage:          ctx.String(FlagBase),
 			BaseImageTar:       ctx.String(FlagBaseTar),
 			BaseImageWithCerts: ctx.Bool(FlagBaseWithCerts),
 			ExePath:            ctx.String(FlagExePath),
 			Labels:             map[string]string{},
+		}
+
+		loadRuntimeSet := map[string]struct{}{}
+		for _, v := range ctx.StringSlice(FlagRuntimeLoad) {
+			if IsRuntimeValue(v) {
+				loadRuntimeSet[v] = struct{}{}
+			}
+		}
+
+		for k := range loadRuntimeSet {
+			cparams.LoadRuntimes = append(cparams.LoadRuntimes, k)
 		}
 
 		cboBuildArgs := command.ParseKVParams(ctx.StringSlice(FlagBuildArg))

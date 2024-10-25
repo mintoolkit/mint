@@ -30,6 +30,7 @@ const (
 	DefaultAppDir          = "/opt/app"
 	DefaultOutputImageName = "mint-built-image:latest"
 	BaseImageWithCerts     = "gcr.io/distroless/static-debian12:latest"
+	HistoryComment         = "mintoolkit"
 )
 
 // Engine is the default simple build engine
@@ -202,6 +203,7 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 				add.History = v1.History{
 					Created:   v1.Time{Time: time.Now()},
 					CreatedBy: fmt.Sprintf("COPY %s %s", layerInfo.Source, layerFilePath),
+					Comment:   HistoryComment,
 				}
 			}
 
@@ -228,6 +230,7 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 				add.History = v1.History{
 					Created:   v1.Time{Time: time.Now()},
 					CreatedBy: fmt.Sprintf("ADD %s /", layerInfo.Source),
+					Comment:   HistoryComment,
 				}
 			}
 
@@ -255,6 +258,7 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 				add.History = v1.History{
 					Created:   v1.Time{Time: time.Now()},
 					CreatedBy: fmt.Sprintf("COPY %s %s", layerInfo.Source, layerBasePath),
+					Comment:   HistoryComment,
 				}
 			}
 
@@ -349,7 +353,7 @@ func (ref *Engine) Build(options imagebuilder.SimpleBuildOptions) (*imagebuilder
 		return v1.History{
 			Created:    v1.Time{Time: time.Now()},
 			CreatedBy:  inst,
-			Comment:    "mintoolkit",
+			Comment:    HistoryComment,
 			EmptyLayer: true,
 		}
 	}

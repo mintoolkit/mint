@@ -26,8 +26,11 @@ func HandleDepotEngine(
 	ctx := context.Background()
 
 	var doLoad bool
-	if cparams.Runtime != NoneRuntimeLoad {
-		doLoad = true
+	for _, lrt := range cparams.LoadRuntimes {
+		if lrt != NoneRuntimeLoad {
+			doLoad = true
+			break
+		}
 	}
 
 	req := &cliv1.CreateBuildRequest{

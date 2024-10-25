@@ -97,13 +97,9 @@ func OnCommand(
 		}
 	}
 
-	var isSame bool
 	switch cparams.Engine {
 	case DockerBuildEngine:
 		initDockerClient()
-		if cparams.Runtime == DockerRuntimeLoad {
-			isSame = true
-		}
 
 		if gparams.Debug {
 			version.Print(xc, cmdName, logger, dclient, false, gparams.InContainer, gparams.IsDSImage)
@@ -131,9 +127,6 @@ func OnCommand(
 		HandleSimpleEngine(logger, xc, gparams, cparams, dclient)
 	case PodmanBuildEngine:
 		initPodmanClient()
-		if cparams.Runtime == PodmanRuntimeLoad {
-			isSame = true
-		}
 
 		if gparams.Debug {
 			version.Print(xc, Name, logger, nil, false, gparams.InContainer, gparams.IsDSImage)
@@ -152,33 +145,38 @@ func OnCommand(
 		xc.Exit(-1)
 	}
 
-	var crtLoaderClient crt.ImageLoaderAPIClient
-	switch cparams.Runtime {
-	case DockerRuntimeLoad:
-		if dclient == nil {
-			initDockerClient()
-		}
+	crtLoaderClients := map[string]crt.ImageLoaderAPIClient{}
+	for _, v := range cparams.LoadRuntimes {
+		switch v {
+		case DockerRuntimeLoad:
+			if dclient == nil {
+				initDockerClient()
+			}
 
-		crtLoaderClient = dockercrtclient.New(dclient)
-	case PodmanRuntimeLoad:
-		if pclient == nil {
-			initPodmanClient()
-		}
+			crtLoaderClients[v] = dockercrtclient.New(dclient)
+		case PodmanRuntimeLoad:
+			if pclient == nil {
+				initPodmanClient()
+			}
 
-		crtLoaderClient = podmancrtclient.New(pclient)
+			crtLoaderClients[v] = podmancrtclient.New(pclient)
+		}
 	}
 
-	if crtLoaderClient != nil {
-		xc.Out.Info("runtime.load.image", ovars{
-			"runtime":            cparams.Runtime,
-			"image.archive.file": cparams.ImageArchiveFile,
-		})
+	if len(crtLoaderClients) > 0 {
+		for rt, client := range crtLoaderClients {
+			xc.Out.Info("runtime.load.image", ovars{
+				"runtime":            rt,
+				"image.archive.file": cparams.ImageArchiveFile,
+			})
 
-		if !isSame {
-			err = crtLoaderClient.LoadImage(cparams.ImageArchiveFile, os.Stdout)
-			xc.FailOn(err)
-		} else {
-			xc.Out.Info("same.image.engine.runtime")
+			if !((cparams.Engine == PodmanBuildEngine && rt == PodmanRuntimeLoad) ||
+				(cparams.Engine == DockerBuildEngine && rt == DockerRuntimeLoad)) {
+				err = client.LoadImage(cparams.ImageArchiveFile, os.Stdout)
+				xc.FailOn(err)
+			} else {
+				xc.Out.Info("same.image.engine.runtime")
+			}
 		}
 	} else {
 		xc.Out.Info("runtime.load.image.none")
