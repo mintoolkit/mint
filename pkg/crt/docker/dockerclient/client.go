@@ -213,8 +213,6 @@ func New(config *config.DockerClient) (*docker.Client, error) {
 		if dcf == nil {
 			log.Debug("dockerclient.New: No config file.")
 		} else {
-			// Handle the case where CurrentContext is empty
-			// For example, set a default context or log a warning
 			currentDockerContext = dcf.CurrentContext
 			log.Debugf("dockerclient.New: currentDockerContext - '%s'", currentDockerContext)
 		}
