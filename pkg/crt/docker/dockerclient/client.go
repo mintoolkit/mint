@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/app/master/config"
@@ -210,8 +210,14 @@ func New(config *config.DockerClient) (*docker.Client, error) {
 	//so we need to lookup the context first to extract its connection info
 	var currentDockerContext string
 	if dcf, err := ReadConfigFile(ConfigFilePath()); err == nil {
-		currentDockerContext = dcf.CurrentContext
-		log.Debugf("dockerclient.New: currentDockerContext - '%s'", currentDockerContext)
+		if dcf == nil {
+			log.Debug("dockerclient.New: No config file.")
+		} else {
+			// Handle the case where CurrentContext is empty
+			// For example, set a default context or log a warning
+			currentDockerContext = dcf.CurrentContext
+			log.Debugf("dockerclient.New: currentDockerContext - '%s'", currentDockerContext)
+		}
 	} else {
 		log.Debugf("dockerclient.New: ReadConfigFile error - %v", err)
 	}
