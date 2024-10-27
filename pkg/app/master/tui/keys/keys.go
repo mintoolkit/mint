@@ -31,6 +31,10 @@ type home struct {
 	Debug  key.Binding
 }
 
+type debug struct {
+	LoadDebuggableContainers key.Binding
+}
+
 var Home = home{
 	Images: key.NewBinding(
 		key.WithKeys("i"),
@@ -39,5 +43,12 @@ var Home = home{
 	Debug: key.NewBinding(
 		key.WithKeys("d"),
 		key.WithHelp("d", "Open debug view"),
+	),
+}
+
+var Debug = debug{
+	LoadDebuggableContainers: key.NewBinding(
+		key.WithKeys("l"),
+		key.WithHelp("l", "Load debuggable containers"),
 	),
 }
