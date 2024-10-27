@@ -284,7 +284,7 @@ var CLI = &cli.Command{
 			!commandParams.ActionConnectSession &&
 			commandParams.TargetRef == "" {
 			if ctx.Args().Len() < 1 {
-				if commandParams.Runtime != crt.KubernetesRuntime {
+				if !commandParams.TUI && commandParams.Runtime != crt.KubernetesRuntime {
 					xc.Out.Error("param.target", "missing target")
 					cli.ShowCommandHelp(ctx, Name)
 					return nil
