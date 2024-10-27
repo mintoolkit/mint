@@ -86,6 +86,10 @@ type CommandParams struct {
 	UseSecurityContextFromTarget bool
 	/// fallback to using target container user if it's non-root (mostly for kubernetes)
 	DoFallbackToTargetUser bool
+	// `debug --tui` use mode`
+	TUI bool
+	// tui -> debug use mode
+	GlobalTUI bool
 }
 
 func ParseNameValueList(list []string) []NVPair {
@@ -166,6 +170,7 @@ var CLI = &cli.Command{
 		cflag(FlagRunPrivileged),
 		cflag(FlagSecurityContextFromTarget),
 		cflag(FlagFallbackToTargetUser),
+		command.Cflag(command.FlagTUI),
 	},
 	Action: func(ctx *cli.Context) error {
 		gcvalues := command.GlobalFlagValues(ctx)
@@ -209,6 +214,7 @@ var CLI = &cli.Command{
 			DoRunPrivileged:                ctx.Bool(FlagRunPrivileged),
 			UseSecurityContextFromTarget:   ctx.Bool(FlagSecurityContextFromTarget),
 			DoFallbackToTargetUser:         ctx.Bool(FlagFallbackToTargetUser),
+			TUI:                            ctx.Bool(command.FlagTUI),
 		}
 
 		if commandParams.ActionListNamespaces &&
