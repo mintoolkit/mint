@@ -272,6 +272,15 @@ func (ref *Output) Message(data string) {
 
 }
 
+func (ref *Output) Data(channelKey string, data interface{}) {
+	if ch, exists := ref.DataChannels[channelKey]; exists {
+		ch <- data // Send data to the corresponding channel
+		fmt.Printf("Data sent to channel '%s': %v\n", channelKey, data)
+	} else {
+		fmt.Printf("Channel for channelKey '%s' not found\n", channelKey)
+	}
+}
+
 func (ref *Output) State(state string, params ...OutVars) {
 	if ref.Quiet {
 		return
