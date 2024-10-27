@@ -104,8 +104,7 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		cparams := &CommandParams{
 			// NOTE -> should not always pass docker here.
-			Runtime:   "docker",
-			GlobalTUI: true,
+			Runtime: "docker",
 			// Note -> we should not pass this by default, and instead pass it when a user asks.
 			ActionListDebuggableContainers: true,
 			// How to pass the target ref:

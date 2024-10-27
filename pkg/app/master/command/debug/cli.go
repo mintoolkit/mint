@@ -88,8 +88,6 @@ type CommandParams struct {
 	DoFallbackToTargetUser bool
 	// `debug --tui` use mode`
 	TUI bool
-	// tui -> debug use mode
-	GlobalTUI bool
 }
 
 func ParseNameValueList(list []string) []NVPair {
