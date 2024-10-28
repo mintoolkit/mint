@@ -7,7 +7,6 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
-	"github.com/mintoolkit/mint/pkg/app/master/tui"
 	"github.com/mintoolkit/mint/pkg/app/master/version"
 	cmd "github.com/mintoolkit/mint/pkg/command"
 	"github.com/mintoolkit/mint/pkg/crt"
@@ -83,11 +82,6 @@ func OnCommand(
 
 	resolved := command.ResolveAutoRuntime(commandParams.Runtime)
 	logger.Tracef("runtime.handler: rt=%s resolved=%s", commandParams.Runtime, resolved)
-
-	if commandParams.TUI { // `debug --tui``
-		initialTUI := InitialTUI(true)
-		tui.RunTUI(initialTUI, true)
-	}
 
 	switch resolved {
 	case crt.DockerRuntime:

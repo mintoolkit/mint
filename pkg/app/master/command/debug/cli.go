@@ -8,6 +8,7 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/tui"
 	"github.com/mintoolkit/mint/pkg/crt"
 )
 
@@ -172,6 +173,15 @@ var CLI = &cli.Command{
 	},
 	Action: func(ctx *cli.Context) error {
 		gcvalues := command.GlobalFlagValues(ctx)
+
+		// If we stick with this approach, the user should be communicated to
+		// use `--tui` as a standalone flag for `debug`
+		if ctx.Bool(command.FlagTUI) {
+			initialTUI := InitialTUI(true, gcvalues)
+			tui.RunTUI(initialTUI, true)
+			return nil
+		}
+
 		xc := app.NewExecutionContext(
 			Name,
 			gcvalues.QuietCLIMode,
@@ -284,7 +294,7 @@ var CLI = &cli.Command{
 			!commandParams.ActionConnectSession &&
 			commandParams.TargetRef == "" {
 			if ctx.Args().Len() < 1 {
-				if !commandParams.TUI && commandParams.Runtime != crt.KubernetesRuntime {
+				if commandParams.Runtime != crt.KubernetesRuntime {
 					xc.Out.Error("param.target", "missing target")
 					cli.ShowCommandHelp(ctx, Name)
 					return nil

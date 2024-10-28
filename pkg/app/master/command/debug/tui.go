@@ -24,6 +24,8 @@ type TUI struct {
 	table      table.Table
 
 	showDebuggableContainers bool
+
+	gcvalues *command.GenericParams
 }
 
 // Styles - move to `common`
@@ -58,11 +60,12 @@ func LoadTUI() *TUI {
 }
 
 // InitialTUI returns the initial state of the model.
-func InitialTUI(standalone bool) *TUI {
+func InitialTUI(standalone bool, gcvalues *command.GenericParams) *TUI {
 	m := &TUI{
 		standalone: standalone,
 		width:      20,
 		height:     15,
+		gcvalues:   gcvalues,
 	}
 
 	return m
@@ -156,6 +159,7 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}()
 
 		<-doneCh
+		m.showDebuggableContainers = !m.showDebuggableContainers
 		return m, nil
 	case tea.KeyMsg:
 		switch {
@@ -166,6 +170,17 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Global.Back):
 			return common.TUIsInstance.Home, nil
 		case key.Matches(msg, keys.Debug.LoadDebuggableContainers):
+			// Kickoff loading of debuggable containers in standable.
+			if m.standalone {
+				loadDebuggableContainers := common.Event{
+					Type: common.LaunchDebugEvent,
+					Data: m.gcvalues,
+				}
+				m, _ := m.Update(loadDebuggableContainers)
+				return m, nil
+			}
+
+			// When used via `tui -> debug`
 			m.showDebuggableContainers = !m.showDebuggableContainers
 			return m, nil
 
@@ -215,12 +230,13 @@ func (m TUI) View() string {
 	// 4. Connect to a debug session
 	// 5. Start a new debug session
 
-	content := "Debug View"
+	content := "Debug Dashboard\n"
 
 	components = append(components, content)
 
 	if m.showDebuggableContainers {
-		components = append(components, m.table.String())
+		header := "Debuggable Containers\n"
+		components = append(components, header, m.table.String())
 	}
 
 	components = append(components, m.help())
@@ -231,8 +247,17 @@ func (m TUI) View() string {
 }
 
 func (m TUI) help() string {
-	if m.standalone {
-		return common.HelpStyle("• l list debuggable containers • q: quit")
+	var listOrHide string
+
+	if m.showDebuggableContainers {
+		listOrHide = "hide"
+	} else {
+		listOrHide = "list"
 	}
-	return common.HelpStyle("• l list debuggable containers • esc: back • q: quit")
+
+	if m.standalone {
+		return common.HelpStyle("• l: " + listOrHide + " debuggable containers • q: quit")
+	}
+
+	return common.HelpStyle("• l: " + listOrHide + " debuggable containers • esc: back • q: quit")
 }
