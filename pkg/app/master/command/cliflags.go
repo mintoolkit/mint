@@ -312,6 +312,10 @@ const (
 	FlagContainerDNSSearchUsage = "Add a dns search domain for unqualified hostnames analyzing image at runtime"
 	FlagMountUsage              = "Mount volume analyzing image"
 	FlagDeleteFatImageUsage     = "Delete generated fat image requires --dockerfile flag"
+
+	// TUI Related flags
+	FlagTUI      = "tui"
+	FlagTUIUsage = "Enable terminal user interface mode"
 )
 
 // Container runtime command flag names and usage descriptions
@@ -1025,6 +1029,12 @@ var CommonFlags = map[string]cli.Flag{
 		Value:   crt.AutoRuntime,
 		Usage:   FlagRuntimeUsage,
 		EnvVars: []string{"DSLIM_CRT_NAME"},
+	},
+	// TUI Mode
+	FlagTUI: &cli.BoolFlag{
+		Name:    FlagTUI,
+		Usage:   FlagTUIUsage,
+		EnvVars: []string{"DSLIM_TUI"},
 	},
 }
 

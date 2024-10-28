@@ -1,7 +1,8 @@
 package common
 
 const (
-	GetImagesEvent EventType = "getImages"
+	GetImagesEvent   EventType = "getImages"
+	LaunchDebugEvent EventType = "launchDebug"
 )
 
 type (

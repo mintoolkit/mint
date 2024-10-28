@@ -9,8 +9,9 @@ import (
 const (
 	FlagFilter      = "filter"
 	FlagFilterUsage = "container image filter pattern"
-	FlagTUI         = "tui"
-	FlagTUIUsage    = "terminal user interface"
+	// TODO - replace with reference to `master/command.FlagTUI`
+	FlagTUI      = "tui"
+	FlagTUIUsage = "terminal user interface"
 )
 
 var Flags = map[string]cli.Flag{

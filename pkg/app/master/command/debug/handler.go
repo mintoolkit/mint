@@ -82,6 +82,7 @@ func OnCommand(
 
 	resolved := command.ResolveAutoRuntime(commandParams.Runtime)
 	logger.Tracef("runtime.handler: rt=%s resolved=%s", commandParams.Runtime, resolved)
+
 	switch resolved {
 	case crt.DockerRuntime:
 		client, err := dockerclient.New(gparams.ClientConfig)

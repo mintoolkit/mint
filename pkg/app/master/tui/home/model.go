@@ -5,9 +5,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/command/debug"
 	"github.com/mintoolkit/mint/pkg/app/master/command/images"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/common"
-	"github.com/mintoolkit/mint/pkg/app/master/tui/debug"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/keys"
 )
 
@@ -46,9 +46,14 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			common.TUIsInstance.Images = LoadTUI
 			return LoadTUI.Update(getImagesEvent)
 		case key.Matches(msg, keys.Home.Debug):
-			debugModel := debug.InitialTUI(false)
-			common.TUIsInstance.Debug = debugModel
-			return debugModel.Update(nil)
+			launchDebugEvent := common.Event{
+				Type: common.LaunchDebugEvent,
+				Data: m.Gcvalues,
+			}
+
+			LoadTUI := debug.LoadTUI()
+			common.TUIsInstance.Debug = LoadTUI
+			return LoadTUI.Update(launchDebugEvent)
 		}
 	}
 	return m, nil

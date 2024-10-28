@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	ofJSON = "json"
-	ofText = "text"
+	ofJSON         = "json"
+	ofText         = "text"
+	ofSubscription = "subscription"
 )
 
 type ExecutionContext struct {
@@ -122,19 +123,33 @@ func NewExecutionContext(
 }
 
 type Output struct {
-	CmdName      string
-	Quiet        bool
-	OutputFormat string
-	DataChannels map[string]chan interface{}
+	CmdName        string
+	Quiet          bool
+	OutputFormat   string
+	DataChannels   map[string]chan interface{}
+	internalDataCh chan interface{}
 }
 
 func NewOutput(cmdName string, quiet bool, outputFormat string, channels map[string]chan interface{}) *Output {
 	ref := &Output{
-		CmdName:      cmdName,
-		Quiet:        quiet,
-		OutputFormat: outputFormat,
-		DataChannels: channels,
+		CmdName:        cmdName,
+		Quiet:          quiet,
+		OutputFormat:   outputFormat,
+		DataChannels:   channels,
+		internalDataCh: make(chan interface{}),
 	}
+
+	// We want to listen to the internal channel for any data
+	// And dump it onto the appropriate DataChannels
+	go func() {
+		for data := range ref.internalDataCh {
+			if data != nil {
+				for _, ch := range ref.DataChannels {
+					ch <- data
+				}
+			}
+		}
+	}()
 
 	return ref
 }
@@ -272,6 +287,15 @@ func (ref *Output) Message(data string) {
 
 }
 
+func (ref *Output) Data(channelKey string, data interface{}) {
+	if ch, exists := ref.DataChannels[channelKey]; exists {
+		ch <- data // Send data to the corresponding channel
+		fmt.Printf("Data sent to channel '%s': %v\n", channelKey, data)
+	} else {
+		fmt.Printf("Channel for channelKey '%s' not found\n", channelKey)
+	}
+}
+
 func (ref *Output) State(state string, params ...OutVars) {
 	if ref.Quiet {
 		return
@@ -344,7 +368,8 @@ var (
 )
 
 func (ref *Output) Info(infoType string, params ...OutVars) {
-	if ref.Quiet {
+	// TODO - carry this pattern to other Output methods
+	if ref.Quiet && ref.OutputFormat != ofSubscription {
 		return
 	}
 
@@ -379,7 +404,8 @@ func (ref *Output) Info(infoType string, params ...OutVars) {
 		fmt.Println(string(jsonData))
 	case ofText:
 		fmt.Printf("cmd=%s info=%s%s%s\n", ref.CmdName, itcolor(infoType), sep, data)
-
+	case ofSubscription:
+		ref.internalDataCh <- msg // Send data to the internal channel
 	default:
 		log.Fatalf("Unknown console output flag: %s\n. It should be either 'text' or 'json", ref.OutputFormat)
 	}
