@@ -140,7 +140,7 @@ func NewOutput(cmdName string, quiet bool, outputFormat string, channels map[str
 	}
 
 	// We want to listen to the internal channel for any data
-	// And dump it onto the appropraite DataChannels
+	// And dump it onto the appropriate DataChannels
 	go func() {
 		for data := range ref.internalDataCh {
 			if data != nil {
