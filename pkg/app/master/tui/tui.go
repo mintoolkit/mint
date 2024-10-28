@@ -3,7 +3,7 @@ package tui
 import (
 	"os"
 
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/common"
@@ -17,6 +17,9 @@ func RunTUI(model tea.Model, standalone bool) {
 		os.Exit(1)
 	}
 	defer f.Close()
+
+	log.SetOutput(f)
+	log.SetLevel(log.DebugLevel) // TODO - should derive log level from `FlagLogLevel`
 	// We are running the tui via `mint tui`
 	if !standalone {
 		common.TUIsInstance.Home = model
