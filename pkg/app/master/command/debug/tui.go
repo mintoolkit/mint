@@ -100,8 +100,7 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Quiet -> when set to true, returns on the first line for each
 			// Execution context method
 			true,
-			// output type == "subscription" (better name?)
-			"data",
+			"subscription",
 			debuggableContainersChannelMap,
 		)
 

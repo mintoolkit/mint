@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	ofJSON = "json"
-	ofText = "text"
-	ofData = "data"
+	ofJSON         = "json"
+	ofText         = "text"
+	ofSubscription = "subscription"
 )
 
 type ExecutionContext struct {
@@ -369,7 +369,7 @@ var (
 
 func (ref *Output) Info(infoType string, params ...OutVars) {
 	// TODO - carry this pattern to other Output methods
-	if ref.Quiet && ref.OutputFormat != ofData {
+	if ref.Quiet && ref.OutputFormat != ofSubscription {
 		return
 	}
 
@@ -404,7 +404,7 @@ func (ref *Output) Info(infoType string, params ...OutVars) {
 		fmt.Println(string(jsonData))
 	case ofText:
 		fmt.Printf("cmd=%s info=%s%s%s\n", ref.CmdName, itcolor(infoType), sep, data)
-	case ofData:
+	case ofSubscription:
 		ref.internalDataCh <- msg // Send data to the internal channel
 	default:
 		log.Fatalf("Unknown console output flag: %s\n. It should be either 'text' or 'json", ref.OutputFormat)
