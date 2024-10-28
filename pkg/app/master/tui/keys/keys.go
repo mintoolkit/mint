@@ -33,6 +33,7 @@ type home struct {
 
 type debug struct {
 	LoadDebuggableContainers key.Binding
+	ChangeRuntime            key.Binding
 }
 
 var Home = home{
@@ -50,5 +51,9 @@ var Debug = debug{
 	LoadDebuggableContainers: key.NewBinding(
 		key.WithKeys("l"),
 		key.WithHelp("l", "Load debuggable containers"),
+	),
+	ChangeRuntime: key.NewBinding(
+		key.WithKeys("r"),
+		key.WithHelp("r", "Change runtime"),
 	),
 }
