@@ -165,11 +165,11 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Global.Quit):
 			return m, tea.Quit
 		// NOTE -> We should only support this back navigation,
-		// if the tui is not standalone
+		// if the tui is not in standalone mode.
 		case key.Matches(msg, keys.Global.Back):
 			return common.TUIsInstance.Home, nil
 		case key.Matches(msg, keys.Debug.LoadDebuggableContainers):
-			// Kickoff loading of debuggable containers in standable.
+			// Kickoff loading of debuggable containers in standalone mode.
 			if m.standalone {
 				loadDebuggableContainers := common.Event{
 					Type: common.LaunchDebugEvent,
