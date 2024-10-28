@@ -1,6 +1,11 @@
 package crt
 
 import (
+	"net"
+	"time"
+
+	log "github.com/sirupsen/logrus"
+
 	"os"
 	"strings"
 
@@ -81,7 +86,9 @@ func AvailableRuntimes() []string {
 
 		if strings.HasPrefix(info.Socket, "/") {
 			if HasSocket(info.Socket) {
-				usable[info.Name] = struct{}{}
+				if CanConnect(info.Socket) {
+					usable[info.Name] = struct{}{}
+				}
 			}
 		} else {
 			//adding remote paths (for podman and others; without checking, for now)
@@ -106,11 +113,12 @@ func AvailableRuntimes() []string {
 
 func AutoSelectRuntime() string {
 	available := AvailableRuntimes()
+	log.Debugf("Available runtimes: %v", available)
 	if len(available) > 0 {
 		return available[0]
 	}
 
-	return DockerRuntime
+	return DockerRuntime // Question -> This runtime may not necessarily be available?
 }
 
 func HasSocket(name string) bool {
@@ -120,4 +128,19 @@ func HasSocket(name string) bool {
 	}
 
 	return false
+}
+
+func CanConnect(socket string) bool {
+	timeout := 5 * time.Second
+	conn, err := net.DialTimeout("unix", socket, timeout)
+
+	if err != nil {
+		// If there are permission issues, this line will be tripped
+		// when trying to connect to the socket.
+		log.Debugf("Error connecting to socket: %s: %v", socket, err)
+		return false
+	}
+	defer conn.Close()
+
+	return true
 }
