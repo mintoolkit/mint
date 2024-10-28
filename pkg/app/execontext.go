@@ -143,6 +143,7 @@ func NewOutput(cmdName string, quiet bool, outputFormat string, channels map[str
 	// And dump it onto the appropriate DataChannels
 	go func() {
 		for data := range ref.internalDataCh {
+			log.Debugf("execontext internal data: %v\n", data)
 			if data != nil {
 				for _, ch := range ref.DataChannels {
 					ch <- data
@@ -297,7 +298,7 @@ func (ref *Output) Data(channelKey string, data interface{}) {
 }
 
 func (ref *Output) State(state string, params ...OutVars) {
-	if ref.Quiet {
+	if ref.Quiet && ref.OutputFormat != ofSubscription {
 		return
 	}
 
@@ -355,6 +356,8 @@ func (ref *Output) State(state string, params ...OutVars) {
 		defer color.Unset()
 
 		fmt.Printf("cmd=%s state=%s%s%s%s\n", ref.CmdName, state, exitInfo, sep, info)
+	case ofSubscription:
+		ref.internalDataCh <- msg // Send data to the internal channel
 
 	default:
 		log.Fatalf("Unknown console output flag: %s\n. It should be either 'text' or 'json", ref.OutputFormat)
