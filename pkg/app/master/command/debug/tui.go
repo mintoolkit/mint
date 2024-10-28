@@ -1,6 +1,7 @@
 package debug
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -24,8 +25,13 @@ type TUI struct {
 	table      table.Table
 
 	showDebuggableContainers bool
+	showRuntimeSelectorView  bool
 
 	gcvalues *command.GenericParams
+
+	// runtime selection controls
+	choice int
+	chosen bool
 }
 
 // Styles - move to `common`
@@ -46,6 +52,8 @@ var (
 	EvenRowStyle = CellStyle.Foreground(lightGray)
 	// BorderStyle is the lipgloss style used for the table border.
 	BorderStyle = lipgloss.NewStyle().Foreground(white)
+	// CheckboxStyle is the lipgloss style used for the runtime selector
+	CheckboxStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
 )
 
 // End Styles - move to common - block
@@ -183,6 +191,37 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.showDebuggableContainers = !m.showDebuggableContainers
 			return m, nil
 
+		case key.Matches(msg, keys.Debug.ChangeRuntime):
+			m.showRuntimeSelectorView = !m.showRuntimeSelectorView
+			return m, nil
+		}
+	}
+	// If the user has not made a choice, handle choice updates
+	if !m.chosen {
+		return updateChoices(msg, m)
+	}
+	// Otherwise...
+	// TODO - loading state after a user has selected a choice
+	return m, nil
+}
+
+func updateChoices(msg tea.Msg, m TUI) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "j", "down":
+			m.choice++
+			if m.choice > 4 {
+				m.choice = 4
+			}
+		case "k", "up":
+			m.choice--
+			if m.choice < 0 {
+				m.choice = 0
+			}
+		case "enter":
+			m.chosen = true
+			return m, nil
 		}
 	}
 	return m, nil
@@ -218,6 +257,55 @@ func generateTable(debuggableContainers []DebuggableContainer) table.Table {
 	return *t
 }
 
+func choicesView(m TUI) string {
+	choice := m.choice
+
+	template := "Choose runtime for debug\n\n"
+	template += "%s\n\n"
+	choices := fmt.Sprintf(
+		"%s\n%s\n%s\n%s",
+		checkbox("Docker", choice == 0),
+		checkbox("Containerd", choice == 1),
+		checkbox("Podman", choice == 2),
+		checkbox("Kubernetes", choice == 3),
+	)
+	return fmt.Sprintf(template, choices)
+}
+
+func checkbox(label string, checked bool) string {
+	if checked {
+		return CheckboxStyle.Render("[x] " + label)
+	}
+	return fmt.Sprintf("[ ] %s", label)
+}
+
+// NOTE -> the chocies we display here should only be runtiems we can
+// establish a connection to.
+// Otherwise, we set the user up for failure.
+const (
+	dockerRuntime     = "docker"
+	containerdRuntime = "containerd"
+	podmanRuntime     = "podman"
+	kubernetesRuntime = "k8s"
+)
+
+func chosenView(m TUI) string {
+	var runtime string
+
+	switch m.choice {
+	case 0:
+		runtime = dockerRuntime
+	case 1:
+		runtime = containerdRuntime
+	case 2:
+		runtime = podmanRuntime
+	case 3:
+		runtime = kubernetesRuntime
+	}
+
+	return fmt.Sprintf("You picked - %s :)", runtime)
+}
+
 // View returns the view that should be displayed.
 func (m TUI) View() string {
 	var components []string
@@ -238,6 +326,16 @@ func (m TUI) View() string {
 		components = append(components, header, m.table.String())
 	}
 
+	if m.showRuntimeSelectorView {
+		var runtimeSelectorContent string
+		if !m.chosen {
+			runtimeSelectorContent = choicesView(m)
+		} else {
+			runtimeSelectorContent = chosenView(m)
+		}
+		components = append(components, runtimeSelectorContent)
+	}
+
 	components = append(components, m.help())
 
 	return lipgloss.JoinVertical(lipgloss.Left,
@@ -246,17 +344,25 @@ func (m TUI) View() string {
 }
 
 func (m TUI) help() string {
-	var listOrHide string
+	var debuggableContainersHelp string
 
 	if m.showDebuggableContainers {
-		listOrHide = "hide"
+		debuggableContainersHelp = "hide"
 	} else {
-		listOrHide = "list"
+		debuggableContainersHelp = "list"
+	}
+
+	var runtimeSelectorHelp string
+
+	if m.showRuntimeSelectorView {
+		runtimeSelectorHelp = "cancel"
+	} else {
+		runtimeSelectorHelp = "change runtime"
 	}
 
 	if m.standalone {
-		return common.HelpStyle("• l: " + listOrHide + " debuggable containers • q: quit")
+		return common.HelpStyle("• l: " + debuggableContainersHelp + " debuggable containers • r: " + runtimeSelectorHelp + " • j/k, up/down: select • enter: choose • q: quit")
 	}
 
-	return common.HelpStyle("• l: " + listOrHide + " debuggable containers • esc: back • q: quit")
+	return common.HelpStyle("• l: " + debuggableContainersHelp + " debuggable containers • r: " + runtimeSelectorHelp + " • j/k, up/down: select • enter: choose • esc: back • q: quit")
 }
