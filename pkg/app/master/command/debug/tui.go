@@ -402,13 +402,14 @@ func (m TUI) help() string {
 	var runtimeSelectorHelp string
 
 	if m.showRuntimeSelectorView {
-		runtimeSelectorHelp = "cancel"
+		// Only display the navigation controls if the using is changing their runtime
+		runtimeSelectorHelp = "cancel • j/k, up/down: select • enter: choose"
 	} else {
 		runtimeSelectorHelp = "change runtime"
 	}
 
 	if m.standalone {
-		return common.HelpStyle("• l: " + debuggableContainersHelp + " debuggable containers • r: " + runtimeSelectorHelp + " • j/k, up/down: select • enter: choose • q: quit")
+		return common.HelpStyle("• l: " + debuggableContainersHelp + " debuggable containers • r: " + runtimeSelectorHelp + " • q: quit")
 	}
 
 	return common.HelpStyle("• l: " + debuggableContainersHelp + " debuggable containers • r: " + runtimeSelectorHelp + " • j/k, up/down: select • enter: choose • esc: back • q: quit")
