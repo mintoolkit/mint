@@ -199,8 +199,6 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, keys.Global.Quit):
 			return m, tea.Quit
-		// NOTE -> We should only support this back navigation,
-		// if the tui is not in standalone mode.
 		case key.Matches(msg, keys.Global.Back):
 			if m.standalone {
 				return m, nil
