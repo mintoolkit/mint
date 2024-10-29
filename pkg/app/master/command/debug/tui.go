@@ -219,6 +219,7 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case key.Matches(msg, keys.Debug.ChangeRuntime):
+			m.showDebuggableContainers = false
 			m.showRuntimeSelectorView = !m.showRuntimeSelectorView
 			return m, nil
 		}
@@ -362,26 +363,26 @@ func (m TUI) View() string {
 }
 
 func (m TUI) help() string {
-	var debuggableContainersHelp string
-
-	if m.showDebuggableContainers {
-		debuggableContainersHelp = "hide"
-	} else {
-		debuggableContainersHelp = "list"
-	}
-
-	var runtimeSelectorHelp string
+	var debuggableContainersHelp, runtimeSelectorHelp string
 
 	if m.showRuntimeSelectorView {
 		// Only display the navigation controls if the using is changing their runtime
 		runtimeSelectorHelp = "cancel • j/k, up/down: select • enter: choose"
 	} else {
 		runtimeSelectorHelp = "change runtime"
+
+		// Hide debuggable container help when selecting runtime
+		if m.showDebuggableContainers {
+			debuggableContainersHelp = "• l: hide debuggable containers"
+		} else {
+			debuggableContainersHelp = "• l: list debuggable containers"
+		}
+
 	}
 
 	if m.standalone {
-		return common.HelpStyle("• l: " + debuggableContainersHelp + " debuggable containers • r: " + runtimeSelectorHelp + " • q: quit")
+		return common.HelpStyle(debuggableContainersHelp + " • r: " + runtimeSelectorHelp + " • q: quit")
 	}
 
-	return common.HelpStyle("• l: " + debuggableContainersHelp + " debuggable containers • r: " + runtimeSelectorHelp + " • j/k, up/down: select • enter: choose • esc: back • q: quit")
+	return common.HelpStyle(debuggableContainersHelp + " • r: " + runtimeSelectorHelp + " • j/k, up/down: select • enter: choose • esc: back • q: quit")
 }
