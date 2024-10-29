@@ -44,6 +44,7 @@ func HandleKubernetesRuntime(
 		log.Fields{
 			"op": "debug.HandleKubernetesRuntime",
 		})
+	xc.Out.State("kubernetes.runtime.handler.started")
 
 	cpJson, _ := json.Marshal(commandParams)
 	logger.WithField("cparams", string(cpJson)).Trace("call")
