@@ -33,7 +33,6 @@ type TUI struct {
 
 	// runtime selection controls
 	choice int
-	chosen bool
 
 	runtime string
 }
@@ -224,20 +223,7 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 	}
-	// If the user has not made a choice, handle choice updates
-	if !m.chosen {
-		return updateChoices(msg, m)
-	}
-	// if m.chosen {
-
-	// }
-	// NEXT UP ->
-	// After a user has pressed enter:
-	// Reset the showRuntimeSelectorView -> we no longer want to see `cancel`
-	// Actually use the new runtime (for what?)
-	// Otherwise...
-	// TODO - loading state after a user has selected a choice
-	return m, nil
+	return updateChoices(msg, m)
 }
 
 func updateChoices(msg tea.Msg, m TUI) (tea.Model, tea.Cmd) {
@@ -256,13 +242,7 @@ func updateChoices(msg tea.Msg, m TUI) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			m.runtime = setNewRuntime(m.choice)
-			m.chosen = true
 			m.showRuntimeSelectorView = false
-			// loadDebuggableContainers := common.Event{
-			// 	Type: common.LaunchDebugEvent,
-			// 	Data: m.gcvalues,
-			// }
-			// m, _ := m.Update(loadDebuggableContainers)
 			return m, nil
 		}
 	}
@@ -346,11 +326,6 @@ func setNewRuntime(choice int) string {
 	}
 }
 
-// func chosenView(m TUI) string {
-
-// 	return fmt.Sprintf("Loading %s runtime...", m.runtime)
-// }
-
 // View returns the view that should be displayed.
 func (m TUI) View() string {
 	var components []string
@@ -375,12 +350,7 @@ func (m TUI) View() string {
 
 	if m.showRuntimeSelectorView {
 		var runtimeSelectorContent string
-		if !m.chosen {
-			runtimeSelectorContent = choicesView(m)
-		}
-		// else {
-		// 	runtimeSelectorContent = chosenView(m)
-		// }
+		runtimeSelectorContent = choicesView(m)
 		components = append(components, runtimeSelectorContent)
 	}
 
