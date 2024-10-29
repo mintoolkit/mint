@@ -116,12 +116,10 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		cparams := &CommandParams{
 			Runtime: m.runtime,
-			// Note -> we should not pass this by default, and instead pass it when a user asks.
+			// Passing these three fields  all the time does not make sense.
 			ActionListDebuggableContainers: true,
-			// Passing this all the time does not make sense.
-			Kubeconfig: crt.KubeconfigDefault,
-			// How to pass the target ref:
-			// TargetRef: "my-nginx"
+			Kubeconfig:                     crt.KubeconfigDefault,
+			TargetNamespace:                "default",
 		}
 
 		gcValue, ok := msg.Data.(*command.GenericParams)
