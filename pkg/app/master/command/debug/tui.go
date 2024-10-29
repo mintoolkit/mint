@@ -202,6 +202,9 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// NOTE -> We should only support this back navigation,
 		// if the tui is not in standalone mode.
 		case key.Matches(msg, keys.Global.Back):
+			if m.standalone {
+				return m, nil
+			}
 			return common.TUIsInstance.Home, nil
 		case key.Matches(msg, keys.Debug.LoadDebuggableContainers):
 			// Kickoff loading of debuggable containers in standalone mode.
