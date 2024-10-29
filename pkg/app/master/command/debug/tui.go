@@ -204,6 +204,9 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return common.TUIsInstance.Home, nil
 		case key.Matches(msg, keys.Debug.LoadDebuggableContainers):
+			if m.showRuntimeSelectorView {
+				return m, nil
+			}
 			// Kickoff loading of debuggable containers in standalone mode.
 			if m.standalone {
 				loadDebuggableContainers := common.Event{
