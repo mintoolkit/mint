@@ -97,24 +97,21 @@ type DebuggableContainer struct {
 func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case common.Event:
-		log.Println("==================== UPDATE DEBUG TUI ==========================")
-		debuggableContainersCh := make(chan interface{})
+		subscriptionChannel := make(chan interface{})
 		// NOTE -> the names of both the channel map and the channel are misleading
 		// as more than just the debuggable container information is dumped on it
 		// at the moment.
-		debuggableContainersChannelMap := map[string]chan interface{}{
-			"debuggableContainers": debuggableContainersCh,
+		subscriptionChannels := map[string]chan interface{}{
+			"debuggableContainers": subscriptionChannel,
 		}
 		// In addition to passing the channel(s) we will use to transport data
 		// we should pass:
 		// the outputs we want to subscribe to: State | Info | Error
 		xc := app.NewExecutionContext(
 			"tui",
-			// Quiet -> when set to true, returns on the first line for each
-			// Execution context method
 			true,
 			"subscription",
-			debuggableContainersChannelMap,
+			subscriptionChannels,
 		)
 
 		cparams := &CommandParams{
@@ -140,23 +137,22 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		doneCh := make(chan struct{})
 		go func() {
-			for debuggableContainersData := range debuggableContainersCh {
-				channelResponse, ok := debuggableContainersData.(map[string]string)
+			for subscriptionData := range subscriptionChannel {
+				channelResponse, ok := subscriptionData.(map[string]string)
 				if !ok || channelResponse == nil {
 					continue
 				}
 
-				log.Printf("Channel response in tui: %v", channelResponse)
+				log.Debugf("Channel response in tui: %v", channelResponse)
 				stateValue, stateExists := channelResponse["state"]
-				log.Printf("State value: %s", stateValue)
-				log.Printf("State exists: %s", stateValue)
 				if stateExists {
+					log.Debugf("State value: %s", stateValue)
 					if stateValue == "kubernetes.runtime.handler.started" {
-						log.Println("Got k8s state value")
-						// 		break
+						// TODO - what would we like to do with this information?
+						// && we likely will want to add similar handling for the other runtimes.
 					} else if stateValue == "completed" {
-						// we get 'completed' then we get 'done'
-						log.Println("Exiting channel listening loop in update. State is complete.")
+						// We get 'completed' then we get 'done'
+						log.Debug("Exiting channel listening loop in update. State is complete.")
 						break
 					}
 				}
@@ -172,7 +168,7 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 						counterCeiling = countInt
 					} else if infoValue == "debuggable.container" {
-						log.Println("-----------------------Got debuggable container-----------------------")
+						log.Debugln("-----------------------Got debuggable container-----------------------")
 						debuggableContainers = append(debuggableContainers, DebuggableContainer{
 							Name:  channelResponse["name"],
 							Image: channelResponse["image"],
@@ -182,6 +178,7 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				// The notion of a count[er] does not exist for the k8s
+				// But it does for podman & docker.
 				if counterCeiling > 0 && counter == counterCeiling {
 					break
 				}
@@ -286,8 +283,13 @@ func generateTable(debuggableContainers []DebuggableContainer) table.Table {
 func choicesView(m TUI) string {
 	choice := m.choice
 
-	template := "Choose runtime for debug\n\n"
+	template := "Choose runtime for debug mode\n\n"
 	template += "%s\n\n"
+
+	// NOTE -> the chocies we display here should only be runtiems we can
+	// establish a connection to.
+	// Otherwise, we set the user up for failure.
+
 	choices := fmt.Sprintf(
 		"%s\n%s\n%s\n%s",
 		checkbox("Docker", choice == 0),
@@ -304,16 +306,6 @@ func checkbox(label string, checked bool) string {
 	}
 	return fmt.Sprintf("[ ] %s", label)
 }
-
-// NOTE -> the chocies we display here should only be runtiems we can
-// establish a connection to.
-// Otherwise, we set the user up for failure.
-// const (
-// 	dockerRuntime     = "docker"
-// 	containerdRuntime = "containerd"
-// 	podmanRuntime     = "podman"
-// 	kubernetesRuntime = "k8s"
-// )
 
 func setNewRuntime(choice int) string {
 	switch choice {
@@ -343,7 +335,7 @@ func (m TUI) View() string {
 
 	header := "Debug Dashboard\n"
 
-	currentRuntime := fmt.Sprintf("Current Runtime: %s.\n", m.runtime) // TODO - map to human readable
+	currentRuntime := fmt.Sprintf("Current Runtime: %s.\n", m.runtime)
 
 	components = append(components, header, currentRuntime)
 
