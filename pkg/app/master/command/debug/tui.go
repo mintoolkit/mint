@@ -61,15 +61,6 @@ var (
 
 // End Styles - move to common - block
 
-func LoadTUI() *TUI {
-	m := &TUI{
-		width:   20,
-		height:  15,
-		runtime: crt.AutoSelectRuntime(),
-	}
-	return m
-}
-
 // InitialTUI returns the initial state of the model.
 func InitialTUI(standalone bool, gcvalues *command.GenericParams) *TUI {
 	m := &TUI{
@@ -202,20 +193,12 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showRuntimeSelectorView {
 				return m, nil
 			}
-			// Kickoff loading of debuggable containers in standalone mode.
-			if m.standalone {
-				loadDebuggableContainers := common.Event{
-					Type: common.LaunchDebugEvent,
-					Data: m.gcvalues,
-				}
-				m, _ := m.Update(loadDebuggableContainers)
-				return m, nil
+			loadDebuggableContainers := common.Event{
+				Type: common.LaunchDebugEvent,
+				Data: m.gcvalues,
 			}
-
-			// When used via `tui -> debug`
-			m.showDebuggableContainers = !m.showDebuggableContainers
+			m, _ := m.Update(loadDebuggableContainers)
 			return m, nil
-
 		case key.Matches(msg, keys.Debug.ChangeRuntime):
 			m.showDebuggableContainers = false
 			m.showRuntimeSelectorView = !m.showRuntimeSelectorView
@@ -377,5 +360,5 @@ func (m TUI) help() string {
 		return common.HelpStyle(debuggableContainersHelp + " • r: " + runtimeSelectorHelp + " • q: quit")
 	}
 
-	return common.HelpStyle(debuggableContainersHelp + " • r: " + runtimeSelectorHelp + " • j/k, up/down: select • enter: choose • esc: back • q: quit")
+	return common.HelpStyle(debuggableContainersHelp + " • r: " + runtimeSelectorHelp + " • esc: back • q: quit")
 }
