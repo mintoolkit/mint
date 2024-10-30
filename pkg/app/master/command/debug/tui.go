@@ -1,16 +1,19 @@
 package debug
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/common"
 	"github.com/mintoolkit/mint/pkg/app/master/tui/keys"
+	"github.com/mintoolkit/mint/pkg/crt"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -24,8 +27,14 @@ type TUI struct {
 	table      table.Table
 
 	showDebuggableContainers bool
+	showRuntimeSelectorView  bool
 
 	gcvalues *command.GenericParams
+
+	// runtime selection controls
+	choice int
+
+	runtime string
 }
 
 // Styles - move to `common`
@@ -46,18 +55,11 @@ var (
 	EvenRowStyle = CellStyle.Foreground(lightGray)
 	// BorderStyle is the lipgloss style used for the table border.
 	BorderStyle = lipgloss.NewStyle().Foreground(white)
+	// CheckboxStyle is the lipgloss style used for the runtime selector
+	CheckboxStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
 )
 
 // End Styles - move to common - block
-
-func LoadTUI() *TUI {
-	m := &TUI{
-		width:   20,
-		height:  15,
-		loading: true,
-	}
-	return m
-}
 
 // InitialTUI returns the initial state of the model.
 func InitialTUI(standalone bool, gcvalues *command.GenericParams) *TUI {
@@ -66,6 +68,7 @@ func InitialTUI(standalone bool, gcvalues *command.GenericParams) *TUI {
 		width:      20,
 		height:     15,
 		gcvalues:   gcvalues,
+		runtime:    crt.AutoSelectRuntime(),
 	}
 
 	return m
@@ -85,32 +88,29 @@ type DebuggableContainer struct {
 func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case common.Event:
-		debuggableContainersCh := make(chan interface{})
+		subscriptionChannel := make(chan interface{})
 		// NOTE -> the names of both the channel map and the channel are misleading
 		// as more than just the debuggable container information is dumped on it
 		// at the moment.
-		debuggableContainersChannelMap := map[string]chan interface{}{
-			"debuggableContainers": debuggableContainersCh,
+		subscriptionChannels := map[string]chan interface{}{
+			"debuggableContainers": subscriptionChannel,
 		}
 		// In addition to passing the channel(s) we will use to transport data
 		// we should pass:
 		// the outputs we want to subscribe to: State | Info | Error
 		xc := app.NewExecutionContext(
 			"tui",
-			// Quiet -> when set to true, returns on the first line for each
-			// Execution context method
 			true,
 			"subscription",
-			debuggableContainersChannelMap,
+			subscriptionChannels,
 		)
 
 		cparams := &CommandParams{
-			// NOTE -> should not always pass docker here.
-			Runtime: "docker",
-			// Note -> we should not pass this by default, and instead pass it when a user asks.
+			Runtime: m.runtime,
+			// Passing these three fields  all the time does not make sense.
 			ActionListDebuggableContainers: true,
-			// How to pass the target ref:
-			// TargetRef: "my-nginx"
+			Kubeconfig:                     crt.KubeconfigDefault,
+			TargetNamespace:                "default",
 		}
 
 		gcValue, ok := msg.Data.(*command.GenericParams)
@@ -126,21 +126,38 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		doneCh := make(chan struct{})
 		go func() {
-			for debuggableContainersData := range debuggableContainersCh {
-				channelResponse, ok := debuggableContainersData.(map[string]string)
+			for subscriptionData := range subscriptionChannel {
+				channelResponse, ok := subscriptionData.(map[string]string)
 				if !ok || channelResponse == nil {
 					continue
 				}
+
+				log.Debugf("Channel response in tui: %v", channelResponse)
+				stateValue, stateExists := channelResponse["state"]
+				if stateExists {
+					log.Debugf("State value: %s", stateValue)
+					if stateValue == "kubernetes.runtime.handler.started" {
+						// TODO - what would we like to do with this information?
+						// && we likely will want to add similar handling for the other runtimes.
+					} else if stateValue == "completed" {
+						// We get 'completed' then we get 'done'
+						log.Debug("Exiting channel listening loop in update. State is complete.")
+						break
+					}
+				}
+
 				infoValue, infoExists := channelResponse["info"]
 				if infoExists {
-					// Set total debuggable container counter ceiling
 					if infoValue == "debuggable.containers" && counterCeiling == 0 {
+						// Start docker runtime driven debuggable container handling
+						// Set total debuggable container counter ceiling
 						countInt, err := strconv.Atoi(channelResponse["count"])
 						if err != nil {
 							continue
 						}
 						counterCeiling = countInt
 					} else if infoValue == "debuggable.container" {
+						log.Debugln("-----------------------Got debuggable container-----------------------")
 						debuggableContainers = append(debuggableContainers, DebuggableContainer{
 							Name:  channelResponse["name"],
 							Image: channelResponse["image"],
@@ -149,9 +166,12 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 
+				// The notion of a count[er] does not exist for the k8s
+				// But it does for podman & docker.
 				if counterCeiling > 0 && counter == counterCeiling {
 					break
 				}
+				// End debuggable container handling
 			}
 			m.table = generateTable(debuggableContainers)
 			close(doneCh)
@@ -164,25 +184,48 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, keys.Global.Quit):
 			return m, tea.Quit
-		// NOTE -> We should only support this back navigation,
-		// if the tui is not in standalone mode.
 		case key.Matches(msg, keys.Global.Back):
-			return common.TUIsInstance.Home, nil
-		case key.Matches(msg, keys.Debug.LoadDebuggableContainers):
-			// Kickoff loading of debuggable containers in standalone mode.
 			if m.standalone {
-				loadDebuggableContainers := common.Event{
-					Type: common.LaunchDebugEvent,
-					Data: m.gcvalues,
-				}
-				m, _ := m.Update(loadDebuggableContainers)
 				return m, nil
 			}
-
-			// When used via `tui -> debug`
-			m.showDebuggableContainers = !m.showDebuggableContainers
+			return common.TUIsInstance.Home, nil
+		case key.Matches(msg, keys.Debug.LoadDebuggableContainers):
+			if m.showRuntimeSelectorView {
+				return m, nil
+			}
+			loadDebuggableContainers := common.Event{
+				Type: common.LaunchDebugEvent,
+				Data: m.gcvalues,
+			}
+			m, _ := m.Update(loadDebuggableContainers)
 			return m, nil
+		case key.Matches(msg, keys.Debug.ChangeRuntime):
+			m.showDebuggableContainers = false
+			m.showRuntimeSelectorView = !m.showRuntimeSelectorView
+			return m, nil
+		}
+	}
+	return updateChoices(msg, m)
+}
 
+func updateChoices(msg tea.Msg, m TUI) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "j", "down":
+			m.choice++
+			if m.choice > 3 {
+				m.choice = 0
+			}
+		case "k", "up":
+			m.choice--
+			if m.choice < 0 {
+				m.choice = 3
+			}
+		case "enter":
+			m.runtime = setNewRuntime(m.choice)
+			m.showRuntimeSelectorView = false
+			return m, nil
 		}
 	}
 	return m, nil
@@ -218,6 +261,48 @@ func generateTable(debuggableContainers []DebuggableContainer) table.Table {
 	return *t
 }
 
+func choicesView(m TUI) string {
+	choice := m.choice
+
+	template := "Choose runtime for debug mode\n\n"
+	template += "%s\n\n"
+
+	// NOTE -> the chocies we display here should only be runtiems we can
+	// establish a connection to.
+	// Otherwise, we set the user up for failure.
+
+	choices := fmt.Sprintf(
+		"%s\n%s\n%s\n%s",
+		checkbox("Docker", choice == 0),
+		checkbox("Containerd", choice == 1),
+		checkbox("Podman", choice == 2),
+		checkbox("Kubernetes", choice == 3),
+	)
+	return fmt.Sprintf(template, choices)
+}
+
+func checkbox(label string, checked bool) string {
+	if checked {
+		return CheckboxStyle.Render("[x] " + label)
+	}
+	return fmt.Sprintf("[ ] %s", label)
+}
+
+func setNewRuntime(choice int) string {
+	switch choice {
+	case 0:
+		return crt.DockerRuntime
+	case 1:
+		return crt.ContainerdRuntime
+	case 2:
+		return crt.PodmanRuntime
+	case 3:
+		return crt.KubernetesRuntime
+	default:
+		return crt.AutoRuntime
+	}
+}
+
 // View returns the view that should be displayed.
 func (m TUI) View() string {
 	var components []string
@@ -229,13 +314,21 @@ func (m TUI) View() string {
 	// 4. Connect to a debug session
 	// 5. Start a new debug session
 
-	content := "Debug Dashboard\n"
+	header := "Debug Dashboard\n"
 
-	components = append(components, content)
+	currentRuntime := fmt.Sprintf("Current Runtime: %s.\n", m.runtime)
+
+	components = append(components, header, currentRuntime)
 
 	if m.showDebuggableContainers {
 		header := "Debuggable Containers\n"
 		components = append(components, header, m.table.String())
+	}
+
+	if m.showRuntimeSelectorView {
+		var runtimeSelectorContent string
+		runtimeSelectorContent = choicesView(m)
+		components = append(components, runtimeSelectorContent)
 	}
 
 	components = append(components, m.help())
@@ -246,17 +339,26 @@ func (m TUI) View() string {
 }
 
 func (m TUI) help() string {
-	var listOrHide string
+	var debuggableContainersHelp, runtimeSelectorHelp string
 
-	if m.showDebuggableContainers {
-		listOrHide = "hide"
+	if m.showRuntimeSelectorView {
+		// Only display the navigation controls if the using is changing their runtime
+		runtimeSelectorHelp = "cancel • j/k, up/down: select • enter: choose"
 	} else {
-		listOrHide = "list"
+		runtimeSelectorHelp = "change runtime"
+
+		// Hide debuggable container help when selecting runtime
+		if m.showDebuggableContainers {
+			debuggableContainersHelp = "• l: hide debuggable containers"
+		} else {
+			debuggableContainersHelp = "• l: list debuggable containers"
+		}
+
 	}
 
 	if m.standalone {
-		return common.HelpStyle("• l: " + listOrHide + " debuggable containers • q: quit")
+		return common.HelpStyle(debuggableContainersHelp + " • r: " + runtimeSelectorHelp + " • q: quit")
 	}
 
-	return common.HelpStyle("• l: " + listOrHide + " debuggable containers • esc: back • q: quit")
+	return common.HelpStyle(debuggableContainersHelp + " • r: " + runtimeSelectorHelp + " • esc: back • q: quit")
 }

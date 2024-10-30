@@ -51,9 +51,9 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Data: m.Gcvalues,
 			}
 
-			LoadTUI := debug.LoadTUI()
-			common.TUIsInstance.Debug = LoadTUI
-			return LoadTUI.Update(launchDebugEvent)
+			initialTUI := debug.InitialTUI(false, m.Gcvalues)
+			common.TUIsInstance.Debug = initialTUI
+			return initialTUI.Update(launchDebugEvent)
 		}
 	}
 	return m, nil
