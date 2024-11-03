@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -817,14 +818,27 @@ func HandleKubernetesRuntime(
 
 	fmt.Printf("\n")
 	//note: blocks until done streaming or failure...
-	err = attach.StreamWithContext(
-		ctx,
-		remotecommand.StreamOptions{
-			Stdin:  os.Stdin,
-			Stdout: os.Stdout,
-			Stderr: os.Stderr,
-			Tty:    doTTY,
-		})
+	if commandParams.TUI {
+		// TODO - move KubeComm off of command params
+		reader := &KubeReader{inputChan: commandParams.KubeComm.InputChan}
+		err = attach.StreamWithContext(
+			ctx,
+			remotecommand.StreamOptions{
+				Stdin:  reader,
+				Stdout: os.Stdout,
+				Stderr: os.Stderr,
+				Tty:    true, // Later on we may parse this in TUI mode.
+			})
+	} else {
+		err = attach.StreamWithContext(
+			ctx,
+			remotecommand.StreamOptions{
+				Stdin:  os.Stdin,
+				Stdout: os.Stdout,
+				Stderr: os.Stderr,
+				Tty:    doTTY,
+			})
+	}
 
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -841,6 +855,49 @@ func HandleKubernetesRuntime(
 		}
 
 		xc.FailOn(err)
+	}
+}
+
+// NOTE -> this input channel reader will be genericized
+// as per the comment in `debug/tui.go`.
+// An InputReader usable by Docker, Podman, Kubernetes, and Containerd
+// will be added to this directory.
+type KubeReader struct {
+	inputChan chan InputKey
+}
+
+func (kr *KubeReader) Read(p []byte) (n int, err error) {
+	inputKey, ok := <-kr.inputChan
+	if !ok {
+		return 0, io.EOF
+	}
+	log.Debugf("KubeReader received inputKey %v", inputKey)
+	switch inputKey.Special {
+	case NotSpecial:
+		p[0] = byte(inputKey.Rune)
+		return 1, nil
+	case Enter:
+		p[0] = '\n'
+		return 1, nil
+	case Backspace:
+		p[0] = 127
+		return 1, nil
+	case Up:
+		copy(p, []byte{27, 91, 65}) // ESC [ A
+		return 3, nil
+	case Down:
+		copy(p, []byte{27, 91, 66}) // ESC [ B
+		return 3, nil
+	case Left:
+		copy(p, []byte{27, 91, 68}) // ESC [ D
+		return 3, nil
+	case Right:
+		copy(p, []byte{27, 91, 67}) // ESC [ C
+		return 3, nil
+	default:
+		log.Debugf("Unhandled inputKey %v", inputKey)
+		// Handle other special keys or return an error
+		return 0, fmt.Errorf("unsupported special key")
 	}
 }
 

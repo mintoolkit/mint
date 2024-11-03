@@ -9,6 +9,7 @@ type global struct {
 	Quit   key.Binding
 	Help   key.Binding
 	Back   key.Binding
+	CtrlC  key.Binding
 }
 
 var Global = global{
@@ -23,6 +24,10 @@ var Global = global{
 	Back: key.NewBinding(
 		key.WithKeys("esc"),
 		key.WithHelp("esc", "back"),
+	),
+	CtrlC: key.NewBinding(
+		key.WithKeys("ctrl+c"),
+		key.WithHelp("ctrl+c", "quit"),
 	),
 }
 

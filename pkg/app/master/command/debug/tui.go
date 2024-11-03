@@ -32,9 +32,14 @@ type TUI struct {
 	gcvalues *command.GenericParams
 
 	// runtime selection controls
-	choice int
-
+	choice  int
 	runtime string
+
+	// Handle kubernetes session connections
+	subscriptionHandler subscriptionHandler
+	isListening         bool
+	kubeComm            *KubernetesHandlerComm
+	exitedSession       bool
 }
 
 // Styles - move to `common`
@@ -45,6 +50,8 @@ const (
 )
 
 var (
+	// TitleStyle is the lipgloss style used for the view title.
+	TitleStyle = lipgloss.NewStyle().Bold(true)
 	// HeaderStyle is the lipgloss style used for the table headers.
 	HeaderStyle = lipgloss.NewStyle().Foreground(white).Bold(true).Align(lipgloss.Center)
 	// CellStyle is the base lipgloss style used for the table rows.
@@ -61,6 +68,116 @@ var (
 
 // End Styles - move to common - block
 
+type InputKey struct {
+	Rune    rune
+	Special SpecialKey
+}
+
+type SpecialKey int
+
+const (
+	NotSpecial SpecialKey = iota
+	Enter
+	Backspace
+	Up
+	Down
+	Left
+	Right
+)
+
+type terminalStartMessage string
+
+// subscriptionHandler struct for handling subscription data and time
+type subscriptionHandler struct {
+	dataChan    chan terminalStartMessage
+	currentData string
+}
+
+// newSubscription creates a new subscription handler with an async data channel
+func newSubscription(gcvalues *command.GenericParams, kubeComm *KubernetesHandlerComm) subscriptionHandler {
+	dataChan := make(chan terminalStartMessage)
+	go launchSessionHandler(dataChan, gcvalues, kubeComm)
+	return subscriptionHandler{
+		dataChan: dataChan,
+	}
+}
+
+func launchSessionHandler(dataChan chan terminalStartMessage, gcvalues *command.GenericParams, kubeComm *KubernetesHandlerComm) {
+	// Create a subscription channel and define subscriptionChannels map for passing data
+	subscriptionChannel := make(chan interface{})
+	subscriptionChannels := map[string]chan interface{}{
+		"sessionData": subscriptionChannel,
+	}
+
+	// Define an execution context
+	xc := app.NewExecutionContext(
+		"tui",
+		true,
+		"subscription",
+		subscriptionChannels,
+	)
+
+	// Define command parameters for k8s runtime
+	// + Hard coded values at the moment for this PoC
+	cparams := &CommandParams{
+		Runtime:                "k8s",
+		TargetRef:              "nginx",
+		Kubeconfig:             crt.KubeconfigDefault,
+		TargetNamespace:        "default",
+		DebugContainerImage:    BusyboxImage,
+		DoFallbackToTargetUser: true,
+		DoRunAsTargetShell:     true,
+		DoTerminal:             true,
+		KubeComm:               kubeComm,
+		TUI:                    true,
+	}
+
+	// TODO - Pass runtime communicator
+	go OnCommand(xc, gcvalues, cparams)
+
+	// Listen to subscription data and handle specific messages
+	doneCh := make(chan struct{})
+	go func() {
+		for subscriptionData := range subscriptionChannel {
+			channelResponse, ok := subscriptionData.(map[string]string)
+			if !ok || channelResponse == nil {
+				continue
+			}
+
+			log.Debugf("Channel response in tui: %v", channelResponse)
+
+			// Handle specific states and info values
+			if stateValue, exists := channelResponse["state"]; exists {
+				log.Debugf("State value: %s", stateValue)
+				if stateValue == "kubernetes.runtime.handler.started" {
+					// Handle runtime start if needed
+				} else if stateValue == "completed" {
+					log.Debug("Exiting channel listening loop in update. State is complete.")
+					break
+				}
+			}
+
+			if infoValue, exists := channelResponse["info"]; exists {
+				if infoValue == "terminal.start" {
+					dataChan <- terminalStartMessage("Session ready. Opening session below...\nPress esc to exit session.\n")
+					kubeComm.InputChan <- InputKey{Special: Enter}
+				}
+			}
+		}
+		close(doneCh)
+	}()
+
+	<-doneCh
+	log.Debug("Exiting debug session update handler")
+}
+
+// listenToAsyncData listens to the async data channel and sends messages to the TUI
+func listenToAsyncData(dataChan chan terminalStartMessage) tea.Cmd {
+	return func() tea.Msg {
+		return terminalStartMessage(<-dataChan)
+	}
+}
+
 // InitialTUI returns the initial state of the model.
 func InitialTUI(standalone bool, gcvalues *command.GenericParams) *TUI {
 	m := &TUI{
@@ -72,6 +189,17 @@ func InitialTUI(standalone bool, gcvalues *command.GenericParams) *TUI {
 	}
 
 	return m
+}
+
+// We want to genericize this handler to:
+// a general RuntimeCommunicationHandler.
+// This handler is what will be passed to:
+// Docker, Podman, Kubernetes & Containerd.
+// This handler should not live on CommandParams,
+// but be passed in to OnCommand, then to the respective
+// runtime handler.
+type KubernetesHandlerComm struct {
+	InputChan chan InputKey
 }
 
 func (m TUI) Init() tea.Cmd {
@@ -118,6 +246,7 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return nil, nil
 		}
 
+		// TODO - Pass runtime communicator
 		go OnCommand(xc, gcValue, cparams)
 
 		counter := 0
@@ -181,6 +310,56 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.showDebuggableContainers = !m.showDebuggableContainers
 		return m, nil
 	case tea.KeyMsg:
+		log.Debugf("tea.KeyMsg - %v", msg)
+		// Send keypresses to the container if there is an active session.
+		// otherwise, route them to the TUI.
+		if m.isListening {
+			// End session if `esc` is input -> do we want this?
+			if key.Matches(msg, keys.Global.Back) {
+				m.isListening = false
+				m.exitedSession = true
+				// Reset the subscription handler data
+				m.subscriptionHandler.currentData = ""
+				// Wipe the shell rendering & output
+				return m, tea.ClearScreen
+			}
+
+			// Handle ctrl c
+			if key.Matches(msg, keys.Global.CtrlC) {
+				return m, tea.Quit
+			}
+
+			var inputKey InputKey
+			switch msg.Type {
+			case tea.KeyEnter:
+				inputKey = InputKey{Special: Enter}
+			case tea.KeyBackspace:
+				inputKey = InputKey{Special: Backspace}
+			case tea.KeyUp:
+				inputKey = InputKey{Special: Up}
+			case tea.KeyDown:
+				inputKey = InputKey{Special: Down}
+			case tea.KeyLeft:
+				inputKey = InputKey{Special: Left}
+			case tea.KeyRight:
+				inputKey = InputKey{Special: Right}
+			default:
+				inputKey = InputKey{Rune: msg.Runes[0]} // Many gaps to cover here.
+			}
+
+			select {
+			case m.kubeComm.InputChan <- inputKey:
+				// Key sent successfully
+			default:
+				// Channel is full or closed, handle accordingly
+				log.Debugf("Failed to send key to container %v", inputKey)
+			}
+
+			return m, nil
+		}
+		// End keypress forwarding to container.
+
+		// Give keypress capture to ^ if there is an active session.
 		switch {
 		case key.Matches(msg, keys.Global.Quit):
 			return m, tea.Quit
@@ -203,6 +382,27 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.showDebuggableContainers = false
 			m.showRuntimeSelectorView = !m.showRuntimeSelectorView
 			return m, nil
+		case key.Matches(msg, keys.Debug.StartSession):
+			if m.isListening {
+				return m, nil
+			}
+			// TODO - extend this section to indicate to the user that the session is starting.
+			// this can be done by rendering state output,
+			m.isListening = true
+			log.Debug("Start listening")
+			kubeComm := &KubernetesHandlerComm{
+				InputChan: make(chan InputKey, 100),
+			}
+			m.kubeComm = kubeComm
+			m.subscriptionHandler = newSubscription(m.gcvalues, kubeComm)
+			return m, listenToAsyncData(m.subscriptionHandler.dataChan)
+
+		}
+	case terminalStartMessage:
+		log.Debug("Received terminal start message")
+		if m.isListening {
+			m.subscriptionHandler.currentData = string(msg)
+			return m, tea.ClearScreen
 		}
 	}
 	return updateChoices(msg, m)
@@ -305,7 +505,7 @@ func setNewRuntime(choice int) string {
 
 // View returns the view that should be displayed.
 func (m TUI) View() string {
-	var components []string
+	log.Debugf("Called Update View. Current model: %v", m)
 
 	// What do you want to do?
 	// 1. List debuggable containers
@@ -314,10 +514,9 @@ func (m TUI) View() string {
 	// 4. Connect to a debug session
 	// 5. Start a new debug session
 
-	header := "Debug Dashboard\n"
-
+	header := TitleStyle.Render("Debug Dashboard")
 	currentRuntime := fmt.Sprintf("Current Runtime: %s.\n", m.runtime)
-
+	var components []string
 	components = append(components, header, currentRuntime)
 
 	if m.showDebuggableContainers {
@@ -331,16 +530,29 @@ func (m TUI) View() string {
 		components = append(components, runtimeSelectorContent)
 	}
 
-	components = append(components, m.help())
+	// TODO - stop showing this message after the user performs a following keypress
+	if m.exitedSession {
+		components = append(components, "Session exited.")
+	}
+	// Indicate to the user the session is starting
+	if m.subscriptionHandler.currentData != "" {
+		components = append(components, m.subscriptionHandler.currentData)
+	} else {
+		// Hide help while in an active session
+		components = append(components, m.help())
+	}
 
-	return lipgloss.JoinVertical(lipgloss.Left,
+	leftBar := lipgloss.JoinVertical(lipgloss.Left,
 		components...,
 	)
+
+	return leftBar
 }
 
 func (m TUI) help() string {
-	var debuggableContainersHelp, runtimeSelectorHelp string
+	var debuggableContainersHelp, runtimeSelectorHelp, startSessionHelp string
 
+	startSessionHelp = "• s: start debug session "
 	if m.showRuntimeSelectorView {
 		// Only display the navigation controls if the using is changing their runtime
 		runtimeSelectorHelp = "cancel • j/k, up/down: select • enter: choose"
@@ -357,8 +569,8 @@ func (m TUI) help() string {
 	}
 
 	if m.standalone {
-		return common.HelpStyle(debuggableContainersHelp + " • r: " + runtimeSelectorHelp + " • q: quit")
+		return common.HelpStyle(startSessionHelp + debuggableContainersHelp + " • r: " + runtimeSelectorHelp + " • q: quit")
 	}
 
-	return common.HelpStyle(debuggableContainersHelp + " • r: " + runtimeSelectorHelp + " • esc: back • q: quit")
+	return common.HelpStyle(startSessionHelp + debuggableContainersHelp + " • r: " + runtimeSelectorHelp + " • esc: back • q: quit")
 }
