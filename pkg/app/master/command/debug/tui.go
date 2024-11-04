@@ -38,7 +38,7 @@ type TUI struct {
 	// Handle kubernetes session connections
 	subscriptionHandler subscriptionHandler
 	isListening         bool
-	kubeComm            *KubernetesHandlerComm
+	runtimeCommunicator *RuntimeCommunicator
 	exitedSession       bool
 }
 
@@ -94,15 +94,15 @@ type subscriptionHandler struct {
 }
 
 // newSubscription creates a new subscription handler with an async data channel
-func newSubscription(gcvalues *command.GenericParams, kubeComm *KubernetesHandlerComm) subscriptionHandler {
+func newSubscription(gcvalues *command.GenericParams, runtimeCommunicator *RuntimeCommunicator) subscriptionHandler {
 	dataChan := make(chan terminalStartMessage)
-	go launchSessionHandler(dataChan, gcvalues, kubeComm)
+	go launchSessionHandler(dataChan, gcvalues, runtimeCommunicator)
 	return subscriptionHandler{
 		dataChan: dataChan,
 	}
 }
 
-func launchSessionHandler(dataChan chan terminalStartMessage, gcvalues *command.GenericParams, kubeComm *KubernetesHandlerComm) {
+func launchSessionHandler(dataChan chan terminalStartMessage, gcvalues *command.GenericParams, runtimeCommunicator *RuntimeCommunicator) {
 	// Create a subscription channel and define subscriptionChannels map for passing data
 	subscriptionChannel := make(chan interface{})
 	subscriptionChannels := map[string]chan interface{}{
@@ -117,20 +117,33 @@ func launchSessionHandler(dataChan chan terminalStartMessage, gcvalues *command.
 		subscriptionChannels,
 	)
 
-	// Define command parameters for k8s runtime
+	// Define command parameters for docker runtime
 	// + Hard coded values at the moment for this PoC
 	cparams := &CommandParams{
-		Runtime:                "k8s",
-		TargetRef:              "nginx",
-		Kubeconfig:             crt.KubeconfigDefault,
-		TargetNamespace:        "default",
+		Runtime:                "docker",
+		TargetRef:              "docker-amor",
 		DebugContainerImage:    BusyboxImage,
 		DoFallbackToTargetUser: true,
 		DoRunAsTargetShell:     true,
 		DoTerminal:             true,
-		KubeComm:               kubeComm,
+		RuntimeCommunicator:    runtimeCommunicator,
 		TUI:                    true,
 	}
+
+	// Connect to active session | Kubernetes session
+	// cparams := &CommandParams{
+	// 	Runtime:   "docker",
+	// 	TargetRef: "docker-amor",
+	// 	// Kubeconfig:             crt.KubeconfigDefault,
+	// 	// TargetNamespace:        "default",
+	// 	DebugContainerImage:    BusyboxImage,
+	// 	DoFallbackToTargetUser: true,
+	// 	DoRunAsTargetShell:     true,
+	// 	DoTerminal:             true,
+	// 	RuntimeCommunicator:               runtimeCommunicator,
+	// 	TUI:                    true,
+	// 	ActionConnectSession:   true,
+	// }
 
 	// TODO - Pass runtime communicator
 	go OnCommand(xc, gcvalues, cparams)
@@ -160,7 +173,7 @@ func launchSessionHandler(dataChan chan terminalStartMessage, gcvalues *command.
 			if infoValue, exists := channelResponse["info"]; exists {
 				if infoValue == "terminal.start" {
 					dataChan <- terminalStartMessage("Session ready. Opening session below...\nPress esc to exit session.\n")
-					kubeComm.InputChan <- InputKey{Special: Enter}
+					runtimeCommunicator.InputChan <- InputKey{Special: Enter}
 				}
 			}
 		}
@@ -198,7 +211,7 @@ func InitialTUI(standalone bool, gcvalues *command.GenericParams) *TUI {
 // This handler should not live on CommandParams,
 // but be passed in to OnCommand, then to the respective
 // runtime handler.
-type KubernetesHandlerComm struct {
+type RuntimeCommunicator struct {
 	InputChan chan InputKey
 }
 
@@ -348,7 +361,7 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			select {
-			case m.kubeComm.InputChan <- inputKey:
+			case m.runtimeCommunicator.InputChan <- inputKey:
 				// Key sent successfully
 			default:
 				// Channel is full or closed, handle accordingly
@@ -390,11 +403,11 @@ func (m TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// this can be done by rendering state output,
 			m.isListening = true
 			log.Debug("Start listening")
-			kubeComm := &KubernetesHandlerComm{
+			runtimeCommunicator := &RuntimeCommunicator{
 				InputChan: make(chan InputKey, 100),
 			}
-			m.kubeComm = kubeComm
-			m.subscriptionHandler = newSubscription(m.gcvalues, kubeComm)
+			m.runtimeCommunicator = runtimeCommunicator
+			m.subscriptionHandler = newSubscription(m.gcvalues, runtimeCommunicator)
 			return m, listenToAsyncData(m.subscriptionHandler.dataChan)
 
 		}
