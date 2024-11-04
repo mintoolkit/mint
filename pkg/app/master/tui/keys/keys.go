@@ -9,6 +9,7 @@ type global struct {
 	Quit   key.Binding
 	Help   key.Binding
 	Back   key.Binding
+	CtrlC  key.Binding
 }
 
 var Global = global{
@@ -24,6 +25,10 @@ var Global = global{
 		key.WithKeys("esc"),
 		key.WithHelp("esc", "back"),
 	),
+	CtrlC: key.NewBinding(
+		key.WithKeys("ctrl+c"),
+		key.WithHelp("ctrl+c", "quit"),
+	),
 }
 
 type home struct {
@@ -34,6 +39,7 @@ type home struct {
 type debug struct {
 	LoadDebuggableContainers key.Binding
 	ChangeRuntime            key.Binding
+	StartSession             key.Binding
 }
 
 var Home = home{
@@ -55,5 +61,9 @@ var Debug = debug{
 	ChangeRuntime: key.NewBinding(
 		key.WithKeys("r"),
 		key.WithHelp("r", "Change runtime"),
+	),
+	StartSession: key.NewBinding(
+		key.WithKeys("s"),
+		key.WithHelp("s", "Start session"),
 	),
 }

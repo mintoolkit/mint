@@ -32,6 +32,7 @@ type Volume struct {
 }
 
 type CommandParams struct {
+	KubeComm *KubernetesHandlerComm
 	/// the runtime environment type
 	Runtime string
 	/// the running container which we want to attach to
@@ -239,6 +240,8 @@ var CLI = &cli.Command{
 			xc.Exit(-1)
 		}
 
+		// NOTE -> this approach results in the default of `auto` erroring out
+		// even if the user's system has a `k8s` runtime available`
 		if commandParams.ActionListPods &&
 			commandParams.Runtime != crt.KubernetesRuntime {
 			xc.Out.Error("param", "unsupported runtime flag")
