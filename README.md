@@ -603,7 +603,7 @@ Debug minimal or regular container images running in Docker, Podman, Kubernetes 
 - `--run-as-target-shell` - Attach an interactive terminal to the debug container and run shell as if it's running in the target container environment (true by default).
 - `--list-sessions` - List all debug sessions for the selected target (pod and optionally selected container for k8s or container for other runtimes).
 - `--show-session-logs` - Show logs for the selected debug session (using namespace, pod, target container or debug session container name for k8s or debug session container name for other runtimes).
-- `--session` - Debug session container name (used for debug sessoin actions).
+- `--session` - Debug session container name (used for debug session actions).
 - `--connect-session` - Connect to existing debug session.
 - `--list-namespaces` - List names for available namespaces (use this flag by itself) [k8s runtime].
 - `--list-pods` - List names for running pods in the selected namespace (use this flag by itself) [k8s runtime].
