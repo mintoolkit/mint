@@ -32,7 +32,7 @@ type Volume struct {
 }
 
 type CommandParams struct {
-	KubeComm *KubernetesHandlerComm
+	RuntimeCommunicator *RuntimeCommunicator
 	/// the runtime environment type
 	Runtime string
 	/// the running container which we want to attach to

@@ -530,11 +530,18 @@ func (ref *Execution) monitorSysExitSync() {
 }
 
 func (ref *Execution) startTerminal() {
-	r, w := io.Pipe()
-	go io.Copy(w, os.Stdin)
+	var input io.Reader
+	if ref.options.IO.Input == nil {
+		r, w := io.Pipe()
+		input = r
+		go io.Copy(w, os.Stdin)
+	} else {
+		input = ref.options.IO.Input
+	}
+
 	options := dockerapi.AttachToContainerOptions{
 		Container:    ref.ContainerID,
-		InputStream:  r,
+		InputStream:  input,
 		OutputStream: os.Stdout,
 		ErrorStream:  os.Stderr,
 		Stdin:        true,

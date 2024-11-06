@@ -181,13 +181,18 @@ func HandleDockerRuntime(
 		}
 
 		//todo: need to validate that the session container exists and it's running
-
-		r, w := io.Pipe()
-		go io.Copy(w, os.Stdin)
+		var input io.Reader
+		if commandParams.TUI {
+			input = &TUIReader{inputChan: commandParams.RuntimeCommunicator.InputChan}
+		} else {
+			r, w := io.Pipe()
+			input = r
+			go io.Copy(w, os.Stdin)
+		}
 
 		options := dockerapi.AttachToContainerOptions{
 			Container:    containerID,
-			InputStream:  r,
+			InputStream:  input,
 			OutputStream: os.Stdout,
 			ErrorStream:  os.Stderr,
 			Stdin:        true,
@@ -250,6 +255,15 @@ func HandleDockerRuntime(
 		Entrypoint:    commandParams.Entrypoint,
 		Cmd:           commandParams.Cmd,
 		Terminal:      commandParams.DoTerminal,
+	}
+
+	if commandParams.TUI {
+		reader := &TUIReader{inputChan: commandParams.RuntimeCommunicator.InputChan}
+		options.IO = container.ExecutionIO{
+			Input:  reader,
+			Output: os.Stdout,
+			Error:  os.Stderr,
+		}
 	}
 
 	exe, err := container.NewExecution(

@@ -819,8 +819,8 @@ func HandleKubernetesRuntime(
 	fmt.Printf("\n")
 	//note: blocks until done streaming or failure...
 	if commandParams.TUI {
-		// TODO - move KubeComm off of command params
-		reader := &KubeReader{inputChan: commandParams.KubeComm.InputChan}
+		// TODO - move RuntimeCommunicator off of command params
+		reader := &TUIReader{inputChan: commandParams.RuntimeCommunicator.InputChan}
 		err = attach.StreamWithContext(
 			ctx,
 			remotecommand.StreamOptions{
@@ -862,16 +862,16 @@ func HandleKubernetesRuntime(
 // as per the comment in `debug/tui.go`.
 // An InputReader usable by Docker, Podman, Kubernetes, and Containerd
 // will be added to this directory.
-type KubeReader struct {
+type TUIReader struct {
 	inputChan chan InputKey
 }
 
-func (kr *KubeReader) Read(p []byte) (n int, err error) {
-	inputKey, ok := <-kr.inputChan
+func (tuiReader *TUIReader) Read(p []byte) (n int, err error) {
+	inputKey, ok := <-tuiReader.inputChan
 	if !ok {
 		return 0, io.EOF
 	}
-	log.Debugf("KubeReader received inputKey %v", inputKey)
+	log.Debugf("TUIReader received inputKey %v", inputKey)
 	switch inputKey.Special {
 	case NotSpecial:
 		p[0] = byte(inputKey.Rune)
