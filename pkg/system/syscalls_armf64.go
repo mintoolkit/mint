@@ -4,10 +4,10 @@ const (
 	SyscallArmUnknownNum64  = -1
 	SyscallArmUnknownName64 = "unknown_syscall"
 	SyscallArmMinNum64      = 0
-	SyscallArmMaxNum64      = 294
-	SyscallArmLastName64    = "kexec_file_load"
+	SyscallArmMaxNum64      = 462
+	SyscallArmLastName64    = "mseal"
 )
-
+// https://github.com/torvalds/linux/blob/master/scripts/syscall.tbl
 var syscallNumTableArmFamily64 = map[uint32]string{
 	0:   "io_setup",
 	1:   "io_destroy",
@@ -289,6 +289,47 @@ var syscallNumTableArmFamily64 = map[uint32]string{
 	292: "io_pgetevents",
 	293: "rseq",
 	294: "kexec_file_load",
+
+
+	424: "pidfd_send_signal",
+	425: "io_uring_setup",
+	426: "io_uring_enter",
+	427: "io_uring_register",
+	428: "open_tree",
+	429: "move_mount",
+	430: "fsopen",
+	431: "fsconfig",
+	432: "fsmount",
+	433: "fspick",
+	434: "pidfd_open",
+	435: "clone3",
+	436: "close_range",
+	437: "openat2",
+	438: "pidfd_getfd",
+	439: "faccessat2",
+	440: "process_madvise",
+	441: "epoll_pwait2",
+	442: "mount_setattr",
+	443: "quotactl_fd",
+	444: "landlock_create_ruleset",
+	445: "landlock_add_rule",
+	446: "landlock_restrict_self",
+	447: "memfd_secret",
+	448: "process_mrelease",
+	449: "futex_waitv",
+	450: "set_mempolicy_home_node",
+	451: "cachestat",
+	452: "fchmodat2",
+	453: "map_shadow_stack",
+	454: "futex_wake",
+	455: "futex_wait",
+	456: "futex_requeue",
+	457: "statmount",
+	458: "listmount",
+	459: "lsm_get_self_attr",
+	460: "lsm_set_self_attr",
+	461: "lsm_list_modules",
+	462: "mseal",
 }
 
 func callNameArmFamily64(num uint32) string {

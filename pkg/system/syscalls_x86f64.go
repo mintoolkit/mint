@@ -1,10 +1,10 @@
 package system
 
 const (
-	SyscallX86MaxNum64   = 435
-	SyscallX86LastName64 = "clone3"
+	SyscallX86MaxNum64   = 462
+	SyscallX86LastName64 = "mseal"
 )
-
+// https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_64.tbl , https://github.com/torvalds/linux/blob/master/scripts/syscall.tbl
 // line numbers are aligned with the syscall number (-10)
 var syscallNumTableX86Family64 = [...]string{
 	"read",
@@ -341,8 +341,8 @@ var syscallNumTableX86Family64 = [...]string{
 	"pkey_free",
 	"statx",
 	"io_pgetevents",
-	"rseq",
-	"reserved.335",
+	"rseq", // 334
+	"uretprobe", // 335
 	"reserved.336",
 	"reserved.337",
 	"reserved.338",
@@ -431,7 +431,7 @@ var syscallNumTableX86Family64 = [...]string{
 	"reserved.421",
 	"reserved.422",
 	"reserved.423",
-	"pidfd_send_signal",
+	"pidfd_send_signal", // 424
 	"io_uring_setup",
 	"io_uring_enter",
 	"io_uring_register",
@@ -441,8 +441,35 @@ var syscallNumTableX86Family64 = [...]string{
 	"fsconfig",
 	"fsmount",
 	"fspick",
-	"pidfd_open",
-	"clone3", //435
+	"pidfd_open", // 434
+	"clone3", // 435
+	"close_range", // 436
+	"openat2", // 437
+	"pidfd_getfd", // 438
+	"faccessat2", // 439
+	"process_madvise", // 440
+	"epoll_pwait2", // 441
+	"mount_setattr", // 442
+	"quotactl_fd", // 443
+	"landlock_create_ruleset", // 444
+	"landlock_add_rule", // 445
+	"landlock_restrict_self", // 446
+	"memfd_secret", // 447
+	"process_mrelease", // 448
+	"futex_waitv", // 449
+	"set_mempolicy_home_node", // 450
+	"cachestat", // 451
+	"fchmodat2", // 452
+	"map_shadow_stack", // 453
+	"futex_wake", // 454
+	"futex_wait", // 455
+	"futex_requeue", // 456
+	"statmount", // 457
+	"listmount", // 458
+	"lsm_get_self_attr", // 459
+	"lsm_set_self_attr", // 460
+	"lsm_list_modules", // 461
+	"mseal", // 462
 }
 
 func callNameX86Family64(num uint32) string {
