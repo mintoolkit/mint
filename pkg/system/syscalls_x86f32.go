@@ -393,14 +393,14 @@ var syscallNumTableX86Family32 = [...]string{
 	"statx",
 	"arch_prctl",
 	"io_pgetevents",
-	"rseq",
+	"rseq", // 386
 	"unused.387",
 	"unused.388",
 	"unused.389",
 	"unused.390",
 	"unused.391",
 	"unused.392",
-	"semget",
+	"semget", // 393
 	"semctl",
 	"shmget",
 	"shmctl",
