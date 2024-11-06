@@ -212,9 +212,8 @@ func (ref *Instance) ListImagesAll() ([]crt.BasicImageInfo, error) {
 	for _, r := range pimages {
 		imageList = append(imageList, crt.BasicImageInfo{
 			ID:          r.ID,
-			Size:        r.Size,
+			Size:        r.Size, //r.VirtualSize
 			Created:     r.Created,
-			VirtualSize: r.VirtualSize,
 			ParentID:    r.ParentId,
 			RepoTags:    r.RepoTags,
 			RepoDigests: r.RepoDigests,

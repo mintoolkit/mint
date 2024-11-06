@@ -114,8 +114,8 @@ func inspectFatImage(
 	xc.Out.Info("image",
 		ovars{
 			"id":         imageInspector.ImageInfo.ID,
-			"size.bytes": imageInspector.ImageInfo.VirtualSize,
-			"size.human": humanize.Bytes(uint64(imageInspector.ImageInfo.VirtualSize)),
+			"size.bytes": imageInspector.ImageInfo.Size,
+			"size.human": humanize.Bytes(uint64(imageInspector.ImageInfo.Size)),
 		})
 
 	if imageInspector.ImageInfo.Config != nil &&

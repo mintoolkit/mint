@@ -1615,7 +1615,10 @@ func finishCommand(
 	errutil.WarnOn(err)
 
 	if err == nil {
-		cmdReport.MinifiedBy = float64(imageInspector.ImageInfo.VirtualSize) / float64(newImageInspector.ImageInfo.VirtualSize)
+		if newImageInspector.ImageInfo.Size > 0 {
+			cmdReport.MinifiedBy = float64(imageInspector.ImageInfo.Size) / float64(newImageInspector.ImageInfo.Size)
+		}
+
 		imgIdentity := crt.ImageToIdentity(imageInspector.ImageInfo)
 		cmdReport.SourceImage = report.ImageMetadata{
 			Identity: report.ImageIdentity{
@@ -1625,8 +1628,8 @@ func finishCommand(
 				Digests:     imgIdentity.ShortDigests,
 				FullDigests: imgIdentity.RepoDigests,
 			},
-			Size:           imageInspector.ImageInfo.VirtualSize,
-			SizeHuman:      humanize.Bytes(uint64(imageInspector.ImageInfo.VirtualSize)),
+			Size:           imageInspector.ImageInfo.Size,
+			SizeHuman:      humanize.Bytes(uint64(imageInspector.ImageInfo.Size)),
 			CreateTime:     imageInspector.ImageInfo.Created.UTC().Format(time.RFC3339),
 			Author:         imageInspector.ImageInfo.Author,
 			RuntimeName:    imageInspector.ImageInfo.RuntimeName,
@@ -1652,8 +1655,8 @@ func finishCommand(
 		cmdReport.SourceImage.Labels = imageInspector.ImageInfo.Config.Labels
 		cmdReport.SourceImage.EnvVars = imageInspector.ImageInfo.Config.Env
 
-		cmdReport.MinifiedImageSize = newImageInspector.ImageInfo.VirtualSize
-		cmdReport.MinifiedImageSizeHuman = humanize.Bytes(uint64(newImageInspector.ImageInfo.VirtualSize))
+		cmdReport.MinifiedImageSize = newImageInspector.ImageInfo.Size
+		cmdReport.MinifiedImageSizeHuman = humanize.Bytes(uint64(newImageInspector.ImageInfo.Size))
 
 		xc.Out.Info("results",
 			ovars{

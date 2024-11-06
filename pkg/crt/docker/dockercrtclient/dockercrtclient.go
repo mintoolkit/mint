@@ -150,7 +150,6 @@ func (ref *Instance) ListImagesAll() ([]crt.BasicImageInfo, error) {
 			ID:          r.ID,
 			Size:        r.Size,
 			Created:     r.Created,
-			VirtualSize: r.VirtualSize,
 			ParentID:    r.ParentID,
 			RepoTags:    r.RepoTags,
 			RepoDigests: r.RepoDigests,

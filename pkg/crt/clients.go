@@ -24,10 +24,10 @@ type ImageIdentity struct {
 }
 
 type BasicImageInfo struct {
-	ID          string
-	Size        int64
-	Created     int64
-	VirtualSize int64
+	ID      string
+	Size    int64
+	Created int64
+	//VirtualSize int64 <- Docker depricated its VirtualSize field in v1.44
 	//empty for filtered calls
 	ParentID    string
 	RepoTags    []string
