@@ -7,6 +7,7 @@ const (
 	SyscallArmMaxNum32    = 462
 	SyscallArmLastName32  = "mseal"
 )
+
 // https://github.com/torvalds/linux/blob/master/arch/arm64/tools/syscall_32.tbl , https://github.com/torvalds/linux/blob/master/arch/arm/tools/syscall.tbl
 var syscallNumTableArmFamily32 = map[uint32]string{
 	0:   "restart_syscall",

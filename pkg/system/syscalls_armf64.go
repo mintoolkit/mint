@@ -7,6 +7,7 @@ const (
 	SyscallArmMaxNum64      = 462
 	SyscallArmLastName64    = "mseal"
 )
+
 // https://github.com/torvalds/linux/blob/master/scripts/syscall.tbl
 var syscallNumTableArmFamily64 = map[uint32]string{
 	0:   "io_setup",
@@ -289,7 +290,6 @@ var syscallNumTableArmFamily64 = map[uint32]string{
 	292: "io_pgetevents",
 	293: "rseq",
 	294: "kexec_file_load",
-
 
 	424: "pidfd_send_signal",
 	425: "io_uring_setup",
