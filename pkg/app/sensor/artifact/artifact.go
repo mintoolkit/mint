@@ -192,14 +192,24 @@ func isAppMetadataFile(filePath string) bool {
 
 var binDataReplace = []fsutil.ReplaceInfo{
 	{
+		PathSuffix: "/curl",
+		Match:      "curl/",
+		Replace:    "kerl/",
+	},
+	{
 		PathSuffix: "/node",
 		Match:      "node.js/v",
 		Replace:    "done,xu/v",
 	},
 	{
-		PathSuffix: "/curl",
-		Match:      "curl/",
-		Replace:    "kerl/",
+		PathSuffix: "/bash",
+		Match:      "@(#)Bash version",
+		Replace:    "@(#)Nash wersion",
+	},
+	{
+		PathSuffix: "/nginx",
+		Match:      "nginx version: ",
+		Replace:    "xginn wersion: ",
 	},
 }
 
@@ -221,6 +231,10 @@ func appMetadataFileUpdater(filePath string, amFileUpdateParams map[string]inter
 
 const (
 	OMPObfuscateAPN = "obfuscate_apn"
+)
+
+var (
+	BinFileExtra = []byte("OFH")
 )
 
 func init() {
@@ -2192,16 +2206,17 @@ copyFiles:
 				} else {
 					//NOTE: this covers the main file set (doesn't cover the extra includes)
 					binProps, err := binfile.Detected(filePath)
-					if err == nil && binProps != nil && binProps.IsBin && binProps.IsExe {
-						if err := fsutil.AppendToFile(filePath, []byte("KCQ"), true); err != nil {
+					if err == nil && binProps != nil && binProps.IsBin {
+						//not checking binProps.IsExe because Go's ELF header type decoding is unreliable...
+						if err := fsutil.AppendToFile(filePath, BinFileExtra, true); err != nil {
 							logger.Debugf("[%s,%s] - fsutil.AppendToFile error => %v", srcFileName, filePath, err)
 						} else {
 							logger.Tracef("binfile.Detected[IsExe]/fsutil.AppendToFile - %s", filePath)
+						}
 
-							err := fsutil.ReplaceFileData(filePath, binDataReplace, true)
-							if err != nil {
-								logger.Debugf("[%s,%s] - fsutil.ReplaceFileData error => %v", srcFileName, filePath, err)
-							}
+						err := fsutil.ReplaceFileData(filePath, binDataReplace, true)
+						if err != nil {
+							logger.Debugf("[%s,%s] - fsutil.ReplaceFileData error => %v", srcFileName, filePath, err)
 						}
 					}
 				}

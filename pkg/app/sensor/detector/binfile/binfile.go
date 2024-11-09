@@ -20,6 +20,7 @@ func Detected(filePath string) (*BinProps, error) {
 			IsBin: true,
 		}
 
+		//note: Go elf header decoding bug... ET_EXEC gets decoded as ET_DYN sometimes
 		switch binFile.Type {
 		case elf.ET_EXEC:
 			binProps.IsExe = true
