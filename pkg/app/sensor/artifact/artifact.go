@@ -196,6 +196,11 @@ var binDataReplace = []fsutil.ReplaceInfo{
 		Match:      "node.js/v",
 		Replace:    "done,xu/v",
 	},
+	{
+		PathSuffix: "/curl",
+		Match:      "curl/",
+		Replace:    "kerl/",
+	},
 }
 
 var appMetadataFileUpdate = map[string]fsutil.DataUpdaterFn{
