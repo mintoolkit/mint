@@ -96,6 +96,23 @@ func HandleKubernetesRuntime(
 		return
 	}
 
+	if commandParams.ActionListDebuggableContainers {
+		xc.Out.State("action.list_debuggable_containers",
+			ovars{"namespace": nsName})
+
+		result, err := listK8sDebuggableContainers(ctx, api, nsName, "")
+		if err != nil {
+			logger.WithError(err).Error("listK8sDebuggableContainers")
+			xc.FailOn(err)
+		}
+
+		for cname, iname := range result {
+			xc.Out.Info("debuggable.container", ovars{"name": cname, "image": iname})
+		}
+
+		return
+	}
+
 	pod, podName, err := ensurePod(ctx, api, nsName, commandParams.TargetPod)
 	if apierrors.IsNotFound(err) {
 		logger.WithError(err).
@@ -135,22 +152,6 @@ func HandleKubernetesRuntime(
 			"pod":      podName,
 			"ec.count": len(pod.Spec.EphemeralContainers),
 		}).Debug("target pod info")
-
-	if commandParams.ActionListDebuggableContainers {
-		xc.Out.State("action.list_debuggable_containers",
-			ovars{"namespace": nsName, "pod": podName})
-		result, err := listK8sDebuggableContainers(ctx, api, nsName, podName)
-		if err != nil {
-			logger.WithError(err).Error("listK8sDebuggableContainers")
-			xc.FailOn(err)
-		}
-
-		for cname, iname := range result {
-			xc.Out.Info("debuggable.container", ovars{"name": cname, "image": iname})
-		}
-
-		return
-	}
 
 	//todo: need to check that if targetRef is not empty it is valid
 
@@ -1033,6 +1034,37 @@ func listK8sDebuggableContainers(
 	api *kubernetes.Clientset,
 	nsName string,
 	podName string) (map[string]string, error) {
+	activeContainers := map[string]string{}
+	debuggableContainers := map[string]string{}
+
+	// List all pods in the namespace
+	if podName == "" {
+		pods, err := api.CoreV1().Pods(nsName).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, pod := range pods.Items {
+			if pod.Status.Phase != corev1.PodRunning {
+				continue
+			}
+
+			activeNames := getActiveContainerNames(pod.Status.ContainerStatuses)
+			for _, name := range activeNames {
+				activeContainers[name] = ""
+			}
+
+			for _, c := range pod.Spec.Containers {
+				_, found := activeContainers[c.Name]
+				if found {
+					containerKey := fmt.Sprintf("%s/%s", pod.Name, c.Name)
+					debuggableContainers[containerKey] = c.Image
+				}
+			}
+		}
+
+		return debuggableContainers, nil
+	}
 
 	pod, err := api.CoreV1().Pods(nsName).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
@@ -1044,19 +1076,18 @@ func listK8sDebuggableContainers(
 	}
 
 	activeNames := getActiveContainerNames(pod.Status.ContainerStatuses)
-	activeContainers := map[string]string{}
 	for _, name := range activeNames {
-		activeContainers[name] = ""
+		debuggableContainers[name] = ""
 	}
 
 	for _, c := range pod.Spec.Containers {
-		_, found := activeContainers[c.Name]
+		_, found := debuggableContainers[c.Name]
 		if found {
-			activeContainers[c.Name] = c.Image
+			debuggableContainers[c.Name] = c.Image
 		}
 	}
 
-	return activeContainers, nil
+	return debuggableContainers, nil
 }
 
 func listDebuggableK8sContainersWithConfig(

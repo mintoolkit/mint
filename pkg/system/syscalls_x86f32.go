@@ -4,6 +4,7 @@ const (
 	SyscallX86MaxNum32   = 462
 	SyscallX86LastName32 = "mseal"
 )
+
 // https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_32.tbl
 // line numbers are aligned with the syscall number (-10)
 var syscallNumTableX86Family32 = [...]string{
@@ -442,34 +443,34 @@ var syscallNumTableX86Family32 = [...]string{
 	"fsmount",
 	"fspick",
 	"pidfd_open",
-	"clone3", // 435
-	"close_range", // 436
-	"openat2", // 437
-	"pidfd_getfd", // 438
-	"faccessat2", // 439
-	"process_madvise", // 440
-	"epoll_pwait2", // 441
-	"mount_setattr", // 442
-	"quotactl_fd", // 443
+	"clone3",                  // 435
+	"close_range",             // 436
+	"openat2",                 // 437
+	"pidfd_getfd",             // 438
+	"faccessat2",              // 439
+	"process_madvise",         // 440
+	"epoll_pwait2",            // 441
+	"mount_setattr",           // 442
+	"quotactl_fd",             // 443
 	"landlock_create_ruleset", // 444
-	"landlock_add_rule", // 445
-	"landlock_restrict_self", // 446
-	"memfd_secret", // 447
-	"process_mrelease", // 448
-	"futex_waitv", // 449
+	"landlock_add_rule",       // 445
+	"landlock_restrict_self",  // 446
+	"memfd_secret",            // 447
+	"process_mrelease",        // 448
+	"futex_waitv",             // 449
 	"set_mempolicy_home_node", // 450
-	"cachestat", // 451
-	"fchmodat2", // 452
-	"map_shadow_stack", // 453
-	"futex_wake", // 454
-	"futex_wait", // 455
-	"futex_requeue", // 456
-	"statmount", // 457
-	"listmount", // 458
-	"lsm_get_self_attr", // 459
-	"lsm_set_self_attr", // 460
-	"lsm_list_modules", // 461
-	"mseal", // 462
+	"cachestat",               // 451
+	"fchmodat2",               // 452
+	"map_shadow_stack",        // 453
+	"futex_wake",              // 454
+	"futex_wait",              // 455
+	"futex_requeue",           // 456
+	"statmount",               // 457
+	"listmount",               // 458
+	"lsm_get_self_attr",       // 459
+	"lsm_set_self_attr",       // 460
+	"lsm_list_modules",        // 461
+	"mseal",                   // 462
 }
 
 func callNameX86Family32(num uint32) string {
