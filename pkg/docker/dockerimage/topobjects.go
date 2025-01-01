@@ -26,6 +26,9 @@ func (to TopObjects) Swap(i, j int) {
 
 func (to *TopObjects) Push(x interface{}) {
 	item := x.(*ObjectMetadata)
+	if item == nil {
+		return
+	}
 	*to = append(*to, item)
 }
 
@@ -42,6 +45,9 @@ func (to TopObjects) List() []*ObjectMetadata {
 	list := []*ObjectMetadata{}
 	for len(to) > 0 {
 		item := heap.Pop(&to).(*ObjectMetadata)
+		if item == nil {
+			continue
+		}
 		list = append([]*ObjectMetadata{item}, list...)
 	}
 

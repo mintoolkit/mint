@@ -1090,7 +1090,13 @@ func printImagePackage(
 
 			if len(topList) > 0 {
 				xc.Out.Info("layer.objects.top.start")
-				for _, topObject := range topList {
+				for toi, topObject := range topList {
+					if topObject == nil {
+						log.Errorf("layer.objects.top: skip nil topObject - layer(index=%v/id=%v/path=%s) len(%d) idx(%d)",
+							layer.Index, layer.ID, layer.Path, len(topList), toi)
+						continue
+					}
+
 					match := topObject.PathMatch
 
 					if !match && len(changePathMatchers) > 0 {
