@@ -96,21 +96,21 @@ const (
 var Flags = map[string]cli.Flag{
 	FlagChanges: &cli.StringSliceFlag{
 		Name:    FlagChanges,
-		Value:   cli.NewStringSlice(""),
+		Value:   cli.NewStringSlice("all"),
 		Usage:   FlagChangesUsage,
-		EnvVars: []string{"DSLIM_CHANGES"},
+		EnvVars: []string{"DSLIM_XRAY_CHANGES"},
 	},
 	FlagChangesOutput: &cli.StringSliceFlag{
 		Name:    FlagChangesOutput,
 		Value:   cli.NewStringSlice("all"),
 		Usage:   FlagChangesOutputUsage,
-		EnvVars: []string{"DSLIM_CHANGES_OUTPUT"},
+		EnvVars: []string{"DSLIM_XRAY_CHANGES_OUTPUT"},
 	},
 	FlagLayer: &cli.StringSliceFlag{
 		Name:    FlagLayer,
 		Value:   cli.NewStringSlice(),
 		Usage:   FlagLayerUsage,
-		EnvVars: []string{"DSLIM_LAYER"},
+		EnvVars: []string{"DSLIM_XRAY_LAYER"},
 	},
 	FlagAddImageManifest: &cli.BoolFlag{
 		Name:    FlagAddImageManifest,

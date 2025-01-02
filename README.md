@@ -365,8 +365,8 @@ To disable the version checks set the global `--check-version` flag to `false` (
 - `--registry-account` - Account to be used when pulling images from private registries (used with the `--pull` flag).
 - `--registry-secret` - Account secret to be used when pulling images from private registries (used with the `--pull` and `--registry-account` flags).
 - `--show-plogs` - Show image pull logs (default: false).
-- `--changes value` - Show layer change details for the selected change type (values: none, all, delete, modify, add).
-- `--changes-output value` - Where to show the changes (values: all, report, console).
+- `--changes value` - Show layer change details for the selected change type (values: `none`, `all`, `delete`, `modify`, `add`; defaults to `all`).
+- `--changes-output value` - Where to show the changes (values: `all`, `report`, `console`).
 - `--layer value` - Show details for the selected layer (using layer index or ID)
 - `--add-image-manifest` - Add raw image manifest to the command execution report file
 - `--add-image-config` - Add raw image config object to the command execution report file
