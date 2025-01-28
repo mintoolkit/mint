@@ -158,7 +158,7 @@ Elixir application images:
   - [`REGISTRY` COMMAND OPTIONS](#registry-command-options)
   - [`VULNERABILITY` COMMAND OPTIONS](#vulnerability-command-options)
 - [RUNNING CONTAINERIZED](#running-containerized)
-- [DOCKER CONNECT OPTIONS](#docker-connect-options)
+- [CONTAINER RUNTIME CONNECT OPTIONS](#container-runtime-connect-options)
 - [HTTP PROBE COMMANDS](#http-probe-commands)
 - [DEBUGGING MINIFIED CONTAINERS](#debugging-minified-containers)
 - [MINIFYING COMMAND LINE TOOLS](#minifying-command-line-tools)
@@ -1000,7 +1000,9 @@ The workflow above indicates four steps:
 - A docker tag command for naming/tagging the slimmed image with your DockerHub account remote repository name which could be the same name(IMAGE_NAME) as the slimmed image; A docker push command to push the slimmed image to your Dockerhub account remote repository.
 
 
-## DOCKER CONNECT OPTIONS
+## CONTAINER RUNTIME CONNECT OPTIONS
+
+By default, **Mint** will try to connect to the Docker container runtime. Some commands (e.g., `debug`) support selecting a runtime type using the `--runtime` flag, which affects what **Mint** will look for when it's trying to connect to the target container runtime.
 
 If you don't specify any Docker connect options the **Mint** app expects to find the Docker Unix socket (`/var/run/docker.sock`) or the following environment variables: `DOCKER_HOST`, `DOCKER_TLS_VERIFY` (optional), `DOCKER_CERT_PATH` (required if `DOCKER_TLS_VERIFY` is set to `"1"`). Note that the `DOCKER_HOST` environment variable can be used to point to a Unix socket address (in case the default Unix socket isn't there). This is useful when you use Docker Desktop and you haven't configured Docker Desktop to create the default Unix socket.
 
@@ -1010,7 +1012,9 @@ If the Docker environment variables are configured to use TLS and to verify the 
 
 You can override all Docker connection options using these flags: `--host`, `--tls`, `--tls-verify`, `--tls-cert-path`, `--crt-context`. These flags correspond to the standard Docker options (and the environment variables). Note that you can also use the `--host` flag (similar to `DOCKER_HOST`) to point to a Unix socket (e.g., `--host=unix:///var/run/docker.sock`).
 
-The `--crt-context` flag is currently supported with the Docker runtime and it's similar to using the `--context` flag or `DOCKER_CONTEXT`. Note that Mint will use `DOCKER_CONTEXT` if it's configured.
+The `--crt-connection` flag is similar to the `--host` flag, but it's used to point to non-Docker container runtimes like Podman (`mint --crt-connection tcp://localhost:8899 debug --runtime podman --target YOUR_CONTAINER_NAME_OR_ID`). Eventually both flags will merge and there'll be only `--crt-connection`. For now `--host` is still there for backward compatibility reasons.
+
+The `--crt-context` flag is currently supported with the Docker runtime and it's similar to using the `--context` flag or `DOCKER_CONTEXT` with the standard Docker CLI. Note that Mint will use `DOCKER_CONTEXT` if it's configured.
 
 If you want to use TLS with verification:
 
@@ -1029,6 +1033,27 @@ You may not have the default Unix socket (`/var/run/docker.sock`) configured if 
 You can either use `--host` or `DOCKER_HOST` to point to the Docker Desktop's Unix socket or you can configure Docker Desktop to create the default/traditional Unix socket (creating the `/var/run/docker.sock` symlink manually is an option too).
 
 To configure Docker Desktop to create the default Unix socket open its UI and go to `Settings -> Advanced` where you need to check the `Enable default Docker socket (Requires password)` option.
+
+### COLIMA
+
+Similar to Docker Desktop, but the socked will need to be configured to use `unix://${HOME}/.colima/<PROFILE>/docker.sock` where `${HOME}/.colima` is `$COLIMA_HOME` and `<PROFILE>` is `default` (unless you created a custom profile).
+
+The Colima Docker socket can also be accessed through Docker context.
+
+### LIMA
+
+Similar to Colima: `unix://${HOME}/.lima/<INSTANCE>/docker.sock` where `<INSTANCE>` is usually `default`.
+
+When you start a Lima instance the CLI will also print the instructions to configure Docker context with the Docker socket Lima creates. If you configure the context and make it active then **Mint** will pick it up as a regular Docker socket.
+
+### PODMAN
+
+Depending on how the Podman container runtime is installed and if you are using Podman Desktop you may need to start Podman services to expose the API **Mint** is using to interact with the Podman container runtime. Right now it's your responsibility, but the future versions will auto-start the Podman service.
+
+Here's what you'll need to do:
+
+1. Start the service (it can be done with a unix socket too): `podman system service --time=0 tcp://localhost:8899`
+2. Provide the same connection string to the **Mint** command (`debug` in this example) using the global `--crt-connection` flag: `mint --crt-connection tcp://localhost:8899 debug --runtime podman --target YOUR_CONTAINER_NAME_OR_ID`
 
 ## HTTP PROBE COMMANDS
 

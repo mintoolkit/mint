@@ -1365,7 +1365,7 @@ func (i *Inspector) FinishMonitoring() {
 }
 
 func (i *Inspector) initContainerChannels() error {
-	const op = "container.Inspector.initContainerChannels"
+	logger := i.logger.WithField("op", "container.Inspector.initContainerChannels")
 
 	var cn string
 	if i.Overrides != nil {
@@ -1402,21 +1402,26 @@ func (i *Inspector) initContainerChannels() error {
 	switch i.SensorIPCMode {
 	case SensorIPCModeDirect, SensorIPCModeProxy:
 		ipcMode = i.SensorIPCMode
+		logger.WithField("ipc.mode", ipcMode).Trace("configured ipc.mode")
 	default:
 		if i.InContainer || i.isHostNetworked() {
 			ipcMode = SensorIPCModeDirect
+			logger.WithField("ipc.mode", ipcMode).Trace("container ipc.mode")
 		} else {
 			ipcMode = SensorIPCModeProxy
+			logger.WithField("ipc.mode", ipcMode).Trace("default/proxy ipc.mode")
 		}
 	}
 
 	var cmdPort, evtPort string
 	switch ipcMode {
 	case SensorIPCModeDirect:
+		logger.Trace("direct ipc.mode target config")
 		i.TargetHost = ipAddr
 		cmdPort = i.CmdPort.Port()
 		evtPort = i.EvtPort.Port()
 	case SensorIPCModeProxy:
+		logger.Trace("proxy ipc.mode target config")
 		i.DockerHostIP = dockerhost.GetIP(i.APIClient)
 		i.TargetHost = i.DockerHostIP
 		cmdPortBindings := i.ContainerInfo.NetworkSettings.Ports[i.CmdPort]
@@ -1430,8 +1435,7 @@ func (i *Inspector) initContainerChannels() error {
 		i.TargetHost = i.SensorIPCEndpoint
 	}
 
-	i.logger.WithFields(log.Fields{
-		"op":                op,
+	logger.WithFields(log.Fields{
 		"in.container":      i.InContainer,
 		"container.network": cn,
 		"ipc.mode":          ipcMode,
