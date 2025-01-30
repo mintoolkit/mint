@@ -23,6 +23,7 @@ const (
 
 type ExecutionContext struct {
 	Out             *Output
+	Args            []string
 	cleanupHandlers []func()
 }
 
@@ -98,7 +99,9 @@ func (ref *ExecutionContext) exit(exitCode int) {
 		ref.Out.Info("exit", OutVars{
 			"code":     exitCode,
 			"version":  v.Current(),
-			"location": fsutil.ExeDir()})
+			"location": fsutil.ExeDir(),
+			"args":     os.Args})
+
 	}
 
 	ShowCommunityInfo(ref.Out.OutputFormat)
@@ -116,7 +119,8 @@ func NewExecutionContext(
 	}
 
 	ref := &ExecutionContext{
-		Out: NewOutput(cmdName, quiet, outputFormat, chs),
+		Out:  NewOutput(cmdName, quiet, outputFormat, chs),
+		Args: os.Args,
 	}
 
 	return ref
