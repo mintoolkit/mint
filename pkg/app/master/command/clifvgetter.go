@@ -80,6 +80,7 @@ func GetHTTPProbeOptions(xc *app.ExecutionContext, ctx *cli.Context, doProbe boo
 		opts.ExitOnFailure = ctx.Bool(FlagHTTPProbeExitOnFailure)
 		opts.ExitOnFailureCount = ctx.Int(FlagHTTPProbeExitOnFailureCount)
 		opts.FailOnStatus5xx = ctx.Bool(FlagHTTPProbeFailOnStatus5xx)
+		opts.FailOnStatus4xx = ctx.Bool(FlagHTTPProbeFailOnStatus4xx)
 	}
 
 	cmds, err := GetHTTPProbes(ctx)

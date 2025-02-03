@@ -43,6 +43,7 @@ const (
 
 var (
 	ErrFailOnStatus5xx = errors.New("failed on status code 5xx")
+	ErrFailOnStatus4xx = errors.New("failed on status code 4xx")
 )
 
 type ovars = app.OutVars
@@ -925,6 +926,19 @@ func (p *CustomProbe) call(
 				res.StatusCode >= 500 &&
 				res.StatusCode < 600 {
 				err = ErrFailOnStatus5xx
+				if p.printState {
+					p.xc.Out.Info("http.probe.call.status.error",
+						ovars{
+							"status":   statusCode,
+							"method":   cmd.Method,
+							"endpoint": addr,
+						})
+				}
+			}
+			if p.opts.FailOnStatus4xx &&
+				res.StatusCode >= 400 &&
+				res.StatusCode < 500 {
+				err = ErrFailOnStatus4xx
 				if p.printState {
 					p.xc.Out.Info("http.probe.call.status.error",
 						ovars{

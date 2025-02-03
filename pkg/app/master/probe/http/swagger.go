@@ -652,6 +652,18 @@ func (p *CustomProbe) apiSpecEndpointCall(
 							"endpoint": endpoint,
 						})
 				}
+			} else if p.opts.FailOnStatus4xx &&
+				res.StatusCode >= 400 &&
+				res.StatusCode < 500 {
+				err = ErrFailOnStatus4xx
+				if p.printState {
+					p.xc.Out.Info("http.probe.api-spec.probe.endpoint.call.status.error.4xx",
+						ovars{
+							"status":   statusCode,
+							"method":   method,
+							"endpoint": endpoint,
+						})
+				}
 			} else if res.StatusCode == http.StatusInternalServerError {
 				if p.printState {
 					p.xc.Out.Info("http.probe.api-spec.probe.endpoint.call.status.500.try.again.with.different.data",

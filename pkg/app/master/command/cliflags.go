@@ -135,6 +135,7 @@ const (
 	FlagHTTPProbeExitOnFailure      = "http-probe-exit-on-failure"
 	FlagHTTPProbeExitOnFailureCount = "http-probe-exit-on-failure-count"
 	FlagHTTPProbeFailOnStatus5xx    = "http-probe-fail-on-status-5xx"
+	FlagHTTPProbeFailOnStatus4xx    = "http-probe-fail-on-status-4xx"
 	FlagHTTPProbeConcurrency        = "http-probe-concurrency"
 	FlagHTTPProbeCrawl              = "http-probe-crawl"
 	FlagHTTPCrawlMaxDepth           = "http-crawl-max-depth"
@@ -255,6 +256,7 @@ const (
 	FlagHTTPProbeExitOnFailureUsage      = "Exit when all HTTP probe commands fail"
 	FlagHTTPProbeExitOnFailureCountUsage = "Exit when selected number of probe call failures happens"
 	FlagHTTPProbeFailOnStatus5xxUsage    = "Treat 5xx HTTP status codes as errors during HTTP probing"
+	FlagHTTPProbeFailOnStatus4xxUsage    = "Treat 4xx HTTP status codes as errors during HTTP probing"
 	FlagHTTPProbeConcurrencyUsage        = "Max number of concurrent requests executing HTTP probes"
 	FlagHTTPProbeCrawlUsage              = "Enable crawling for the default HTTP probe command"
 	FlagHTTPCrawlMaxDepthUsage           = "Max depth to use for the HTTP probe crawler"
@@ -758,6 +760,11 @@ var CommonFlags = map[string]cli.Flag{
 		Usage:   FlagHTTPProbeFailOnStatus5xxUsage,
 		EnvVars: []string{"DSLIM_HTTP_PROBE_FAIL_ON_5XX"},
 	},
+	FlagHTTPProbeFailOnStatus4xx: &cli.BoolFlag{
+		Name:    FlagHTTPProbeFailOnStatus4xx,
+		Usage:   FlagHTTPProbeFailOnStatus4xxUsage,
+		EnvVars: []string{"DSLIM_HTTP_PROBE_FAIL_ON_4XX"},
+	},
 	FlagHTTPProbeConcurrency: &cli.IntFlag{
 		Name:    FlagHTTPProbeConcurrency,
 		Value:   5,
@@ -1056,6 +1063,7 @@ func HTTPProbeFlags() []cli.Flag {
 		Cflag(FlagHTTPProbeExitOnFailure),
 		Cflag(FlagHTTPProbeExitOnFailureCount),
 		Cflag(FlagHTTPProbeFailOnStatus5xx),
+		Cflag(FlagHTTPProbeFailOnStatus4xx),
 	}, HTTPProbeFlagsBasic()...)
 }
 
