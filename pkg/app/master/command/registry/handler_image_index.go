@@ -18,6 +18,7 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	"github.com/mintoolkit/mint/pkg/app/master/registry"
 	"github.com/mintoolkit/mint/pkg/app/master/version"
 	cmd "github.com/mintoolkit/mint/pkg/command"
 	"github.com/mintoolkit/mint/pkg/crt/docker/dockerclient"
@@ -83,8 +84,11 @@ func OnImageIndexCreateCommand(
 	remoteOpts := []remote.Option{
 		remote.WithContext(context.Background()),
 	}
-
-	remoteOpts, err = ConfigureAuth(cparams.CommonCommandParams, remoteOpts)
+	remoteOpts, err = registry.ConfigureAuth(
+		cparams.CommonCommandParams.UseDockerCreds,
+		cparams.CommonCommandParams.CredsAccount,
+		cparams.CommonCommandParams.CredsSecret,
+		remoteOpts)
 	xc.FailOn(err)
 
 	nameOpts := []name.Option{

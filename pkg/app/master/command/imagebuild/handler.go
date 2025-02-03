@@ -5,6 +5,8 @@ import (
 	"os"
 
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/app"
@@ -17,6 +19,7 @@ import (
 	"github.com/mintoolkit/mint/pkg/crt/docker/dockercrtclient"
 	"github.com/mintoolkit/mint/pkg/crt/podman/podmancrtclient"
 
+	"github.com/mintoolkit/mint/pkg/app/master/registry"
 	"github.com/mintoolkit/mint/pkg/report"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
 	"github.com/mintoolkit/mint/pkg/util/jsonutil"
@@ -180,6 +183,26 @@ func OnCommand(
 		}
 	} else {
 		xc.Out.Info("runtime.load.image.none")
+	}
+
+	if cparams.RegistryPush {
+		remoteOpts := []remote.Option{
+			remote.WithContext(context.Background()),
+		}
+		remoteOpts, err = registry.ConfigureAuth(
+			cparams.UseDockerCreds,
+			cparams.CredsAccount,
+			cparams.CredsSecret,
+			remoteOpts)
+
+		xc.FailOn(err)
+
+		nameOpts := []name.Option{
+			name.WeakValidation,
+			name.Insecure,
+		}
+		err = registry.PushImageFromTar(logger, cparams.ImageArchiveFile, cparams.ImageName, nameOpts, remoteOpts)
+		xc.FailOn(err)
 	}
 
 	xc.Out.State(cmd.StateCompleted)

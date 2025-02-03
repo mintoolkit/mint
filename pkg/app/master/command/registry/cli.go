@@ -180,9 +180,9 @@ var CLI = &cli.Command{
 	Aliases: []string{Alias},
 	Usage:   Usage,
 	Flags: []cli.Flag{
-		cflag(FlagUseDockerCreds),
-		cflag(FlagCredsAccount),
-		cflag(FlagCredsSecret),
+		Cflag(FlagUseDockerCreds),
+		Cflag(FlagCredsAccount),
+		Cflag(FlagCredsSecret),
 	},
 	Subcommands: []*cli.Command{
 		{
@@ -190,7 +190,7 @@ var CLI = &cli.Command{
 			Usage: PullCmdNameUsage,
 			Flags: []cli.Flag{
 				command.Cflag(command.FlagTarget),
-				cflag(FlagSaveToDocker),
+				Cflag(FlagSaveToDocker),
 			},
 			Action: func(ctx *cli.Context) error {
 				gcvalues := command.GlobalFlagValues(ctx)
@@ -222,10 +222,10 @@ var CLI = &cli.Command{
 			Name:  PushCmdName,
 			Usage: PushCmdNameUsage,
 			Flags: []cli.Flag{
-				cflag(FlagAs),
-				cflag(FlagDocker),
-				cflag(FlagTar),
-				cflag(FlagOCI),
+				Cflag(FlagAs),
+				Cflag(FlagDocker),
+				Cflag(FlagTar),
+				Cflag(FlagOCI),
 			},
 			Action: func(ctx *cli.Context) error {
 				gcvalues := command.GlobalFlagValues(ctx)
@@ -272,11 +272,11 @@ var CLI = &cli.Command{
 			Name:  ImageIndexCreateCmdName,
 			Usage: ImageIndexCreateCmdNameUsage,
 			Flags: []cli.Flag{
-				cflag(FlagImageIndexName),
-				cflag(FlagImageName),
-				cflag(FlagAsManifestList),
-				cflag(FlagInsecureRefs),
-				cflag(FlagDumpRawManifest),
+				Cflag(FlagImageIndexName),
+				Cflag(FlagImageName),
+				Cflag(FlagAsManifestList),
+				Cflag(FlagInsecureRefs),
+				Cflag(FlagDumpRawManifest),
 			},
 			Action: func(ctx *cli.Context) error {
 				gcvalues := command.GlobalFlagValues(ctx)
@@ -298,13 +298,13 @@ var CLI = &cli.Command{
 			Name:  ServerCmdName,
 			Usage: ServerCmdNameUsage,
 			Flags: []cli.Flag{
-				cflag(FlagDomain),
-				cflag(FlagAddress),
-				cflag(FlagPort),
-				cflag(FlagHTTPS),
-				cflag(FlagCertPath),
-				cflag(FlagKeyPath),
-				cflag(FlagReferrersAPI),
+				Cflag(FlagDomain),
+				Cflag(FlagAddress),
+				Cflag(FlagPort),
+				Cflag(FlagHTTPS),
+				Cflag(FlagCertPath),
+				Cflag(FlagKeyPath),
+				Cflag(FlagReferrersAPI),
 			},
 			Action: func(ctx *cli.Context) error {
 				gcvalues := command.GlobalFlagValues(ctx)

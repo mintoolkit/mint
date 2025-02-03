@@ -11,6 +11,7 @@ import (
 
 	"github.com/mintoolkit/mint/pkg/app"
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	registrycmd "github.com/mintoolkit/mint/pkg/app/master/command/registry"
 	cmd "github.com/mintoolkit/mint/pkg/command"
 	"github.com/mintoolkit/mint/pkg/imagebuilder"
 	"github.com/mintoolkit/mint/pkg/util/fsutil"
@@ -30,6 +31,7 @@ type CommandParams struct {
 	ImageName          string                 `json:"image_name,omitempty"`
 	ImageArchiveFile   string                 `json:"image_archive_file,omitempty"`
 	LoadRuntimes       []string               `json:"runtime,omitempty"` //runtime where to load the created image
+	RegistryPush       bool                   `json:"registry_push,omitempty"`
 	Dockerfile         string                 `json:"dockerfile,omitempty"`
 	ContextDir         string                 `json:"context_dir,omitempty"`
 	BuildArgs          []imagebuilder.NVParam `json:"build_args,omitempty"`
@@ -39,6 +41,9 @@ type CommandParams struct {
 	BaseImageTar       string                 `json:"base_image_tar,omitempty"`
 	BaseImageWithCerts bool                   `json:"base_image_with_certs,omitempty"`
 	ExePath            string                 `json:"exe_path,omitempty"`
+	UseDockerCreds     bool                   `json:"use_docker_creds,omitempty"`
+	CredsAccount       string                 `json:"creds_account,omitempty"`
+	CredsSecret        string                 `json:"creds_secret,omitempty"`
 }
 
 var ImageBuildFlags = useAllFlags()
@@ -47,7 +52,11 @@ var CLI = &cli.Command{
 	Name:    Name,
 	Aliases: []string{Alias},
 	Usage:   Usage,
-	Flags:   ImageBuildFlags,
+	Flags: append(ImageBuildFlags,
+		registrycmd.Cflag(registrycmd.FlagUseDockerCreds),
+		registrycmd.Cflag(registrycmd.FlagCredsAccount),
+		registrycmd.Cflag(registrycmd.FlagCredsSecret),
+	),
 	Action: func(ctx *cli.Context) error {
 		logger := log.WithFields(log.Fields{"app": command.AppName, "cmd": Name, "op": "cli.Action"})
 
@@ -77,6 +86,10 @@ var CLI = &cli.Command{
 			BaseImageWithCerts: ctx.Bool(FlagBaseWithCerts),
 			ExePath:            ctx.String(FlagExePath),
 			Labels:             map[string]string{},
+			RegistryPush:       ctx.Bool(FlagRegistryPush),
+			UseDockerCreds:     ctx.Bool(registrycmd.FlagUseDockerCreds),
+			CredsAccount:       ctx.String(registrycmd.FlagCredsAccount),
+			CredsSecret:        ctx.String(registrycmd.FlagCredsSecret),
 		}
 
 		loadRuntimeSet := map[string]struct{}{}

@@ -9,6 +9,9 @@ import (
 
 // ImageBuild command flag names and usage descriptions
 const (
+	FlagRegistryPush      = "registry-push"
+	FlagRegistryPushUsage = "Push the built image to a container registry"
+
 	FlagRuntimeLoad      = "runtime-load"
 	FlagRuntimeLoadUsage = "container runtime where to load to created image"
 
@@ -247,6 +250,12 @@ var Flags = map[string]cli.Flag{
 		Value:   "",
 		Usage:   FlagExePathUsage,
 		EnvVars: []string{"DSLIM_IMAGEBUILD_EXE_PATH"},
+	},
+	FlagRegistryPush: &cli.BoolFlag{
+		Name:    FlagRegistryPush,
+		Value:   false,
+		Usage:   FlagRegistryPushUsage,
+		EnvVars: []string{"DSLIM_IMAGEBUILD_REGISTRY_PUSH"},
 	},
 }
 

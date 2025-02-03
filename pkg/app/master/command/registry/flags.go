@@ -85,7 +85,7 @@ const (
 var Flags = map[string]cli.Flag{
 	FlagUseDockerCreds: &cli.BoolFlag{
 		Name:    FlagUseDockerCreds,
-		Value:   false, //defaults to false
+		Value:   true, //defaults to true (now)
 		Usage:   FlagUseDockerCredsUsage,
 		EnvVars: []string{"DSLIM_REG_DOCKER_CREDS"},
 	},
@@ -221,7 +221,7 @@ var Flags = map[string]cli.Flag{
 	},
 }
 
-func cflag(name string) cli.Flag {
+func Cflag(name string) cli.Flag {
 	cf, ok := Flags[name]
 	if !ok {
 		log.Fatalf("unknown flag='%s'", name)

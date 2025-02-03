@@ -22,5 +22,7 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		{Text: ImageIndexCreateCmdName, Description: ImageIndexCreateCmdNameUsage},
 		{Text: ServerCmdName, Description: ServerCmdNameUsage},
 	},
-	Values: map[string]command.CompleteValue{},
+	Values: map[string]command.CompleteValue{
+		command.FullFlagName(FlagUseDockerCreds): command.CompleteTBool,
+	},
 }

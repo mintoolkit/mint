@@ -27,7 +27,7 @@ func GetIP(apiClient *dockerapi.Client) string {
 				logger.WithError(err).Debug("apiClient.NetworkInfo")
 			} else {
 				logger.WithField("data", jsonutil.ToString(netInfo)).Trace("netInfo")
-				
+
 				if netInfo != nil && netInfo.Name == "bridge" {
 					if len(netInfo.IPAM.Config) > 0 {
 						return netInfo.IPAM.Config[0].Gateway

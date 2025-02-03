@@ -636,6 +636,10 @@ Flags:
 - `--base-tar` - `simple` build engine: base image from a local tar file
 - `--base-with-certs` - `simple` build engine: boolean flat to use the static-debian12 distroless base image - contains only certs and timezone info
 - `--exe-path` - `simple` build engine: local (linux) executable file that will be used as the entrypoint for the new image (added to the selected base image or scratch image if no base image is provided)
+- `--registry-push` - Push the built image to a container registry
+- `--use-docker-credentials` - Use the registry credentials from the default Docker config file (defaults to true).
+- `--account` - Registry credentials account.
+- `--secret` - Registry credentials secret.
 
 
 Examples:
@@ -717,7 +721,7 @@ There's also a placeholder for `copy`, but it doesn't do anything yet. Great opp
 
 Shared Command Level Flags:
 
-- `--use-docker-credentials` - Use the registry credentials from the default Docker config file.
+- `--use-docker-credentials` - Use the registry credentials from the default Docker config file (defaults to true).
 - `--account` - Registry credentials account.
 - `--secret` - Registry credentials secret.
 

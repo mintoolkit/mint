@@ -4,6 +4,7 @@ import (
 	"github.com/c-bata/go-prompt"
 
 	"github.com/mintoolkit/mint/pkg/app/master/command"
+	registrycmd "github.com/mintoolkit/mint/pkg/app/master/command/registry"
 )
 
 var CommandSuggestion = prompt.Suggest{
@@ -46,6 +47,7 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 	Names: []prompt.Suggest{
 		{Text: command.FullFlagName(FlagEngine), Description: FlagEngineUsage},
 		{Text: command.FullFlagName(FlagRuntimeLoad), Description: FlagRuntimeLoadUsage},
+		{Text: command.FullFlagName(FlagRegistryPush), Description: FlagRegistryPushUsage},
 		{Text: command.FullFlagName(FlagEngineEndpoint), Description: FlagEngineEndpointUsage},
 		{Text: command.FullFlagName(FlagEngineToken), Description: FlagEngineTokenUsage},
 		{Text: command.FullFlagName(FlagEngineNamespace), Description: FlagEngineNamespaceUsage},
@@ -60,14 +62,19 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		{Text: command.FullFlagName(FlagBaseTar), Description: FlagBaseTarUsage},
 		{Text: command.FullFlagName(FlagBaseWithCerts), Description: FlagBaseWithCertsUsage},
 		{Text: command.FullFlagName(FlagExePath), Description: FlagExePathUsage},
+		{Text: command.FullFlagName(registrycmd.FlagUseDockerCreds), Description: registrycmd.FlagUseDockerCredsUsage},
+		{Text: command.FullFlagName(registrycmd.FlagCredsAccount), Description: registrycmd.FlagCredsAccountUsage},
+		{Text: command.FullFlagName(registrycmd.FlagCredsSecret), Description: registrycmd.FlagCredsSecretUsage},
 	},
 	Values: map[string]command.CompleteValue{
-		command.FullFlagName(FlagEngine):        completeBuildEngine,
-		command.FullFlagName(FlagRuntimeLoad):   completeRuntimeLoad,
-		command.FullFlagName(FlagArchitecture):  completeArchitecture,
-		command.FullFlagName(FlagContextDir):    command.CompleteDir,
-		command.FullFlagName(FlagBaseTar):       command.CompleteFile,
-		command.FullFlagName(FlagBaseWithCerts): command.CompleteBool,
-		command.FullFlagName(FlagExePath):       command.CompleteFile,
+		command.FullFlagName(FlagEngine):                     completeBuildEngine,
+		command.FullFlagName(FlagRuntimeLoad):                completeRuntimeLoad,
+		command.FullFlagName(FlagRegistryPush):               command.CompleteBool,
+		command.FullFlagName(FlagArchitecture):               completeArchitecture,
+		command.FullFlagName(FlagContextDir):                 command.CompleteDir,
+		command.FullFlagName(FlagBaseTar):                    command.CompleteFile,
+		command.FullFlagName(FlagBaseWithCerts):              command.CompleteBool,
+		command.FullFlagName(FlagExePath):                    command.CompleteFile,
+		command.FullFlagName(registrycmd.FlagUseDockerCreds): command.CompleteTBool,
 	},
 }
