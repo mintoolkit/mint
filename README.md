@@ -7,6 +7,8 @@
 
 [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-908a85?logo=gitpod&style=for-the-badge)](https://gitpod.io/#https://github.com/mintoolkit/mint)
 
+[![Open in Codeanywhere](https://img.shields.io/badge/Open_in-Codeanywhere-blue?logo=codeanywhere&style=for-the-badge)](https://app.codeanywhere.com/#https://github.com/mintoolkit/mint)
+
 [![Install Mint](https://img.shields.io/badge/install-mint-blue?style=for-the-badge)](https://github.com/mintoolkit/mint#installation)
 
 [![Get Examples](https://img.shields.io/badge/mint-app%20examples-green?style=for-the-badge)](https://github.com/mintoolkit/examples)
@@ -1511,12 +1513,14 @@ Note:
 
 Try using the latest version of Go building the **Mint** app. The current version of Go used to build the **Mint** app is 1.22.
 
-##### Gitpod
+#### 🌏  Open in Cloud IDEs
 
-If you have a web browser, you can get a fully pre-configured development environment in one click:
+Get a fully pre-configured development environment in one click. Click any of the buttons below to start a new development environment to demo or contribute to the codebase without having to install anything on your machine:
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/mintoolkit/mint)
+[![Open in Repl.it](https://replit.com/badge/github/withastro/astro)](https://replit.com/github/mintoolkit/mint)
+[![Open in Codeanywhere](https://codeanywhere.com/img/open-in-codeanywhere-btn.svg)](https://app.codeanywhere.com/#https://github.com/mintoolkit/mint)
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/mintoolkit/mint)
-
 
 ##### Additional Tools
 
