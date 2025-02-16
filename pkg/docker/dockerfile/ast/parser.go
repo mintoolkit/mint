@@ -7,13 +7,13 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 	"io"
 	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
 
-	"github.com/mintoolkit/mint/pkg/docker/instruction"
 	"github.com/pkg/errors"
 )
 
@@ -190,24 +190,24 @@ func init() {
 	// functions. Errors are propagated up by Parse() and the resulting AST can
 	// be incorporated directly into the existing AST as a next.
 	dispatch = map[string]func(string, *Directive) (*Node, map[string]bool, error){
-		instruction.Add:         parseMaybeJSONToList,
-		instruction.Arg:         parseNameOrNameVal,
-		instruction.Cmd:         parseMaybeJSON,
-		instruction.Copy:        parseMaybeJSONToList,
-		instruction.Entrypoint:  parseMaybeJSON,
-		instruction.Env:         parseEnv,
-		instruction.Expose:      parseStringsWhitespaceDelimited,
-		instruction.From:        parseStringsWhitespaceDelimited,
-		instruction.Healthcheck: parseHealthConfig,
-		instruction.Label:       parseLabel,
-		instruction.Maintainer:  parseString,
-		instruction.Onbuild:     parseSubCommand,
-		instruction.Run:         parseMaybeJSON,
-		instruction.Shell:       parseMaybeJSON,
-		instruction.StopSignal:  parseString,
-		instruction.User:        parseString,
-		instruction.Volume:      parseMaybeJSONToList,
-		instruction.Workdir:     parseString,
+		df.InstTypeAdd:         parseMaybeJSONToList,
+		df.InstTypeArg:         parseNameOrNameVal,
+		df.InstTypeCmd:         parseMaybeJSON,
+		df.InstTypeCopy:        parseMaybeJSONToList,
+		df.InstTypeEntrypoint:  parseMaybeJSON,
+		df.InstTypeEnv:         parseEnv,
+		df.InstTypeExpose:      parseStringsWhitespaceDelimited,
+		df.InstTypeFrom:        parseStringsWhitespaceDelimited,
+		df.InstTypeHealthcheck: parseHealthConfig,
+		df.InstTypeLabel:       parseLabel,
+		df.InstTypeMaintainer:  parseString,
+		df.InstTypeOnbuild:     parseSubCommand,
+		df.InstTypeRun:         parseMaybeJSON,
+		df.InstTypeShell:       parseMaybeJSON,
+		df.InstTypeStopSignal:  parseString,
+		df.InstTypeUser:        parseString,
+		df.InstTypeVolume:      parseMaybeJSONToList,
+		df.InstTypeWorkdir:     parseString,
 	}
 }
 
