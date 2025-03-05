@@ -3,10 +3,9 @@ package check
 
 import (
 	"fmt"
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/mintoolkit/mint/pkg/docker/instruction"
 )
 
 func init() {
@@ -39,7 +38,7 @@ func (c *MultipleEntrypointInstructions) Run(opts *Options, ctx *Context) (*Resu
 	}
 
 	for _, stage := range ctx.Dockerfile.Stages {
-		if instructions, ok := stage.CurrentInstructionsByType[instruction.Entrypoint]; ok {
+		if instructions, ok := stage.CurrentInstructionsByType[df.InstTypeEntrypoint]; ok {
 			if len(instructions) > 1 {
 				if !result.Hit {
 					result.Hit = true
