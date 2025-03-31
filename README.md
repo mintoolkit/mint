@@ -3,6 +3,7 @@
 [![Follow](https://img.shields.io/badge/follow-on%20twitter-%231DA1F2.svg?style=for-the-badge&logoColor=white)](https://twitter.com/kcqon)
 
 [![Discord chat](https://img.shields.io/static/v1.svg?label=chat&message=on%20discord&color=7389D8&style=for-the-badge)](https://discord.gg/fAvq4ruKsG)
+
 <!-- [![Youtube](https://img.shields.io/badge/-YouTube-red?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/channel/UCy7RHjJlaBhpCCbChrd8POA?sub_confirmation=1) -->
 
 [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-908a85?logo=gitpod&style=for-the-badge)](https://gitpod.io/#https://github.com/mintoolkit/mint)
@@ -12,8 +13,6 @@
 [![Install Mint](https://img.shields.io/badge/install-mint-blue?style=for-the-badge)](https://github.com/mintoolkit/mint#installation)
 
 [![Get Examples](https://img.shields.io/badge/mint-app%20examples-green?style=for-the-badge)](https://github.com/mintoolkit/examples)
-
-
 
 # Optimize Your Experience with Containers. Make Your Containers Better, Smaller, More Secure and Do Less to Get There (free and open source!)
 
@@ -74,18 +73,18 @@ archlinux                 latest              ...        ...         467MB
 
 Feel free to join any of these channels or just open a new [`Github issue`](https://github.com/mintoolkit/mint/issues) if you want to chat or if you need help.
 
-* [`CNCF Slack channel`](https://cloud-native.slack.com/archives/C059QP1RH1S)
-* [`Discussions`](https://github.com/mintoolkit/mint/discussions)
-* [`Discord server`](https://discord.gg/9tDyxYS)
-* [`Twitter`](https://twitter.com/kcqon)
+- [`CNCF Slack channel`](https://cloud-native.slack.com/archives/C059QP1RH1S)
+- [`Discussions`](https://github.com/mintoolkit/mint/discussions)
+- [`Discord server`](https://discord.gg/9tDyxYS)
+- [`Twitter`](https://twitter.com/kcqon)
 
 ## Mint on the Internet
 
 ##### Books:
-* [`Everyone's Docker/Kubernetes`](https://www.amazon.co.jp/dp/429710461X) (Japanese)
-* [`Docker in Practice (2nd edition)`](https://www.amazon.com/Docker-Practice-Ian-Miell/dp/1617294802)
-* [`Docker/Kubernetes Security Practice Guide`](https://www.amazon.co.jp/dp/4839970505) (Japanese)
 
+- [`Everyone's Docker/Kubernetes`](https://www.amazon.co.jp/dp/429710461X) (Japanese)
+- [`Docker in Practice (2nd edition)`](https://www.amazon.com/Docker-Practice-Ian-Miell/dp/1617294802)
+- [`Docker/Kubernetes Security Practice Guide`](https://www.amazon.co.jp/dp/4839970505) (Japanese)
 
 ## Minification Examples
 
@@ -199,7 +198,6 @@ The 1.41.7 version adds the `imagebuild` command to build container images using
 
 For more info about the latest release see the [`CHANGELOG`](CHANGELOG.md).
 
-
 ## INSTALLATION
 
 If you already have **Mint** installed use the `update` command to get the latest version:
@@ -225,12 +223,15 @@ mint update
 2. Unzip the package and optionally move it to your bin directory.
 
 Linux (for non-intel replace `dist_linux` with the platform-specific extracted path):
+
 ```
 tar -xvf ds.tar.gz
 mv  dist_linux/mint /usr/local/bin/
 mv  dist_linux/mint-sensor /usr/local/bin/
 ```
+
 Mac:
+
 ```
 unzip ds.zip
 mv  dist_mac/mint /usr/local/bin/
@@ -252,10 +253,10 @@ curl -sL https://raw.githubusercontent.com/mintoolkit/mint/master/scripts/instal
 ### Homebrew
 
 ```
-brew install docker-slim
+brew install mintoolkit
 ```
 
-The Homebrew installer: https://formulae.brew.sh/formula/docker-slim
+The Homebrew installer: https://formulae.brew.sh/formula/mintoolkit
 
 ### Docker
 
@@ -264,7 +265,6 @@ docker pull mintoolkit/mint
 ```
 
 See the [RUNNING CONTAINERIZED](#running-containerized) section for more usage info.
-
 
 ## BASIC USAGE INFO
 
@@ -377,7 +377,7 @@ To disable the version checks set the global `--check-version` flag to `false` (
 - `--add-changes-max` - Maximum number of `add` changes to show for all layers
 - `--modify-changes-max` - Maximum number of `modify` changes to show for all layers
 - `--delete-changes-max` - Maximum number of `delete` changes to show for all layers
-- `--change-path value` - Include changes for the files that match the path pattern (Glob/Match in Go and **). Value formats: `<path pattern>` | `dump:<output type>:<path pattern>` | `::<path pattern>` where `output type` is `console` or a directory name. If `value` starts with `dump:` the match will be 'dumped' to the selected `output type`. [can use this flag multiple times]
+- `--change-path value` - Include changes for the files that match the path pattern (Glob/Match in Go and \*\*). Value formats: `<path pattern>` | `dump:<output type>:<path pattern>` | `::<path pattern>` where `output type` is `console` or a directory name. If `value` starts with `dump:` the match will be 'dumped' to the selected `output type`. [can use this flag multiple times]
 - `--change-data value` - Include changes for the files that match the data pattern (regex). Value formats: `<data regex>` | `dump:<output type>:<path pattern>:<data regex>` | `::<path pattern>:<data regex>` | `:::<data regex>` where `output type` is `console` or a directory name. If `value` starts with `dump:` the match will be 'dumped' to the selected `output type`. [can use this flag multiple times]
 - `--change-data-hash value` - Include changes for the files that match the provided data hashes (sha1). Value formats: `<sha1 hash>` | `dump:<output type>:<sha1 hash>` | `::<sha1 hash>` where `output type` is `console` or a directory name. If `value` starts with `dump:` the match will be 'dumped' to the selected `output type`. [can use this flag multiple times]
 - `--reuse-saved-image` - Reuse saved container image (default: true).
@@ -393,7 +393,7 @@ To disable the version checks set the global `--check-version` flag to `false` (
 - `--change-match-layers-only` - Show only layers with change matches (default: false).
 - `--export-all-data-artifacts` - TAR archive file path to export all text data artifacts (if value is set to `.` then the archive file path defaults to `./data-artifacts.tar`)
 - `--remove-file-artifacts` - Remove file artifacts when command is done (note: you'll loose the reverse engineered Dockerfile)
-- `--command-params-file` -  JSON file with all command parameters - the JSON file can use a snake case formatted commands example `--docker-config-path` would be `docker_config_path`
+- `--command-params-file` - JSON file with all command parameters - the JSON file can use a snake case formatted commands example `--docker-config-path` would be `docker_config_path`
 
 Change Types:
 
@@ -562,7 +562,7 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--obfuscate-metadata` - Obfuscate the operating system and application metadata to make it more challenging to identify the image components including OS and application packages. As a side effect using this flag will hide vulnerabilities from vulnerability scanners that rely on the OS and programming language specific package metadata to identify vulnerabilities in container images. This flag can be used to prevent vulnerability scanners from detecting vulnerabilities. This flag also prevents some SBOM generation tools from detecting operating system and application packages.
 - `--obfuscate-app-package-names` - Select the obfuscation mode for the application package names. Available modes: `none` | `empty` | `prefix` | `random` (`none` - Do no app package name obfuscation; `empty` - Replace the app package names with empty values; `prefix` - Prefix app package names with a string; `random` - Replace app package names with random values). This flag changes package names, so the packages can't be recognized by vulnerability scanning and SBOM generation tools. The "empty" mode completely hides the packages from vulnerability scanners and from SBOM tools. This flag can be used with the `--obfuscate-metadata` flag.
 - `--enable-mondel` - Enable monitor data event log for sensor monitors to log/stream the events captured by those monitors (default: false)
-- `--command-params-file` -  JSON file with all command parameters - the JSON file can use a snake case formatted commands example `--docker-config-path` would be `docker_config_path`
+- `--command-params-file` - JSON file with all command parameters - the JSON file can use a snake case formatted commands example `--docker-config-path` would be `docker_config_path`
 
 In the interactive CLI prompt mode you must specify the target image using the `--target` flag while in the traditional CLI mode you can use the `--target` flag or you can specify the target image as the last value in the command.
 
@@ -644,7 +644,6 @@ Flags:
 - `--account` - Registry credentials account.
 - `--secret` - Registry credentials secret.
 
-
 Examples:
 
 An example showing how to use the cloud-based `depot.dev` build engine:
@@ -713,7 +712,6 @@ Flags:
 
 - `--tag` - Custom tags for the output image (multiple instances).
 
-
 ### `REGISTRY` COMMAND OPTIONS
 
 For the operations that require authentication you can reuse the registry credentials from Docker (do `docker login` first and then use the `--use-docker-credentials` flag with the `registry` command) or you can specify the auth info using the `--account` and `--secret` flags).
@@ -763,7 +761,7 @@ NOTE: Just a placeholder for now (TBD)
 
 USAGE: `mint registry image-index-create --image-index-name [MULTI-ARCH_IMAGE_TAG] --image-name [IMAGE_ONE] --image-name [IMAGE_TWO]`
 
-Flags: 
+Flags:
 
 - `--image-index-name` - Image index name to use.
 - `--image-name` - Target image name to include in image index.
@@ -791,9 +789,9 @@ Flags:
 
 USAGE: `mint [GLOBAL FLAGS] vulnerability [SHARED FLAGS] [SUBCOMMAND] [FLAGS]`
 
-Current sub-commands: 
+Current sub-commands:
 
-* `epss` - Gets EPPS information for the target vulnerabilities or based on the selected vulnerability filters.
+- `epss` - Gets EPPS information for the target vulnerabilities or based on the selected vulnerability filters.
 
 Shared Command Level Flags:
 
@@ -820,13 +818,12 @@ Flags:
 
 Examples:
 
-* `mint --quiet vulnerability --cve CVE-2021-21315 epss`
-* `mint --output-format=json vulnerability --cve CVE-2021-21315 epss`
-* `mint --quiet --output-format=json vulnerability --cve CVE-2021-21315 --cve CVE-2023-49070 epss`
-* `mint --quiet vulnerability --cve CVE-2021-21315 epss --with-history --date 2022-12-13`
-* `mint --quiet vulnerability epss --op list --date 2024-01-05`
-* `mint --quiet vulnerability epss --op list --filter-cve-id-pattern 2023 --filter-score-gt 0.92 --limit 2 --offset 3`
-
+- `mint --quiet vulnerability --cve CVE-2021-21315 epss`
+- `mint --output-format=json vulnerability --cve CVE-2021-21315 epss`
+- `mint --quiet --output-format=json vulnerability --cve CVE-2021-21315 --cve CVE-2023-49070 epss`
+- `mint --quiet vulnerability --cve CVE-2021-21315 epss --with-history --date 2022-12-13`
+- `mint --quiet vulnerability epss --op list --date 2024-01-05`
+- `mint --quiet vulnerability epss --op list --filter-cve-id-pattern 2023 --filter-score-gt 0.92 --limit 2 --offset 3`
 
 ## RUNNING CONTAINERIZED
 
@@ -852,57 +849,77 @@ docker cp $DOCKER_CERT_PATH/. dcert:/dcert_path
 docker run --volumes-from dcert -e DOCKER_HOST=$DOCKER_HOST -e DOCKER_TLS_VERIFY=$DOCKER_TLS_VERIFY -e DOCKER_CERT_PATH=/dcert_path mintoolkit/mint slim your-docker-image-name
 ```
 
-Different CI/CD services have different containerized environment designs that impose various restrictions that may impact the ability of the main app to communicate with the sensor app embedded in the temporary container **Mint** creates. Try adjusting the values for the `--sensor-ipc-mode` and `--sensor-ipc-endpoint` flags. This [`Google Cloud Build`](https://medium.com/google-cloud/integrating-dockerslim-container-minify-step-on-cloud-build-64da29fd58d1) blog post by Márton Kodok is a good reference for both of those flags. 
+Different CI/CD services have different containerized environment designs that impose various restrictions that may impact the ability of the main app to communicate with the sensor app embedded in the temporary container **Mint** creates. Try adjusting the values for the `--sensor-ipc-mode` and `--sensor-ipc-endpoint` flags. This [`Google Cloud Build`](https://medium.com/google-cloud/integrating-dockerslim-container-minify-step-on-cloud-build-64da29fd58d1) blog post by Márton Kodok is a good reference for both of those flags.
 
 ### Using `*-file` Flags
+
 - There are several flags that accept file paths (`--include-path-file`, `--compose-file`, `--http-probe-cmd-file`, etc). You need volume mount the location of the referenced paths or the file paths themselves when you use the containerized version of **Mint** because the **Mint** app container won't have accept to the referenced files otherwise.
 
 ## CI/CD INTEGRATIONS
 
 ### Integrating Mint in Jenkins
+
 #### Prerequisites:
+
 - Spin up a virtual machine(e.g.EC2 Instance, Azure VM, GCE) which has an Ubuntu OS via your desired cloud platform(AWS, Azure, GCP), SSH into the machine, update the machine packages and install docker. An example of this step is highlighted below given you are running an AWS EC2 Instance.
+
 ```
 sudo apt update -y
 ```
+
 ```
 sudo apt install docker -y
 ```
+
 ```
 sudo systemctl start docker
 ```
+
 ```
 sudo usermod -aG docker ec2-user
 ```
-- Install Jenkins on the virtual machine using docker as stipulated by the [Jenkins Documentation](https://github.com/jenkinsci/docker/blob/master/README.md), this step pulls [Jenkins Image from DockerHub](https://hub.docker.com/r/jenkins/jenkins), runs Jenkins as a container via port 8080 and creates an explicit docker volume on the host machine to retain Jenkins data. Given you are running an AWS EC2 Instance, create a TCP rule with port 8080 in the Instance security group rules which allows only your Internet Protocol(IP) address to access the Jenkins server. 
+
+- Install Jenkins on the virtual machine using docker as stipulated by the [Jenkins Documentation](https://github.com/jenkinsci/docker/blob/master/README.md), this step pulls [Jenkins Image from DockerHub](https://hub.docker.com/r/jenkins/jenkins), runs Jenkins as a container via port 8080 and creates an explicit docker volume on the host machine to retain Jenkins data. Given you are running an AWS EC2 Instance, create a TCP rule with port 8080 in the Instance security group rules which allows only your Internet Protocol(IP) address to access the Jenkins server.
+
 ```
 docker run -p 8080:8080 -p 50000:50000 -d -v jenkins_home:/var/jenkins_home jenkins/jenkins:lts
 ```
+
 - Given Jenkins is now running as a containerized environment in the virtual machine, you need to make docker available in the Jenkins container, you can do this by bind mounting the virtual machine docker unix socket onto the jenkins container, note that to carry out this step you need to stop the running jenkins container, you can find the jenkins container ID by using the docker ps command, the commands to execute are highlighted below. This step is essential as it makes docker available in the Jenkins container, and with docker you can pull **Mint** app image which is to be used in furthur steps.
+
 ```
-docker ps 
+docker ps
 ```
+
 ```
 docker stop [jenkins_container_id]
 ```
+
 ```
-docker run -p 8080:8080 -p 50000:50000 -d \  
--v jenkins_home:/var/jenkins_home \ 
--v /var/run/docker.sock:/var/run/docker.sock \ 
+docker run -p 8080:8080 -p 50000:50000 -d \
+-v jenkins_home:/var/jenkins_home \
+-v /var/run/docker.sock:/var/run/docker.sock \
 -v $(which docker):/usr/bin/docker jenkins/jenkins:lts
 ```
+
 - Enable Docker permissions in the new jenkins container, such that Jenkins can perform docker commands and pull the [Official Image](https://hub.docker.com/r/mintoolkit/mint) in the container. To do this, you need to get into the Jenkins container as a root user, you can find the jenkins container ID by using the docker ps command, the commands to execute are highlighted below:
+
 ```
 docker exec -u 0 -it [jenkins_container_id] bash
 ```
+
 ```
-chmod 666 /var/run/docker.sock 
+chmod 666 /var/run/docker.sock
 ```
+
 ```
 docker pull mintoolkit/mint
 ```
+
 #### Jenkinsfile Slim Stage
+
 Given you have completed the prerequisite steps above, you can build a docker image and minify the image size using **Mint** via the snippet stage below which should be highlighted in your Jenkinsfile stages.
+
 ```
 stage("Build and Slim Docker Image") {
   steps {
@@ -916,10 +933,12 @@ stage("Build and Slim Docker Image") {
   }
 }
 ```
-- The snippet stage above allows for customization, you should replace the image name--IMAGE_NAME with your desired image name, the environment variable tag--$BUILD_NUMBER represents a unique incremental number allocated by Jenkins each time your jenkins pipeline runs. 
+
+- The snippet stage above allows for customization, you should replace the image name--IMAGE_NAME with your desired image name, the environment variable tag--$BUILD_NUMBER represents a unique incremental number allocated by Jenkins each time your jenkins pipeline runs.
 - The docker build command builds a Docker Image of your application from a Dockerfile.
 - The docker run command runs **Mint** in a non-interactive mode via the docker unix socket, minifies the built(target) image--IMAGE_NAME:$BUILD_NUMBER, and adjusting it to a new slimmed image with the image/tag--IMAGE_NAME:slim-$BUILD_NUMBER.
 - You should put the **Mint** stage before a docker tag/push stage and after a build/test artifact in your Jenkinsfile, an example pipeline is highlighted below for a sample nodejs application; The first stage test and builds an artifact of the application; The second stage builds a docker image and a slimmed version of the docker image; The third stage tags the slimmed docker image with a DockerHub account remote repository and pushes the image to the remote repository.
+
 ```
 pipeline {
     agent any
@@ -957,12 +976,15 @@ pipeline {
             }
         }
     }
-}   
+}
 ```
 
 ### Integrating Mint in Github Actions
+
 #### Docker-Slim Github Action
-Integrating Slim in Github Actions in your CI/CD workflow involves using the [Docker-Slim Github Action](https://github.com/marketplace/actions/docker-slim-github-action), this Action(snippet below) minifies a target docker image--IMAGE_NAME:latest in your workflow, making it smaller and adjusting the new slimmed image as IMAGE_NAME:slim.  
+
+Integrating Slim in Github Actions in your CI/CD workflow involves using the [Docker-Slim Github Action](https://github.com/marketplace/actions/docker-slim-github-action), this Action(snippet below) minifies a target docker image--IMAGE_NAME:latest in your workflow, making it smaller and adjusting the new slimmed image as IMAGE_NAME:slim.
+
 ```
 # Slim it!
 - uses: kitabisa/docker-slim-action@v1
@@ -972,14 +994,17 @@ Integrating Slim in Github Actions in your CI/CD workflow involves using the [Do
     target: IMAGE_NAME:latest
     tag: "slim"
 ```
+
 #### Github Actions Workflow
+
 You can integrate the Docker-Slim Github Action in your workflow by inserting the Action after a [Docker Build/Push Github Action](https://github.com/docker/build-push-action), before [Docker Login Github Action](https://github.com/docker/login-action) and docker tag/push commands, a customized example workflow is highlighted below. Note that the environment variable tag--{{github.run_number}} in the workflow represents a unique incremental number allocated by Github Actions each time your workflow runs.
+
 ```
 # Build the Docker image first
 - uses: docker/build-push-action@v4
   with:
     push: false
-    tags: IMAGE_NAME:{{github.run_number}} 
+    tags: IMAGE_NAME:{{github.run_number}}
 
 # Slim the Image
 - uses: kitabisa/docker-slim-action@v1
@@ -996,16 +1021,17 @@ You can integrate the Docker-Slim Github Action in your workflow by inserting th
     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
 # Push to the registry
-- run: | 
+- run: |
    docker tag IMAGE_NAME:slim-{{github.run_number}} ${{ secrets.DOCKERHUB_USERNAME }}/IMAGE_NAME:slim-{{github.run_number}}
    docker push ${{ secrets.DOCKERHUB_USERNAME }}/IMAGE_NAME:slim-{{github.run_number}}
 ```
-The workflow above indicates four steps:
-- A [Docker Build/Push Github Action](https://github.com/docker/build-push-action) for building a docker image with the image name/tag--IMAGE_NAME:{{github.run_number}}, you should give replace IMAGE_NAME with your desired image name. Note that this Action must have a false option to push the built image--given that you need the image slimmed/minified before pushing it to a container registry. 
-- A Docker-Slim Github Action which minifies the target image--IMAGE_NAME:{{github.run_number}}, this Action has the "slim-{{github.run_number}}" tag and adds this tag to the slimmed/minified docker image such that the image name/tag becomes IMAGE_NAME:slim-{{github.run_number}}.
-- A Docker Login Github Action which logs into your DockerHub container regristry account, you should store your DockerHub username and personal access token as secrets in the github repository meant for the workflow. Suppose your container registry is not DockerHub, you can check the [Docker Login Github Action documentation](https://github.com/docker/login-action) for the use case of logging into your desired container registry. 
-- A docker tag command for naming/tagging the slimmed image with your DockerHub account remote repository name which could be the same name(IMAGE_NAME) as the slimmed image; A docker push command to push the slimmed image to your Dockerhub account remote repository.
 
+The workflow above indicates four steps:
+
+- A [Docker Build/Push Github Action](https://github.com/docker/build-push-action) for building a docker image with the image name/tag--IMAGE_NAME:{{github.run_number}}, you should give replace IMAGE_NAME with your desired image name. Note that this Action must have a false option to push the built image--given that you need the image slimmed/minified before pushing it to a container registry.
+- A Docker-Slim Github Action which minifies the target image--IMAGE_NAME:{{github.run_number}}, this Action has the "slim-{{github.run_number}}" tag and adds this tag to the slimmed/minified docker image such that the image name/tag becomes IMAGE_NAME:slim-{{github.run_number}}.
+- A Docker Login Github Action which logs into your DockerHub container regristry account, you should store your DockerHub username and personal access token as secrets in the github repository meant for the workflow. Suppose your container registry is not DockerHub, you can check the [Docker Login Github Action documentation](https://github.com/docker/login-action) for the use case of logging into your desired container registry.
+- A docker tag command for naming/tagging the slimmed image with your DockerHub account remote repository name which could be the same name(IMAGE_NAME) as the slimmed image; A docker push command to push the slimmed image to your Dockerhub account remote repository.
 
 ## CONTAINER RUNTIME CONNECT OPTIONS
 
@@ -1075,12 +1101,13 @@ The `--http-probe-cmd-upload` option is good when you want to upload a file. The
 If you only want to use custom HTTP probe command and you don't want the default `GET /` command added to the command list you explicitly provided you'll need to set `--http-probe` to false when you specify your custom HTTP probe command. Note that this inconsistency will be addressed in the future releases to make it less confusing.
 
 Possible field combinations:
-* `/path` - runs `GET /path`
-* `crawl:/path` - runs `GET /path` and then crawls the pages referenced by the target page
-* `post:/path` - runs `POST /path`
-* `crawl:get:/path` - runs `GET /path` and then crawls the pages referenced by the target page
-* `https:get:/path` runs `GET /path` only on https
-* `crawl:http:get:/path` - runs `GET /path` and then crawls the pages referenced by the target page
+
+- `/path` - runs `GET /path`
+- `crawl:/path` - runs `GET /path` and then crawls the pages referenced by the target page
+- `post:/path` - runs `POST /path`
+- `crawl:get:/path` - runs `GET /path` and then crawls the pages referenced by the target page
+- `https:get:/path` runs `GET /path` only on https
+- `crawl:http:get:/path` - runs `GET /path` and then crawls the pages referenced by the target page
 
 Here are a couple of examples:
 
@@ -1093,21 +1120,22 @@ Adds one extra probe command: `POST /submit` (using only http):
 The `--http-probe-cmd-file` option is good when you have a lot of commands and/or you want to select additional HTTP command options.
 
 Available HTTP command options:
-* `method` - HTTP method to use
-* `resource` - target resource URL
-* `port` - port number
-* `protocol` - `http`, `https`, `http2`, `http2c` (cleartext version of http2), `ws`, `wss` (secure websocket)
-* `headers` - array of strings with column delimited key/value pairs (e.g., "Content-Type: application/json")
-* `body` - request body as a string
-* `body_file` - request body loaded from the provided file
-* `body_generate` - auto-generate request body using one of the instructions: `generate.text`, `generate.text.json`, `generate.image`, `generate.image.png`, `generate.image.jpeg`, `generate.image.gif`
-* `body_is_form` - request body is a multipart form (request data from `body`, `body_file` or `body_generate` will be form encoded)
-* `form_field_name` - form field name to use (for form submissions)
-* `form_file_name` - form file name to use (for form submissions)
-* `username` - username to use for basic auth
-* `password` - password to use for basic auth
-* `crawl` - boolean to indicate if you want to crawl the target (to visit all referenced resources)
-* `fastcgi` - Fast CGI config params (todo: document sub-fields, see code for details)
+
+- `method` - HTTP method to use
+- `resource` - target resource URL
+- `port` - port number
+- `protocol` - `http`, `https`, `http2`, `http2c` (cleartext version of http2), `ws`, `wss` (secure websocket)
+- `headers` - array of strings with column delimited key/value pairs (e.g., "Content-Type: application/json")
+- `body` - request body as a string
+- `body_file` - request body loaded from the provided file
+- `body_generate` - auto-generate request body using one of the instructions: `generate.text`, `generate.text.json`, `generate.image`, `generate.image.png`, `generate.image.jpeg`, `generate.image.gif`
+- `body_is_form` - request body is a multipart form (request data from `body`, `body_file` or `body_generate` will be form encoded)
+- `form_field_name` - form field name to use (for form submissions)
+- `form_file_name` - form file name to use (for form submissions)
+- `username` - username to use for basic auth
+- `password` - password to use for basic auth
+- `crawl` - boolean to indicate if you want to crawl the target (to visit all referenced resources)
+- `fastcgi` - Fast CGI config params (todo: document sub-fields, see code for details)
 
 Here's a probe command file example:
 
@@ -1158,19 +1186,19 @@ The current version also includes an experimental `crawling` capability. To enab
 When `crawling` is enabled the HTTP probe will act like a web crawler following the links it finds in the target endpoint.
 
 Probing based on the Swagger/OpenAPI spec is another experimental capability. This feature introduces two new flags:
-* `http-probe-apispec` - value: `<path_to_fetch_spec>:<api_endpoint_prefix>`
-* `http-probe-apispec-file` - value: `<local_file_path_to_spec>`
+
+- `http-probe-apispec` - value: `<path_to_fetch_spec>:<api_endpoint_prefix>`
+- `http-probe-apispec-file` - value: `<local_file_path_to_spec>`
 
 You can use the `--http-probe-exec` and `--http-probe-exec-file` options to run the user provided commands when the http probes are executed. This example shows how you can run `curl` against the temporary container created by **Mint** when the http probes are executed.
 
 `mint slim --http-probe-exec 'curl http://localhost:YOUR_CONTAINER_PORT_NUM/some/path' --publish-port YOUR_CONTAINER_PORT_NUM your-container-image-name`
 
-
 ## DEBUGGING MINIFIED CONTAINERS
 
 ### Debugging Using the `debug` Command
 
-Most users should run the `debug` command in the interactive mode, which can be done by executing the main app (`mint`) without any parameters. The interactive mode shows you the commands and their flags. It also helps you interactively select many important `debug` command flag values (e.g., target container, namespace, pod). 
+Most users should run the `debug` command in the interactive mode, which can be done by executing the main app (`mint`) without any parameters. The interactive mode shows you the commands and their flags. It also helps you interactively select many important `debug` command flag values (e.g., target container, namespace, pod).
 
 The current version of the `debug` command supports multiple container runtimes: `docker`, `podman`, `kubernetes` and `containerd`.
 
@@ -1180,12 +1208,12 @@ By default the `debug` command will provide you with an interactive terminal whe
 
 Other default behavior:
 
-* The debugging sidecar container runs as a privileged container by default. To disable the behavior set `--run-privileged` to `false`.
-* The environment variables from the target container (defined at the container image/spec level) will be loaded into the debugging sidecar container. For now, this is only implemented for `k8s`. To disable the behavior set `--load-target-env-vars` to `false`.
+- The debugging sidecar container runs as a privileged container by default. To disable the behavior set `--run-privileged` to `false`.
+- The environment variables from the target container (defined at the container image/spec level) will be loaded into the debugging sidecar container. For now, this is only implemented for `k8s`. To disable the behavior set `--load-target-env-vars` to `false`.
 
 #### Podman Runtime
 
-Depending on how the Podman container runtime is installed and if you are using Podman Desktop you may need to start Podman services to expose the API the `debug` command is using. Right now it's your responsibility, but the future versions will auto-start the Podman service. 
+Depending on how the Podman container runtime is installed and if you are using Podman Desktop you may need to start Podman services to expose the API the `debug` command is using. Right now it's your responsibility, but the future versions will auto-start the Podman service.
 
 Here's what you'll need to do:
 
@@ -1204,25 +1232,27 @@ You can list all pre-selected debug images with the `--list-debug-images` and if
 
 Here's the current list of debug images:
 
-* `cgr.dev/chainguard/min-toolkit-debug:latest` - a general purpose Mint debug image created by Chainguard
-* `cgr.dev/chainguard/wolfi-base:latest` - a basic lightweight Wolfi image
-* `busybox:latest` - a lightweight image with common unix utilities
-* `nicolaka/netshoot` - a network trouble-shooting swiss-army container
-* `lightruncom/koolkits:node` - a debug image for Node.js applications
-* `lightruncom/koolkits:python` - a debug image for Python applications
-* `lightruncom/koolkits:golang` - a debug image for Go applications
-* `lightruncom/koolkits:jvm` - a debug image for Java applications
-* `digitalocean/doks-debug:latest` - a kubernetes troubleshooting debug image
-* `public.ecr.aws/zinclabs/debug-ubuntu-base:latest` - an image with common debugging utilities 
+- `cgr.dev/chainguard/min-toolkit-debug:latest` - a general purpose Mint debug image created by Chainguard
+- `cgr.dev/chainguard/wolfi-base:latest` - a basic lightweight Wolfi image
+- `busybox:latest` - a lightweight image with common unix utilities
+- `nicolaka/netshoot` - a network trouble-shooting swiss-army container
+- `lightruncom/koolkits:node` - a debug image for Node.js applications
+- `lightruncom/koolkits:python` - a debug image for Python applications
+- `lightruncom/koolkits:golang` - a debug image for Go applications
+- `lightruncom/koolkits:jvm` - a debug image for Java applications
+- `digitalocean/doks-debug:latest` - a kubernetes troubleshooting debug image
+- `public.ecr.aws/zinclabs/debug-ubuntu-base:latest` - an image with common debugging utilities
 
 #### Steps to Debug Your Container (Kubernetes Runtime)
 
 1. Make sure the target environment you want to debug is up (the example k8s manifest creates a pod with the minimal nginx image from Chainguard and it has no shell):
+
 ```bash
 
 >> kubectl apply -f examples/k8s_nginx_cgr/manifest.yaml
 
 ```
+
 2. Run the debug command:
 
 ```bash
@@ -1230,7 +1260,9 @@ Here's the current list of debug images:
 >> mint debug --runtime=k8s --pod=example-pod example-container
 
 ```
+
 or
+
 ```bash
 
 >> mint debug --runtime=k8s --pod=example-pod --target=example-container
@@ -1238,6 +1270,7 @@ or
 ```
 
 For a very simple setup where you have only one namespace, only one pod and only one container or if you want to target the first pod and the first container in that pod your debug command can be simplified to look like this:
+
 ```bash
 >> mint debug --runtime k8s
 ```
@@ -1250,14 +1283,16 @@ Also note that if you use the interactive `prompt` mode (when you run `mint` wit
 
 Each time you try to debug an image `mint` will have a session that represents it. You'll be able to reconnect to the existing active debug sessions and you'll be able to get logs from all available sessions.
 
-#### Steps to Debug Your Container (Docker Runtime) 
+#### Steps to Debug Your Container (Docker Runtime)
 
 1. Start the target container you want to debug:
+
 ```bash
 
 >> docker run -it --rm -p 80:80 --name mycontainer nginx
 
 ```
+
 2. Run the debug command:
 
 ```bash
@@ -1265,7 +1300,9 @@ Each time you try to debug an image `mint` will have a session that represents i
 >> mint debug mycontainer
 
 ```
+
 or
+
 ```bash
 
 >> mint debug --target=mycontainer
@@ -1309,8 +1346,8 @@ Some of the useful debugging commands include `cat /proc/<TARGET_PID>/cmdline`, 
 
 ### Talks and Presentations about Debugging
 
-* https://speakerdeck.com/kcq/building-a-tool-to-debug-minimal-container-images-in-kubernetes-docker-and-containerd
-* https://speakerdeck.com/kcq/improving-developer-experience-with-containers-making-it-easy-to-understand-optimize-and-troubleshoot-your-containers
+- https://speakerdeck.com/kcq/building-a-tool-to-debug-minimal-container-images-in-kubernetes-docker-and-containerd
+- https://speakerdeck.com/kcq/improving-developer-experience-with-containers-making-it-easy-to-understand-optimize-and-troubleshoot-your-containers
 
 ## MINIFYING COMMAND LINE TOOLS
 
@@ -1364,11 +1401,11 @@ The demo runs on Mac OS X, but you can build a linux version. Note that these st
 
 1. Get the **Mint** app binaries:
 
-* [Mac](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_mac.zip),
-* [Mac M1](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_mac_m1.zip), 
-* [Linux](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux.tar.gz), 
-* [Linux ARM](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux_arm.tar.gz),
-* [Linux ARM64](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux_arm64.tar.gz) 
+- [Mac](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_mac.zip),
+- [Mac M1](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_mac_m1.zip),
+- [Linux](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux.tar.gz),
+- [Linux ARM](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux_arm.tar.gz),
+- [Linux ARM64](https://github.com/mintoolkit/mint/releases/download/1.41.7/dist_linux_arm64.tar.gz)
 
 Unzip them and optionally add their directory to your `PATH` environment variable if you want to use the app from other locations.
 
@@ -1513,7 +1550,7 @@ Note:
 
 Try using the latest version of Go building the **Mint** app. The current version of Go used to build the **Mint** app is 1.22.
 
-#### 🌏  Open in Cloud IDEs
+#### 🌏 Open in Cloud IDEs
 
 Get a fully pre-configured development environment in one click. Click any of the buttons below to start a new development environment to demo or contribute to the codebase without having to install anything on your machine:
 
@@ -1582,4 +1619,3 @@ The project follows the [CNCF Code of Conduct](https://github.com/cncf/foundatio
 ---
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/mintoolkit/mint)](https://goreportcard.com/report/github.com/mintoolkit/mint)
-
