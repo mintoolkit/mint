@@ -17,6 +17,16 @@ func NewTopObjects(n int) TopObjects {
 func (to TopObjects) Len() int { return len(to) }
 
 func (to TopObjects) Less(i, j int) bool {
+	if to[i] == nil && to[j] != nil {
+		return true
+	}
+	if to[i] != nil && to[j] == nil {
+		return false
+	}
+	if to[i] == nil && to[j] == nil {
+		return false
+	}
+
 	return to[i].Size < to[j].Size
 }
 
