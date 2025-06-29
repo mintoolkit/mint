@@ -3,11 +3,10 @@ package check
 
 import (
 	"fmt"
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/mintoolkit/mint/pkg/docker/instruction"
 )
 
 func init() {
@@ -40,7 +39,7 @@ func (c *RelativeWorkdir) Run(opts *Options, ctx *Context) (*Result, error) {
 	}
 
 	for _, stage := range ctx.Dockerfile.Stages {
-		if instructions, ok := stage.CurrentInstructionsByType[instruction.Workdir]; ok {
+		if instructions, ok := stage.CurrentInstructionsByType[df.InstTypeWorkdir]; ok {
 			for _, inst := range instructions {
 				if len(inst.ArgsRaw) > 0 {
 					workdirPath := inst.ArgsRaw
