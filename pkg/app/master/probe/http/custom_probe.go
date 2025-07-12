@@ -650,7 +650,7 @@ probeLoop:
 			if port == defaultFastCGIPortStr && cmd.FastCGI == nil {
 				p.logger.Debugf("FastCGI default port (%s) used, setting up HTTP probe FastCGI wrapper defaults", port)
 
-				// Typicall the entrypoint into a PHP app.
+				// Typically the entrypoint into a PHP app.
 				if cmd.Resource == "/" {
 					cmd.Resource = "/index.php"
 				}
