@@ -1155,7 +1155,7 @@ Commands in `probeCmds.json`:
      "resource": "/submit"
    },
    {
-     "procotol": "http",
+     "protocol": "http",
      "resource": "/api/call?arg=one"
    },
    {
