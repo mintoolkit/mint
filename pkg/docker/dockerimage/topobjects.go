@@ -53,8 +53,13 @@ func (to *TopObjects) Pop() interface{} {
 
 func (to TopObjects) List() []*ObjectMetadata {
 	list := []*ObjectMetadata{}
-	for len(to) > 0 {
-		item := heap.Pop(&to).(*ObjectMetadata)
+	// Create a copy of the heap to avoid modifying the original heap
+	h := make(TopObjects, len(to))
+	copy(h, to)
+	heap.Init(&h)
+
+	for len(h) > 0 {
+		item := heap.Pop(&h).(*ObjectMetadata)
 		if item == nil {
 			continue
 		}
