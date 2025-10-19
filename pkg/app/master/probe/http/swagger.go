@@ -331,7 +331,7 @@ func paramStringForSchema(sref *openapi3.SchemaRef) string {
 		if v, ok := s.Enum[0].(string); ok {
 			return v
 		}
-		return "1"
+		return fmt.Sprint(s.Enum[0])
 	}
 
 	switch s.Type {
@@ -644,14 +644,6 @@ func (p *CustomProbe) probeAPISpecEndpoints(proto, targetHost, port, prefix stri
 				} else {
 					bodyBytes = bodyForm.Bytes()
 				}
-			}
-
-			// include Content-Type in headers map as needed
-			if contentType != "" {
-				if hdrs == nil {
-					hdrs = map[string]string{}
-				}
-				hdrs[HeaderContentType] = contentType
 			}
 
 			//make a call
