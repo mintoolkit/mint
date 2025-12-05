@@ -393,7 +393,7 @@ func GlobalFlags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    FlagAPIVersion,
-			Value:   "1.32", // We need at least 1.32 for to support builds from Dockerfile.
+			Value:   "1.44", // The latest version of Docker requires 1.44 or newer.
 			Usage:   FlagAPIVersionUsage,
 			EnvVars: []string{"DSLIM_CRT_API_VER"},
 		},
