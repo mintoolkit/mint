@@ -1,5 +1,47 @@
 # Releases
 
+## 1.41.8 (12/11/2025)
+
+### New Features & Improvements
+
+- Enhanced `http/probe` with `apispec` to generate dummy parameter data and request bodies (#148) (Artem Tkachuk)
+- Updated default Docker API version (Kyle Quest)
+- Added support for Docker contexts to connect to the Docker engine; use `--crt-context` global flag or `DOCKER_CONTEXT` env var (Kyle Quest)
+- Implemented simple build engine support for the `imagebuild` command, including saving images and using a predefined base image with certs via `--base-with-certs` flag (Kyle Quest)
+- Extended `imagebuild` to support the simple build engine and refactored CRT operation inactivity timeouts (Kyle Quest)
+- Introduced `--runtime-load` flag to load built images to multiple runtimes (Kyle Quest)
+- Added `SLIM_EXPORT_IMAGE_INACTIVITY_TIMEOUT` and `SLIM_DOWNLOAD_INACTIVITY_TIMEOUT` environment variables for inactivity timeout values (#65) (tsujie)
+- Added browser IDE support (#104) (Jaafar)
+- Implemented `--http-probe-fail-on-status-4xx` flag to fail HTTP probes for 4xx response statuses (Kyle Quest)
+- Refactored registry operations and added ability to push newly built images via the `imagebuild` command (Kyle Quest)
+- Defaulted `xray --changes` flag to `all` (Kyle Quest)
+- Added support for TUI mode for Docker sessions (#83) (Evan Harris)
+- Implemented debug session support via K8s runtime to Nginx (#81) (Evan Harris)
+- Added runtime selector (#80) (Evan Harris)
+- Included an attempt to connect to socket before selecting it as runtime (#78) (Evan Harris)
+- Updated Readme to point to the correct homebrew formulae with a new name (#118) (Kyle Jurassic)
+- Updated Readme with more container runtime connection info and extra logging for Docker client setup (Kyle Quest)
+
+### Bug Fixes
+
+- Handled nil pointers to prevent issues (#125) (ernstvonoelsen)
+- Added basic checks to avoid nil values in top objects (Kyle Quest)
+- Added nil check for current Docker context (#68) (Evan Harris)
+- Corrected logic to check if `dataDir` folder exists instead of `dataTar` file (#60) (tsujie)
+- Fixed spelling errors (#82) (Evan Harris)
+- Excluded the error field in successful probe call console messages (Kyle Quest)
+- Addressed deprecated `VirtualSize` in list image Docker API (Kyle Quest)
+- Cleaned up top object list logic in `xray` (Kyle Quest)
+- General code cleanup (Kyle Quest)
+- Artifact detection and handling cleanup (Kyle Quest)
+- Syscall updates (Kyle Quest)
+- Printed `os.Args` prior to exiting (#102) (ernstvonoelsen)
+- Listed all k8s debuggable containers (#84) (Evan Harris)
+- Used `logrus` for TUI logging (#77) (Evan Harris)
+- Renamed TUI `model.go` files to `tui.go` (#76) (Evan Harris)
+- Used channels to pass data to the debug TUI (#75) (Evan Harris)
+
+
 ## 1.41.7 (9/24/2024)
 
 ### New Features
