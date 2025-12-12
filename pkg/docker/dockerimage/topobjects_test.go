@@ -55,11 +55,11 @@ func TestTopObjects_List_NilSafety(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			to := tt.setup(t)
 			result := to.List()
-			
+
 			if len(result) != tt.wantLen {
 				t.Errorf("List() returned %d items, want %d", len(result), tt.wantLen)
 			}
-			
+
 			// Verify the order is correct (descending by size)
 			for i := 1; i < len(result); i++ {
 				if result[i-1] == nil || result[i] == nil {
@@ -81,7 +81,7 @@ func TestTopObjects_List_ModificationSafety(t *testing.T) {
 
 	originalLen := to.Len()
 	result := to.List()
-	
+
 	// Modify the result slice
 	if len(result) > 0 {
 		result[0] = &ObjectMetadata{Name: "modified", Size: 999}

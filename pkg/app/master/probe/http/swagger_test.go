@@ -175,4 +175,3 @@ func TestBuildQueryAndHeaders_ArrayHandling(t *testing.T) {
 		t.Fatalf("array item -> %q; want %q", values.Get("ids"), "1")
 	}
 }
-
