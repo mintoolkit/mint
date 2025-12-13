@@ -805,6 +805,7 @@ func copyFileObjectHandler(
 	excludePatterns []string, ignoreDirNames, ignoreFileNames map[string]struct{},
 	errs *[]error) filepath.WalkFunc {
 	var foCount uint64
+	const recursivePatternSuffix = "/**"
 
 	return func(path string, info os.FileInfo, err error) error {
 		foCount++
@@ -830,7 +831,7 @@ func copyFileObjectHandler(
 				continue
 			}
 
-			if !matched && strings.HasSuffix(xpattern, "/**") && strings.TrimSuffix(xpattern, "/**") == path {
+			if !matched && strings.HasSuffix(xpattern, recursivePatternSuffix) && strings.TrimSuffix(xpattern, recursivePatternSuffix) == path {
 				matched = true
 			}
 
