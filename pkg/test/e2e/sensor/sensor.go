@@ -31,6 +31,7 @@ import (
 )
 
 const (
+	LocalBinFile = "mint-sensor"
 	// Intentionally duplicating values here since to make sure a refactoing
 	// of the paths on the sensor side won't be unnoticed.
 	CommandsFileName  = "commands.json"
@@ -129,9 +130,13 @@ func NewSensor(
 	imageName string,
 	opts ...sensorOpt,
 ) (*Sensor, error) {
-	sensorExePath, err := exec.LookPath(sensor.LocalBinFile)
-	if err != nil {
-		return nil, fmt.Errorf("cannot locate %s executable on the host system", sensor.LocalBinFile)
+	sensorExePath := os.Getenv("DSLIM_SENSOR_PATH")
+	if sensorExePath == "" {
+		var err error
+		sensorExePath, err = exec.LookPath(sensor.LocalBinFile)
+		if err != nil {
+			return nil, fmt.Errorf("cannot locate %s executable on the host system", sensor.LocalBinFile)
+		}
 	}
 
 	if err := imagePull(ctx, imageName); err != nil {

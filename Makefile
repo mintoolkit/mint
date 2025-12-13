@@ -17,6 +17,9 @@ build_m1:  ## build docker-slim
 build_dev:  ## build docker-slim for development (quickly), in bin/
 	'$(CURDIR)/scripts/src.build.quick.sh'
 
+build-sensor: ## build mint-sensor
+	'$(CURDIR)/scripts/src.build.sensor.sh'
+
 fmt:  ## format all golang files
 	'$(CURDIR)/scripts/src.fmt.sh'
 
@@ -33,6 +36,9 @@ tools: ## install necessary tools
 test: export GO_TEST_FLAGS ?=
 test:
 	'$(CURDIR)/scripts/src.test.sh'
+
+test-e2e-exclude: build-sensor
+	sudo DSLIM_SENSOR_PATH=$(CURDIR)/bin/mint-sensor go test -v -tags e2e -count 1 -timeout 30m -run TestExcludePattern ./pkg/app/sensor
 
 clean: ## clean up
 	'$(CURDIR)/scripts/src.cleanup.sh'
