@@ -831,7 +831,10 @@ func copyFileObjectHandler(
 				continue
 			}
 
-			if !matched && strings.HasSuffix(xpattern, recursivePatternSuffix) && strings.TrimSuffix(xpattern, recursivePatternSuffix) == path {
+			shouldIgnoreRecursivePattern := strings.HasSuffix(xpattern, recursivePatternSuffix) &&
+				strings.TrimSuffix(xpattern, recursivePatternSuffix) == path
+
+			if !matched && shouldIgnoreRecursivePattern {
 				matched = true
 			}
 
