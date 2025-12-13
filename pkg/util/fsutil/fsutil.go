@@ -833,6 +833,11 @@ func copyFileObjectHandler(
 				isIgnored = true
 				break
 			}
+
+			if strings.HasSuffix(xpattern, "/**") && strings.TrimSuffix(xpattern, "/**") == path {
+				isIgnored = true
+				break
+			}
 		}
 		/*
 			if _, ok := ignorePaths[path]; ok {
