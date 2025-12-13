@@ -27,8 +27,10 @@ func TestCopyDirExcludesWholeDirectoryWhenPatternHasDoubleStar(t *testing.T) {
 	}
 
 	pattern := filepath.Join(excludedDir, "**")
-	if err, _ := CopyDir(false, src, dst, true, true, []string{pattern}, nil, nil); err != nil {
+	if err, errs := CopyDir(false, src, dst, true, true, []string{pattern}, nil, nil); err != nil {
 		t.Fatalf("CopyDir returned error: %v", err)
+	} else if len(errs) > 0 {
+		t.Fatalf("CopyDir returned copy errors: %v", errs)
 	}
 
 	excludedTarget := filepath.Join(dst, "var", "lib", "postgresql", "data")

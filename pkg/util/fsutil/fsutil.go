@@ -823,18 +823,18 @@ func copyFileObjectHandler(
 
 		var isIgnored bool
 		for _, xpattern := range excludePatterns {
-			found, err := doublestar.Match(xpattern, path)
+			matched, err := doublestar.Match(xpattern, path)
 			if err != nil {
 				log.Warnf("copyFileObjectHandler - [%v] excludePatterns Match error - %v\n", path, err)
 				//should only happen when the pattern is malformed
 				continue
 			}
-			if found {
-				isIgnored = true
-				break
+
+			if !matched && strings.HasSuffix(xpattern, "/**") && strings.TrimSuffix(xpattern, "/**") == path {
+				matched = true
 			}
 
-			if strings.HasSuffix(xpattern, "/**") && strings.TrimSuffix(xpattern, "/**") == path {
+			if matched {
 				isIgnored = true
 				break
 			}
