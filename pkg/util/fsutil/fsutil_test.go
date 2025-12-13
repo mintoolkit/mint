@@ -26,8 +26,12 @@ func TestCopyDirExcludesWholeDirectoryWhenPatternHasDoubleStar(t *testing.T) {
 		t.Fatalf("failed to create keep file: %v", err)
 	}
 
-	pattern := filepath.Join(excludedDir, "**")
-	if err, errs := CopyDir(false, src, dst, true, true, []string{pattern}, nil, nil); err != nil {
+	pattern := excludedDir + "/**"
+	clone := false
+	copyRelPath := true
+	skipErrors := true
+
+	if err, errs := CopyDir(clone, src, dst, copyRelPath, skipErrors, []string{pattern}, nil, nil); err != nil {
 		t.Fatalf("CopyDir returned error: %v", err)
 	} else if len(errs) > 0 {
 		t.Fatalf("CopyDir returned copy errors: %v", errs)
