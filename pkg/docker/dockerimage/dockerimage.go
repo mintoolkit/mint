@@ -516,6 +516,72 @@ const (
 	OCIImageManifestLocation     = "ll.oci.imagemanifest"
 )
 
+// ArchiveInfo contains basic information extracted from an image archive
+type ArchiveInfo struct {
+	ImageID  string
+	RepoTags []string
+}
+
+// GetArchiveInfo extracts basic image information from a Docker image archive
+// by reading the manifest.json file. This is useful when you have an archive
+// but don't have the image ID.
+func GetArchiveInfo(archivePath string) (*ArchiveInfo, error) {
+	afile, err := os.Open(archivePath)
+	if err != nil {
+		log.Errorf("dockerimage.GetArchiveInfo: os.Open error - %v", err)
+		return nil, err
+	}
+	defer afile.Close()
+
+	tr := tar.NewReader(afile)
+	for {
+		hdr, err := tr.Next()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			log.Errorf("dockerimage.GetArchiveInfo: error reading archive - %v", err)
+			return nil, err
+		}
+
+		if hdr == nil || hdr.Name == "" {
+			continue
+		}
+
+		if hdr.Name == "manifest.json" {
+			var manifests []DockerManifestObject
+			if err := json.NewDecoder(tr).Decode(&manifests); err != nil {
+				log.Errorf("dockerimage.GetArchiveInfo: error decoding manifest - %v", err)
+				return nil, err
+			}
+
+			if len(manifests) == 0 {
+				return nil, fmt.Errorf("no manifests found in archive")
+			}
+
+			// Extract image ID from config path (e.g., "abc123.json" -> "abc123")
+			// or for OCI format: "blobs/sha256/DIGEST" -> "sha256:DIGEST"
+			configPath := manifests[0].Config
+			var imageID string
+			if strings.HasPrefix(configPath, "blobs/sha256/") {
+				// OCI format
+				digest := strings.TrimPrefix(configPath, "blobs/sha256/")
+				imageID = "sha256:" + digest
+			} else {
+				// Docker v1 format - strip .json extension
+				imageID = strings.TrimSuffix(configPath, ".json")
+			}
+
+			return &ArchiveInfo{
+				ImageID:  imageID,
+				RepoTags: manifests[0].RepoTags,
+			}, nil
+		}
+	}
+
+	return nil, fmt.Errorf("manifest.json not found in archive")
+}
+
 func LoadPackage(archivePath string,
 	imageID string,
 	skipObjects bool,
