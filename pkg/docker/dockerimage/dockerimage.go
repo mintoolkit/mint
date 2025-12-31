@@ -1130,10 +1130,35 @@ func LoadPackage(archivePath string,
 						layerID = hdr.Name
 					}
 
+					// Handle gzip-compressed OCI image layers
+					// Many Docker/OCI images use gzip-compressed layers with media types like:
+					// - application/vnd.docker.image.rootfs.diff.tar.gzip
+					// - application/vnd.oci.image.layer.v1.tar+gzip
+					var layerReader io.Reader = tr
+					mediaType, hasMediaType := nonLayerFileNames[hdr.Name]
+					isGzipByMediaType := hasMediaType && (strings.Contains(mediaType, "gzip") || strings.Contains(mediaType, "+gzip"))
+
+					// Try gzip decompression - gzip.NewReader validates the gzip header
+					gzReader, gzErr := gzip.NewReader(tr)
+					if gzErr == nil {
+						layerReader = gzReader
+						defer gzReader.Close()
+						if isGzipByMediaType {
+							log.Debugf("dockerimage.LoadPackage: using gzip decompression for layer '%s' (mediaType: %s)", hdr.Name, mediaType)
+						} else {
+							log.Debugf("dockerimage.LoadPackage: auto-detected gzip compression for layer '%s'", hdr.Name)
+						}
+					} else if isGzipByMediaType {
+						// Media type indicates gzip but decompression failed - this is an error
+						log.Errorf("dockerimage.LoadPackage: gzip decompression failed for layer(%s/%s) with gzip mediaType '%s' - %v", archivePath, hdr.Name, mediaType, gzErr)
+						return nil, gzErr
+					}
+					// else: not gzip compressed, use raw tar reader
+
 					layer, err := layerFromStream(
 						pkg,
 						hdr.Name,
-						tar.NewReader(tr),
+						tar.NewReader(layerReader),
 						layerID,
 						topChangesMax,
 						doHashData,
