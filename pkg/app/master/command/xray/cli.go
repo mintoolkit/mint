@@ -49,6 +49,7 @@ var XRayFlags = []cli.Flag{
 	command.Cflag(command.FlagRuntime),
 	command.Cflag(command.FlagCommandParamsFile),
 	command.Cflag(command.FlagTarget),
+	command.Cflag(command.FlagTargetImageArchive),
 	command.Cflag(command.FlagPull),
 	command.Cflag(command.FlagDockerConfigPath),
 	command.Cflag(command.FlagRegistryAccount),
@@ -114,9 +115,10 @@ var CLI = &cli.Command{
 		}
 
 		targetRef := ctx.String(command.FlagTarget)
-		if targetRef == "" {
+		targetImageArchive := ctx.String(command.FlagTargetImageArchive)
+		if targetRef == "" && targetImageArchive == "" {
 			if ctx.Args().Len() < 1 {
-				xc.Out.Error("param.target", "missing image ID/name")
+				xc.Out.Error("param.target", "missing image ID/name or archive path")
 				cli.ShowCommandHelp(ctx, Name)
 				return nil
 			} else {
@@ -345,6 +347,7 @@ var CLI = &cli.Command{
 			gcvalues,
 			cparams,
 			targetRef,
+			targetImageArchive,
 			doPull,
 			dockerConfigPath,
 			registryAccount,
