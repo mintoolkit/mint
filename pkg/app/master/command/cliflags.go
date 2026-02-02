@@ -177,6 +177,7 @@ const (
 	FlagCROHostConfigFile = "cro-host-config-file"
 	FlagCROSysctl         = "cro-sysctl"
 	FlagCROShmSize        = "cro-shm-size"
+	FlagCRODeviceRequest  = "cro-device-request"
 
 	//Original Container Runtime Options (without cro- prefix)
 	FlagUser               = "user"
@@ -296,6 +297,7 @@ const (
 	FlagCROHostConfigFileUsage = "Base Docker host configuration file (JSON format) to use when running the container"
 	FlagCROSysctlUsage         = "Set namespaced kernel parameters in the created container"
 	FlagCROShmSizeUsage        = "Shared memory size for /dev/shm in the created container"
+	FlagCRODeviceRequestUsage  = "JSON string specifying device request configuration for the container"
 
 	FlagUserUsage               = "Override USER analyzing image at runtime"
 	FlagEntrypointUsage         = "Override ENTRYPOINT analyzing image at runtime. To persist ENTRYPOINT changes in the output image, pass the --image-overrides=entrypoint or --image-overrides=all flag as well."
@@ -917,6 +919,11 @@ var CommonFlags = map[string]cli.Flag{
 		Value:   -1,
 		Usage:   FlagCROShmSizeUsage,
 		EnvVars: []string{"DSLIM_CRO_SHM_SIZE"},
+	},
+	FlagCRODeviceRequest: &cli.StringFlag{
+		Name:    FlagCRODeviceRequest,
+		Usage:   FlagCRODeviceRequestUsage,
+		EnvVars: []string{"DSLIM_CRO_DEVICE_REQUEST"},
 	},
 	FlagUser: &cli.StringFlag{
 		Name:    FlagUser,
