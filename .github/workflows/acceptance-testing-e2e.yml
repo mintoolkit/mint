@@ -108,7 +108,7 @@ jobs:
           - node
           - php
           - python
-          - ruby
+          # - ruby  # TODO: Disabled until slimtoolkit/examples is updated for ffi >= 1.17 Ruby version requirement
           - rust
         include:
           - os: ubuntu-latest
