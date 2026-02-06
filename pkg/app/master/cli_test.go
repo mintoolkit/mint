@@ -12,8 +12,8 @@ func TestCLI(t *testing.T) {
 
 	runArgs := [][]string{
 		{"mint", "--version"},
-		{"mint", "-v"},
 		{"mint", "help"},
+		{"mint", "--help"},
 		{"mint", "-h"},
 	}
 	for _, args := range runArgs {
