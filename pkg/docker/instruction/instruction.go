@@ -79,7 +79,7 @@ var Specs = map[string]Format{
 	},
 	df.InstTypeMaintainer: {
 		Name:         df.InstTypeMaintainer,
-		IsDepricated: true,
+		IsDeprecated: true,
 	},
 	df.InstTypeOnbuild: {
 		Name:            df.InstTypeLabel,
