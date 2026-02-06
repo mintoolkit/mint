@@ -2,29 +2,8 @@
 package instruction
 
 import (
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 	"strings"
-)
-
-// All supported instruction names
-const (
-	Add         = "add"
-	Arg         = "arg"
-	Cmd         = "cmd"
-	Copy        = "copy"
-	Entrypoint  = "entrypoint"
-	Env         = "env"
-	Expose      = "expose"
-	From        = "from"
-	Healthcheck = "healthcheck"
-	Label       = "label"
-	Maintainer  = "maintainer"
-	Onbuild     = "onbuild"
-	Run         = "run"
-	Shell       = "shell"
-	StopSignal  = "stopsignal"
-	User        = "user"
-	Volume      = "volume"
-	Workdir     = "workdir"
 )
 
 type Field struct {
@@ -57,80 +36,80 @@ type Format struct {
 
 // Specs is a map of all available instructions and their format info (by name)
 var Specs = map[string]Format{
-	Add: {
-		Name:             Add,
+	df.InstTypeAdd: {
+		Name:             df.InstTypeAdd,
 		SupportsFlags:    true,
 		SupportsJSONForm: true,
 	},
-	Arg: {
-		Name:               Arg,
+	df.InstTypeArg: {
+		Name:               df.InstTypeArg,
 		SupportsNameValues: true,
 	},
-	Cmd: {
-		Name:             Cmd,
+	df.InstTypeCmd: {
+		Name:             df.InstTypeCmd,
 		SupportsJSONForm: true,
 	},
-	Copy: {
-		Name:             Copy,
+	df.InstTypeCopy: {
+		Name:             df.InstTypeCopy,
 		SupportsFlags:    true,
 		SupportsJSONForm: true,
 	},
-	Entrypoint: {
-		Name:             Entrypoint,
+	df.InstTypeEntrypoint: {
+		Name:             df.InstTypeEntrypoint,
 		SupportsJSONForm: true,
 	},
-	Env: {
-		Name:               Env,
+	df.InstTypeEnv: {
+		Name:               df.InstTypeEnv,
 		RequiresNameValues: true,
 	},
-	Expose: {
-		Name: Expose,
+	df.InstTypeExpose: {
+		Name: df.InstTypeExpose,
 	},
-	From: {
-		Name:          From,
+	df.InstTypeFrom: {
+		Name:          df.InstTypeFrom,
 		SupportsFlags: true,
 	},
-	Healthcheck: {
-		Name:             Healthcheck,
+	df.InstTypeHealthcheck: {
+		Name:             df.InstTypeHealthcheck,
 		SupportsJSONForm: true,
 	},
-	Label: {
-		Name:               Label,
+	df.InstTypeLabel: {
+		Name:               df.InstTypeLabel,
 		RequiresNameValues: true,
 	},
-	Maintainer: {
-		Name:         Maintainer,
-		IsDeprecated: true,
+	df.InstTypeMaintainer: {
+		Name:         df.InstTypeMaintainer,
+		IsDepricated: true,
 	},
-	Onbuild: {
-		Name:            Label,
+	df.InstTypeOnbuild: {
+		Name:            df.InstTypeLabel,
 		SupportsSubInst: true,
 	},
-	Run: {
-		Name:             Run,
+	df.InstTypeRun: {
+		Name:             df.InstTypeRun,
 		SupportsJSONForm: true,
 	},
-	Shell: {
-		Name:             Shell,
+	df.InstTypeShell: {
+		Name:             df.InstTypeShell,
 		SupportsJSONForm: true,
 	},
-	StopSignal: {
-		Name: StopSignal,
+	df.InstTypeStopSignal: {
+		Name: df.InstTypeStopSignal,
 	},
-	User: {
-		Name: User,
+	df.InstTypeUser: {
+		Name: df.InstTypeUser,
 	},
-	Volume: {
-		Name:             Volume,
+	df.InstTypeVolume: {
+		Name:             df.InstTypeVolume,
 		SupportsJSONForm: true,
 	},
-	Workdir: {
-		Name: Workdir,
+	df.InstTypeWorkdir: {
+		Name: df.InstTypeWorkdir,
 	},
 }
 
 func IsKnown(name string) bool {
-	name = strings.ToLower(name)
+	name = strings.ToUpper(name)
 	_, ok := Specs[name]
 	return ok
 }

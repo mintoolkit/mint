@@ -3,10 +3,9 @@ package check
 
 import (
 	"fmt"
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/mintoolkit/mint/pkg/docker/instruction"
 )
 
 func init() {
@@ -24,8 +23,8 @@ func init() {
 			},
 		},
 		Names: []string{
-			instruction.Entrypoint,
-			instruction.Cmd,
+			df.InstTypeEntrypoint,
+			df.InstTypeCmd,
 		},
 	}
 

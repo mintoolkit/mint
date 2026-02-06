@@ -15,37 +15,47 @@ import (
 	v "github.com/mintoolkit/mint/pkg/version"
 )
 
-// note: dup (todo: refactor)
 const (
+	//FROM
+	InstTypeFrom = "FROM"
 	//MAINTAINER:
-	instPrefixMaintainer = "MAINTAINER "
+	InstTypeMaintainer   = "MAINTAINER"
+	InstPrefixMaintainer = "MAINTAINER "
 	//ENTRYPOINT:
-	instTypeEntrypoint   = "ENTRYPOINT"
-	instPrefixEntrypoint = "ENTRYPOINT "
+	InstTypeEntrypoint   = "ENTRYPOINT"
+	InstPrefixEntrypoint = "ENTRYPOINT "
 	//CMD:
-	instTypeCmd   = "CMD"
-	instPrefixCmd = "CMD "
+	InstTypeCmd   = "CMD"
+	InstPrefixCmd = "CMD "
 	//USER:
-	instTypeUser   = "USER"
-	instPrefixUser = "USER "
+	InstTypeUser   = "USER"
+	InstPrefixUser = "USER "
 	//EXPOSE:
-	instTypeExpose   = "EXPOSE"
-	instPrefixExpose = "EXPOSE "
+	InstTypeExpose   = "EXPOSE"
+	InstPrefixExpose = "EXPOSE "
 	//WORKDIR:
-	instTypeWorkdir   = "WORKDIR"
-	instPrefixWorkdir = "WORKDIR "
+	InstTypeWorkdir   = "WORKDIR"
+	InstPrefixWorkdir = "WORKDIR "
 	//HEALTHCHECK:
-	instTypeHealthcheck   = "HEALTHCHECK"
-	instPrefixHealthcheck = "HEALTHCHECK "
+	InstTypeHealthcheck           = "HEALTHCHECK"
+	InstPrefixHealthcheck         = "HEALTHCHECK "
+	InstPrefixBasicEncHealthcheck = "HEALTHCHECK --"
 	//ONBUILD:
-	instTypeOnbuild = "ONBUILD"
+	InstTypeOnbuild = "ONBUILD"
 	//RUN:
-	instTypeRun   = "RUN"
-	instPrefixRun = "RUN "
+	InstTypeRun   = "RUN"
+	InstPrefixRun = "RUN "
 	//ADD:
-	instTypeAdd = "ADD"
+	InstTypeAdd = "ADD"
 	//COPY:
-	instTypeCopy = "COPY"
+	InstTypeCopy = "COPY"
+
+	InstTypeVolume     = "VOLUME"
+	InstTypeEnv        = "ENV"
+	InstTypeLabel      = "LABEL"
+	InstTypeStopSignal = "STOPSIGNAL"
+	InstTypeShell      = "SHELL"
+	InstTypeArg        = "ARG" //shouldn't see it as a standalone instruction
 )
 
 // GenerateFromInfo builds and saves a Dockerfile file object
@@ -115,20 +125,20 @@ func GenerateFromInfo(
 	}
 
 	if workingDir != "" {
-		dfData.WriteString(instPrefixWorkdir)
+		dfData.WriteString(InstPrefixWorkdir)
 		dfData.WriteString(workingDir)
 		dfData.WriteByte('\n')
 	}
 
 	if user != "" {
-		dfData.WriteString(instPrefixUser)
+		dfData.WriteString(InstPrefixUser)
 		dfData.WriteString(user)
 		dfData.WriteByte('\n')
 	}
 
 	if len(exposedPorts) > 0 {
 		for portInfo := range exposedPorts {
-			dfData.WriteString(instPrefixExpose)
+			dfData.WriteString(InstPrefixExpose)
 			dfData.WriteString(string(portInfo))
 			dfData.WriteByte('\n')
 		}
