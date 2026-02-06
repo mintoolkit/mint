@@ -56,7 +56,7 @@ popd
 rm -rfv ${BDIR}/dist_linux
 mkdir ${BDIR}/dist_linux
 cp ${BDIR}/bin/linux/mint ${BDIR}/dist_linux/mint
-cp ${BDIR}/bin/linux/mint-e2e ${BDIR}/dist_linux/mint-sensor
+cp ${BDIR}/bin/linux/mint-sensor ${BDIR}/dist_linux/mint-sensor
 pushd ${BDIR}/dist_linux
 ln -s mint docker-slim
 ln -s mint slim
