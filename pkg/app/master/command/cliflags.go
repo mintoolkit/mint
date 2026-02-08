@@ -75,9 +75,10 @@ const (
 
 // Shared command flag names
 const (
-	FlagCommandParamsFile = "command-params-file"
-	FlagTarget            = "target"
-	FlagPull              = "pull"
+	FlagCommandParamsFile    = "command-params-file"
+	FlagTarget               = "target"
+	FlagTargetImageArchive   = "target-image-archive"
+	FlagPull                 = "pull"
 	FlagDockerConfigPath  = "docker-config-path"
 	FlagRegistryAccount   = "registry-account"
 	FlagRegistrySecret    = "registry-secret"
@@ -200,9 +201,10 @@ const (
 
 // Shared command flag usage info
 const (
-	FlagCommandParamsFileUsage = "JSON file with all command parameters"
-	FlagTargetUsage            = "Target container image (name or ID)"
-	FlagPullUsage              = "Try pulling target if it's not available locally"
+	FlagCommandParamsFileUsage   = "JSON file with all command parameters"
+	FlagTargetUsage              = "Target container image (name or ID)"
+	FlagTargetImageArchiveUsage  = "Target container image archive (tar file path)"
+	FlagPullUsage                = "Try pulling target if it's not available locally"
 	FlagDockerConfigPathUsage  = "Docker config path (used to fetch registry credentials)"
 	FlagRegistryAccountUsage   = "Target registry account used when pulling images from private registries"
 	FlagRegistrySecretUsage    = "Target registry secret used when pulling images from private registries"
@@ -466,6 +468,12 @@ var CommonFlags = map[string]cli.Flag{
 		Value:   "",
 		Usage:   FlagTargetUsage,
 		EnvVars: []string{"DSLIM_TARGET"},
+	},
+	FlagTargetImageArchive: &cli.StringFlag{
+		Name:    FlagTargetImageArchive,
+		Value:   "",
+		Usage:   FlagTargetImageArchiveUsage,
+		EnvVars: []string{"DSLIM_TARGET_IMAGE_ARCHIVE"},
 	},
 	FlagPull: &cli.BoolFlag{
 		Name:    FlagPull,
