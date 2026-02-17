@@ -846,7 +846,7 @@ func (p *store) prepareArtifacts() {
 		p.prepareArtifact(artifactFileName)
 	}
 
-	if p.ptMonReport.Enabled {
+	if p.ptMonReport != nil && p.ptMonReport.Enabled {
 		logger.Debug("ptMonReport.Enabled")
 		for artifactFileName, fsaInfo := range p.ptMonReport.FSActivity {
 			artifactInfo, found := p.rawNames[artifactFileName]
