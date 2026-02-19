@@ -109,12 +109,13 @@ func TestSimpleSensorRun_Controlled_Service(t *testing.T) {
 		"/bin/sh",
 		"/etc/nginx/nginx.conf",
 		"/etc/nginx/conf.d/default.conf",
-		"/var/cache/nginx",
 		"/var/run",
 		// Here is an interesting one - in the controlled (default) mode, sensor doesn't
 		// await the target process termination. Hence, no cleanup on the nginx side
 		// happens, and the pid file remains in the report.
 		"/run/nginx.pid",
+		// Note: /var/cache/nginx is an empty directory in nginx:1.21+ images
+		// The subdirectories (client_temp, fastcgi_temp, etc.) are copied separately
 	)
 	sensor.AssertReportNotIncludesFiles(t,
 		"/bin/bash",
@@ -172,8 +173,8 @@ func TestSimpleSensorRun_Standalone_Service(t *testing.T) {
 		"/bin/sh",
 		"/etc/nginx/nginx.conf",
 		"/etc/nginx/conf.d/default.conf",
-		"/var/cache/nginx",
 		"/var/run",
+		// Note: /var/cache/nginx is an empty directory in nginx:1.21+ images
 	)
 	sensor.AssertReportNotIncludesFiles(t,
 		"/bin/bash",
@@ -591,8 +592,8 @@ func TestStopSignal_ForceKill(t *testing.T) {
 	sensor.AssertReportIncludesFiles(t,
 		"/etc/nginx/nginx.conf",
 		"/etc/nginx/conf.d/default.conf",
-		"/var/cache/nginx",
 		"/var/run",
+		// Note: /var/cache/nginx is an empty directory in nginx:1.21+ images
 		// Because the target app was terminated by SIGKILL,
 		// the pid file is not cleaned up.
 		"/run/nginx.pid",
