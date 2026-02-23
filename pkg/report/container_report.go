@@ -121,11 +121,12 @@ type PtMonitorReport struct {
 }
 
 type FSActivityInfo struct {
-	OpsAll       uint64           `json:"ops_all"`
-	OpsCheckFile uint64           `json:"ops_checkfile"`
-	Syscalls     map[int]struct{} `json:"syscalls"`
-	Pids         map[int]struct{} `json:"pids"`
-	IsSubdir     bool             `json:"is_subdir"`
+    OpsAll              uint64           `json:"ops_all"`
+    OpsCheckFile        uint64           `json:"ops_checkfile"`
+    Syscalls            map[int]struct{} `json:"syscalls"`
+    Pids                map[int]struct{} `json:"pids"`
+    IsSubdir            bool             `json:"is_subdir"`
+    HasSuccessfulAccess bool             `json:"has_successful_access,omitempty"`
 }
 
 // ArtifactProps contains various file system artifact properties
