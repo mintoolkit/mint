@@ -951,8 +951,14 @@ func (p *store) prepareArtifacts() {
 func (p *store) deduplicateFileMap() {
 	log.Debugf("deduplicateFileMap - starting inode-based deduplication, fileMap has %d entries", len(p.fileMap))
 
-	// Build inode -> paths map for regular files only
-	inodeMap := make(map[uint64][]string)
+	// Build (device, inode) -> paths map for regular files only.
+	// Inode numbers are only unique per filesystem, so we must include the
+	// device ID to avoid false deduplication across mount points.
+	type devInode struct {
+		Dev uint64
+		Ino uint64
+	}
+	inodeMap := make(map[devInode][]string)
 
 	for fpath := range p.fileMap {
 		info, err := os.Lstat(fpath)
@@ -969,21 +975,21 @@ func (p *store) deduplicateFileMap() {
 
 		// Get the inode from the underlying syscall.Stat_t
 		if sys, ok := info.Sys().(*syscall.Stat_t); ok {
-			inode := sys.Ino
-			inodeMap[inode] = append(inodeMap[inode], fpath)
+			key := devInode{Dev: sys.Dev, Ino: sys.Ino}
+			inodeMap[key] = append(inodeMap[key], fpath)
 		}
 	}
 
 	// For each inode with multiple paths, keep only the canonical path
 	duplicatesRemoved := 0
 	inodeCount := 0
-	for inode, paths := range inodeMap {
+	for key, paths := range inodeMap {
 		if len(paths) <= 1 {
 			continue
 		}
 
 		inodeCount++
-		log.Debugf("deduplicateFileMap - found %d paths for inode %d: %v", len(paths), inode, paths)
+		log.Debugf("deduplicateFileMap - found %d paths for dev:ino %d:%d: %v", len(paths), key.Dev, key.Ino, paths)
 
 		// Sort paths to get deterministic behavior
 		// CRITICAL: Prefer paths that DON'T go through symlinked directories
