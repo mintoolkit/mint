@@ -286,9 +286,9 @@ func (app *App) processFileActivity(e *syscallEvent) {
 				fsa.OpsAll++
 				fsa.Pids[e.pid] = struct{}{}
 				fsa.Syscalls[int(e.callNum)] = struct{}{}
-				if e.retVal == 0 {
-					fsa.HasSuccessfulAccess = true
-				}
+			if e.retVal == 0 || p.SyscallType() == OpenFileType {
+				fsa.HasSuccessfulAccess = true
+			}
 
 				if processor, found := syscallProcessors[int(e.callNum)]; found {
 					switch processor.SyscallType() {
@@ -300,7 +300,7 @@ func (app *App) processFileActivity(e *syscallEvent) {
 				fsa := &report.FSActivityInfo{
 					OpsAll:              1,
 					OpsCheckFile:        1,
-					HasSuccessfulAccess: e.retVal == 0,
+					HasSuccessfulAccess: e.retVal == 0 || p.SyscallType() == OpenFileType,
 					Pids:                map[int]struct{}{},
 					Syscalls:            map[int]struct{}{},
 				}
