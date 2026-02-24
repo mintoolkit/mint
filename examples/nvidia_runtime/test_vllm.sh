@@ -110,10 +110,6 @@ run_slim_with_monitor() {
     echo "Starting mint build for: $target_image"
     echo "Output tag: $output_tag"
 
-    # Create a named pipe for signaling
-    SIGNAL_PIPE=$(mktemp -u)
-    mkfifo "$SIGNAL_PIPE"
-
     # Start mint in the background
     # Using --continue-after signal to allow the monitor to signal when done
     local mint_cmd=("$SLIM_CMD" build
@@ -165,9 +161,6 @@ run_slim_with_monitor() {
     wait "$SLIM_PID"
     SLIM_EXIT_CODE=$?
     echo "mint completed with exit code: $SLIM_EXIT_CODE"
-
-    # Cleanup the signal pipe
-    rm -f "$SIGNAL_PIPE"
 
     if [ $SLIM_EXIT_CODE -ne 0 ]; then
         echo "Warning: mint exited with code $SLIM_EXIT_CODE"
