@@ -3,6 +3,7 @@ package container
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -578,6 +579,15 @@ func (i *Inspector) RunContainer() error {
 	}
 
 	if i.crOpts != nil {
+		if i.crOpts.DeviceRequest != "" {
+			var deviceRequest dockerapi.DeviceRequest
+			if err := json.Unmarshal([]byte(i.crOpts.DeviceRequest), &deviceRequest); err != nil {
+				return fmt.Errorf("invalid --cro-device-request JSON: %w", err)
+			}
+			containerOptions.HostConfig.DeviceRequests = []dockerapi.DeviceRequest{deviceRequest}
+			logger.Debugf("using device request => %#v", deviceRequest)
+		}
+
 		if i.crOpts.Runtime != "" {
 			containerOptions.HostConfig.Runtime = i.crOpts.Runtime
 			logger.Debugf("using custom runtime => %s", containerOptions.HostConfig.Runtime)

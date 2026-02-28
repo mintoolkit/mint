@@ -65,12 +65,13 @@ func Run(
 	}
 
 	if runOpt.RTASourcePT {
-		logger.Debug("tracing target app")
+		logger.Warn("PTRACE IS ENABLED - RTASourcePT=true - Starting trace monitoring")
 		app.Report.Enabled = true
 		go app.process()
 		go app.trace()
 	} else {
-		logger.Debug("not tracing target app...")
+		logger.Error("PTRACE IS DISABLED - RTASourcePT=false - NOT tracing target app!")
+		logger.Error("This means syscall-level monitoring is OFF and files may be missed!")
 		go func() {
 			logger.Debug("not tracing target app - start app")
 			if err := app.start(); err != nil {
@@ -239,6 +240,7 @@ func newApp(
 func (app *App) trace() {
 	logger := app.logger.WithField("op", "trace")
 	logger.Debug("call")
+	logger.Warn("PTRACE MONITOR IS STARTING - trace() called")
 	defer logger.Debug("exit")
 
 	runtime.LockOSThread()
@@ -280,30 +282,36 @@ func (app *App) processFileActivity(e *syscallEvent) {
 				!strings.HasPrefix(e.pathParam, "/proc/") &&
 				!strings.HasPrefix(e.pathParam, "/sys/") &&
 				!strings.HasPrefix(e.pathParam, "/dev/") {
-				if fsa, ok := app.fsActivity[e.pathParam]; ok {
-					fsa.OpsAll++
-					fsa.Pids[e.pid] = struct{}{}
-					fsa.Syscalls[int(e.callNum)] = struct{}{}
+			if fsa, ok := app.fsActivity[e.pathParam]; ok {
+				fsa.OpsAll++
+				fsa.Pids[e.pid] = struct{}{}
+				fsa.Syscalls[int(e.callNum)] = struct{}{}
+			if p.OKReturnStatus(e.retVal) {
+				fsa.HasSuccessfulAccess = true
+			}
+				fsa.HasSuccessfulAccess = true
+			}
 
-					if processor, found := syscallProcessors[int(e.callNum)]; found {
-						switch processor.SyscallType() {
-						case CheckFileType:
-							fsa.OpsCheckFile++
-						}
+				if processor, found := syscallProcessors[int(e.callNum)]; found {
+					switch processor.SyscallType() {
+					case CheckFileType:
+						fsa.OpsCheckFile++
 					}
-				} else {
-					fsa := &report.FSActivityInfo{
-						OpsAll:       1,
-						OpsCheckFile: 1,
-						Pids:         map[int]struct{}{},
-						Syscalls:     map[int]struct{}{},
-					}
-
-					fsa.Pids[e.pid] = struct{}{}
-					fsa.Syscalls[int(e.callNum)] = struct{}{}
-
-					app.fsActivity[e.pathParam] = fsa
 				}
+			} else {
+				fsa := &report.FSActivityInfo{
+					OpsAll:              1,
+					OpsCheckFile:        1,
+					HasSuccessfulAccess: p.OKReturnStatus(e.retVal),
+					Pids:                map[int]struct{}{},
+					Syscalls:            map[int]struct{}{},
+				}
+
+				fsa.Pids[e.pid] = struct{}{}
+				fsa.Syscalls[int(e.callNum)] = struct{}{}
+
+				app.fsActivity[e.pathParam] = fsa
+			}
 
 				if app.del != nil {
 					//NOTE:
@@ -460,6 +468,23 @@ drain:
 	app.Report.SyscallNum = uint32(len(app.Report.SyscallStats))
 	app.Report.FSActivity = app.FileActivity()
 
+	// CRITICAL DEBUG: Log FSActivity results
+	logger.Warnf("PTRACE REPORT FINALIZED: Tracked %d files in FSActivity", len(app.Report.FSActivity))
+	logger.Warnf("PTRACE REPORT: Total syscalls executed: %d", app.Report.SyscallCount)
+	if len(app.Report.FSActivity) == 0 {
+		logger.Error("WARNING: PTRACE FSActivity is EMPTY - No files were tracked!")
+		logger.Error("This suggests ptrace syscall interception may not be working properly")
+	} else {
+		// Sample some tracked files for verification
+		sampleCount := 0
+		for fpath := range app.Report.FSActivity {
+			if sampleCount < 5 {
+				logger.Warnf("PTRACE tracked file sample: %s", fpath)
+				sampleCount++
+			}
+		}
+	}
+
 	app.StateCh <- state
 	app.ReportCh <- &app.Report
 }
@@ -481,17 +506,25 @@ func (app *App) FileActivity() map[string]*report.FSActivityInfo {
 		}
 
 		walkAfter := func(akey string, av interface{}) bool {
-			//adata, ok := av.(*report.FSActivityInfo)
-			//if !ok {
-			//    return false
-			//}
-
 			if wkey == akey {
 				return false
 			}
 
-			wdata.IsSubdir = true
-			return true
+			adata, ok := av.(*report.FSActivityInfo)
+			if !ok {
+				return false
+			}
+
+			// Only mark as subdirectory if the child path was actually
+			// found on disk. ENOENT "ghost" children (e.g., Python probing
+			// for __init__.so/.py in a namespace package directory) must
+			// not cause the parent directory to be excluded.
+			if adata.HasSuccessfulAccess {
+				wdata.IsSubdir = true
+				return true
+			}
+
+			return false
 		}
 
 		t.WalkPrefix(wkey, walkAfter)
@@ -1058,12 +1091,16 @@ func getIntParam(pid int, ptr uint64) int {
 }
 
 func getStringParam(pid int, ptr uint64) string {
+	if ptr == 0 {
+		return ""
+	}
+
 	var out [256]byte
 	var data []byte
 	for {
 		count, err := syscall.PtracePeekData(pid, uintptr(ptr), out[:])
-		if err != nil && err != syscall.EIO {
-			fmt.Printf("readString: syscall.PtracePeekData error - '%v'\v", err)
+		if err != nil {
+			return string(data)
 		}
 
 		idx := bytes.IndexByte(out[:count], 0)
@@ -1076,7 +1113,7 @@ func getStringParam(pid int, ptr uint64) string {
 		}
 
 		data = append(data, out[:idx]...)
-		if foundNull {
+		if foundNull || count == 0 {
 			return string(data)
 		}
 	}
@@ -1213,7 +1250,12 @@ func (ref *checkFileSyscallProcessor) OKCall(cstate *syscallState) bool {
 }
 
 func (ref *checkFileSyscallProcessor) OKReturnStatus(retVal uint64) bool {
-	return retVal == 0
+	// Accept successful stat calls (0) and also failed attempts that indicate
+	// the application was looking for the file. This is important for Python
+	// imports which check multiple locations before finding the right file.
+	// Track ENOENT (file not found) and ENOTDIR (not a directory) in addition to success.
+	intRetVal := getIntVal(retVal)
+	return intRetVal == 0 || intRetVal == -2 || intRetVal == -20 // 0=success, -2=ENOENT, -20=ENOTDIR
 }
 
 func (ref *checkFileSyscallProcessor) EventOnCall() bool {
