@@ -302,7 +302,7 @@ func (app *App) processFileActivity(e *syscallEvent) {
 				fsa := &report.FSActivityInfo{
 					OpsAll:              1,
 					OpsCheckFile:        1,
-					HasSuccessfulAccess: e.retVal == 0 || p.SyscallType() == OpenFileType,
+					HasSuccessfulAccess: p.OKReturnStatus(e.retVal),
 					Pids:                map[int]struct{}{},
 					Syscalls:            map[int]struct{}{},
 				}
