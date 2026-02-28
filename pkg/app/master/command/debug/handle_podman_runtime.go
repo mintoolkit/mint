@@ -529,6 +529,7 @@ func podmanEnsureImage(logger *log.Entry, connCtx context.Context, image string)
 	if !exists {
 		logger.Tracef("Pulling image '%s'...", image)
 
+		//TODO: support Platform in podman pull
 		_, err = images.Pull(connCtx, image, nil)
 		if err != nil {
 			return err
