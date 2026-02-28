@@ -38,6 +38,7 @@ const (
 	FlagCRTIOInactivityTimeout   = "crt-io-inactivity-timeout"
 	FlagCRTSaveInactivityTimeout = "crt-save-inactivity-timeout"
 	FlagCRTCopyInactivityTimeout = "crt-copy-inactivity-timeout"
+	FlagHelp                     = "help"
 )
 
 const (
@@ -71,6 +72,7 @@ const (
 	FlagCRTIOInactivityTimeoutUsage   = "CRT I/O general inactivity timeout"
 	FlagCRTSaveInactivityTimeoutUsage = "CRT save image operation inactivity timeout (overrides the general I/O timeout)"
 	FlagCRTCopyInactivityTimeoutUsage = "CRT copy from container operation inactivity timeout (overrides the general I/O timeout)"
+	FlagHelpUsage                     = "Show help info"
 )
 
 // Shared command flag names
@@ -432,6 +434,11 @@ func GlobalFlags() []cli.Flag {
 			Value:   0,
 			Usage:   FlagCRTCopyInactivityTimeoutUsage,
 			EnvVars: []string{"DSLIM_CRT_COPY_INACTIVITY_TIMEOUT"},
+		},
+		&cli.BoolFlag{
+			Name:    FlagHelp,
+			Aliases: []string{"h"},
+			Usage:   FlagHelpUsage,
 		},
 		&cli.StringFlag{
 			Name:  FlagStatePath,
