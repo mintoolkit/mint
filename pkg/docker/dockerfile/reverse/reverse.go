@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 	"os"
 	"sort"
 	"strconv"
@@ -105,65 +106,24 @@ const (
 	runInstArgsPrefix   = "|"
 )
 
-const (
-	//MAINTAINER:
-	instTypeMaintainer   = "MAINTAINER"
-	instPrefixMaintainer = "MAINTAINER "
-	//ENTRYPOINT:
-	instTypeEntrypoint   = "ENTRYPOINT"
-	instPrefixEntrypoint = "ENTRYPOINT "
-	//CMD:
-	instTypeCmd   = "CMD"
-	instPrefixCmd = "CMD "
-	//USER:
-	instTypeUser   = "USER"
-	instPrefixUser = "USER "
-	//EXPOSE:
-	instTypeExpose   = "EXPOSE"
-	instPrefixExpose = "EXPOSE "
-	//WORKDIR:
-	instTypeWorkdir   = "WORKDIR"
-	instPrefixWorkdir = "WORKDIR "
-	//HEALTHCHECK:
-	instTypeHealthcheck           = "HEALTHCHECK"
-	instPrefixHealthcheck         = "HEALTHCHECK "
-	instPrefixBasicEncHealthcheck = "HEALTHCHECK --"
-	//ONBUILD:
-	instTypeOnbuild = "ONBUILD"
-	//RUN:
-	instTypeRun   = "RUN"
-	instPrefixRun = "RUN "
-	//ADD:
-	instTypeAdd = "ADD"
-	//COPY:
-	instTypeCopy = "COPY"
-
-	instTypeVolume     = "VOLUME"
-	instTypeEnv        = "ENV"
-	instTypeLabel      = "LABEL"
-	instTypeStopSignal = "STOPSIGNAL"
-	instTypeShell      = "SHELL"
-	instTypeArg        = "ARG" //shouldn't see it as an standalone instruction
-)
-
 var instructionTypes = map[string]struct{}{
-	instTypeRun:         {},
-	instTypeEntrypoint:  {},
-	instTypeCmd:         {},
-	instTypeUser:        {},
-	instTypeExpose:      {},
-	instTypeWorkdir:     {},
-	instTypeHealthcheck: {},
-	instTypeOnbuild:     {},
-	instTypeAdd:         {},
-	instTypeCopy:        {},
-	instTypeMaintainer:  {},
-	instTypeVolume:      {},
-	instTypeEnv:         {},
-	instTypeLabel:       {},
-	instTypeStopSignal:  {},
-	instTypeShell:       {},
-	instTypeArg:         {},
+	df.InstTypeRun:         {},
+	df.InstTypeEntrypoint:  {},
+	df.InstTypeCmd:         {},
+	df.InstTypeUser:        {},
+	df.InstTypeExpose:      {},
+	df.InstTypeWorkdir:     {},
+	df.InstTypeHealthcheck: {},
+	df.InstTypeOnbuild:     {},
+	df.InstTypeAdd:         {},
+	df.InstTypeCopy:        {},
+	df.InstTypeMaintainer:  {},
+	df.InstTypeVolume:      {},
+	df.InstTypeEnv:         {},
+	df.InstTypeLabel:       {},
+	df.InstTypeStopSignal:  {},
+	df.InstTypeShell:       {},
+	df.InstTypeArg:         {},
 }
 
 func isInstructionType(input string) bool {
@@ -243,7 +203,7 @@ func DockerfileFromHistoryStruct(imageHistory []crt.ImageHistory) (*Dockerfile, 
 			}
 
 			var rawInst string
-			isRunInst := strings.HasPrefix(rawLine, instPrefixRun)
+			isRunInst := strings.HasPrefix(rawLine, df.InstPrefixRun)
 			if isRunInst {
 				parts := strings.SplitN(rawLine, " ", 2)
 				rawInst = parts[1]
@@ -279,9 +239,9 @@ func DockerfileFromHistoryStruct(imageHistory []crt.ImageHistory) (*Dockerfile, 
 						parts[i] = partPrefix + strings.TrimSpace(parts[i])
 					}
 					runDataFormatted := strings.Join(parts, " && \\\n")
-					inst = instPrefixRun + runDataFormatted
+					inst = df.InstPrefixRun + runDataFormatted
 				} else {
-					inst = instPrefixRun + runData
+					inst = df.InstPrefixRun + runData
 				}
 			default:
 				//TODO: need to refactor
@@ -301,7 +261,7 @@ func DockerfileFromHistoryStruct(imageHistory []crt.ImageHistory) (*Dockerfile, 
 					if !processed {
 						//default to RUN instruction in exec form
 						isExecForm = true
-						inst = instPrefixRun + rawInst
+						inst = df.InstPrefixRun + rawInst
 						if outArray, err := shlex.Split(rawInst); err == nil {
 							var outJson bytes.Buffer
 							encoder := json.NewEncoder(&outJson)
@@ -318,7 +278,7 @@ func DockerfileFromHistoryStruct(imageHistory []crt.ImageHistory) (*Dockerfile, 
 			//NOTE: Dockerfile instructions can be any case, but the instructions from history are always uppercase
 			cleanInst := strings.TrimSpace(inst)
 
-			if strings.HasPrefix(cleanInst, instPrefixEntrypoint) {
+			if strings.HasPrefix(cleanInst, df.InstPrefixEntrypoint) {
 				cleanInst = strings.Replace(cleanInst, "&{[", "[", -1)
 				cleanInst = strings.Replace(cleanInst, "]}", "]", -1)
 
@@ -326,32 +286,32 @@ func DockerfileFromHistoryStruct(imageHistory []crt.ImageHistory) (*Dockerfile, 
 				if strings.HasPrefix(cleanInst, entrypointShellFormPrefix) {
 					instData := strings.TrimPrefix(cleanInst, entrypointShellFormPrefix)
 					instData = strings.TrimSuffix(instData, `"]`)
-					cleanInst = instPrefixEntrypoint + instData
+					cleanInst = df.InstPrefixEntrypoint + instData
 				} else {
 					isExecForm = true
 
-					instData := strings.TrimPrefix(cleanInst, instPrefixEntrypoint)
+					instData := strings.TrimPrefix(cleanInst, df.InstPrefixEntrypoint)
 					instData = fixJSONArray(instData)
-					cleanInst = instPrefixEntrypoint + instData
+					cleanInst = df.InstPrefixEntrypoint + instData
 				}
 			}
 
-			if strings.HasPrefix(cleanInst, instPrefixCmd) {
+			if strings.HasPrefix(cleanInst, df.InstPrefixCmd) {
 				cmdShellFormPrefix := `CMD ["/bin/sh" "-c" "`
 				if strings.HasPrefix(cleanInst, cmdShellFormPrefix) {
 					instData := strings.TrimPrefix(cleanInst, cmdShellFormPrefix)
 					instData = strings.TrimSuffix(instData, `"]`)
-					cleanInst = instPrefixCmd + instData
+					cleanInst = df.InstPrefixCmd + instData
 				} else {
 					isExecForm = true
 
-					instData := strings.TrimPrefix(cleanInst, instPrefixCmd)
+					instData := strings.TrimPrefix(cleanInst, df.InstPrefixCmd)
 					instData = fixJSONArray(instData)
-					cleanInst = instPrefixCmd + instData
+					cleanInst = df.InstPrefixCmd + instData
 				}
 			}
 
-			if strings.HasPrefix(cleanInst, instPrefixMaintainer) {
+			if strings.HasPrefix(cleanInst, df.InstPrefixMaintainer) {
 				parts := strings.SplitN(cleanInst, " ", 2)
 				if len(parts) == 2 {
 					maintainer := strings.TrimSpace(parts[1])
@@ -362,7 +322,7 @@ func DockerfileFromHistoryStruct(imageHistory []crt.ImageHistory) (*Dockerfile, 
 				}
 			}
 
-			if strings.HasPrefix(cleanInst, instPrefixUser) {
+			if strings.HasPrefix(cleanInst, df.InstPrefixUser) {
 				parts := strings.SplitN(cleanInst, " ", 2)
 				if len(parts) == 2 {
 					userName := strings.TrimSpace(parts[1])
@@ -374,7 +334,7 @@ func DockerfileFromHistoryStruct(imageHistory []crt.ImageHistory) (*Dockerfile, 
 				}
 			}
 
-			if strings.HasPrefix(cleanInst, instPrefixExpose) {
+			if strings.HasPrefix(cleanInst, df.InstPrefixExpose) {
 				parts := strings.SplitN(cleanInst, " ", 2)
 				if len(parts) == 2 {
 					portInfo := strings.TrimSpace(parts[1])
@@ -416,7 +376,7 @@ func DockerfileFromHistoryStruct(imageHistory []crt.ImageHistory) (*Dockerfile, 
 				instInfo.Type = instParts[0]
 			}
 
-			if instInfo.Type == instTypeOnbuild {
+			if instInfo.Type == df.InstTypeOnbuild {
 				out.HasOnbuild = true
 			}
 
@@ -425,7 +385,7 @@ func DockerfileFromHistoryStruct(imageHistory []crt.ImageHistory) (*Dockerfile, 
 				instInfo.CommandAll = "# no instruction info"
 			}
 
-			if instInfo.Type == instTypeRun {
+			if instInfo.Type == df.InstTypeRun {
 				var cmdParts []string
 				cmds := strings.Replace(instParts[1], "\\", "", -1)
 				if strings.Contains(cmds, "&&") {
@@ -446,12 +406,12 @@ func DockerfileFromHistoryStruct(imageHistory []crt.ImageHistory) (*Dockerfile, 
 				}
 			}
 
-			if instInfo.Type == instTypeWorkdir {
+			if instInfo.Type == df.InstTypeWorkdir {
 				instInfo.SystemCommands = append(instInfo.SystemCommands, fmt.Sprintf("mkdir -p %s", instParts[1]))
 			}
 
 			switch instInfo.Type {
-			case instTypeAdd, instTypeCopy:
+			case df.InstTypeAdd, df.InstTypeCopy:
 				if strings.Contains(instInfo.Params, ":") && strings.Contains(instInfo.Params, " in ") {
 					pparts := strings.SplitN(instInfo.Params, ":", 2)
 					if len(pparts) == 2 {
@@ -470,7 +430,7 @@ func DockerfileFromHistoryStruct(imageHistory []crt.ImageHistory) (*Dockerfile, 
 				}
 			}
 
-			if instInfo.Type == instTypeHealthcheck {
+			if instInfo.Type == df.InstTypeHealthcheck {
 
 				healthInst, _, err := deserialiseHealtheckInstruction(instInfo.CommandAll)
 				if err != nil {
@@ -720,13 +680,13 @@ func deserialiseHealtheckInstruction(data string) (string, *crt.HealthConfig, er
 	//Buildah example (raw/full):
 	// /bin/sh -c #(nop) HEALTHCHECK --interval=5m --timeout=3s  CMD curl -f http://localhost/ || exit 1
 	cleanInst := strings.TrimSpace(data)
-	if !strings.HasPrefix(cleanInst, instPrefixHealthcheck) {
+	if !strings.HasPrefix(cleanInst, df.InstPrefixHealthcheck) {
 		return "", nil, ErrBadInstPrefix
 	}
 
 	var config crt.HealthConfig
 	var strTest string
-	if strings.HasPrefix(cleanInst, instPrefixBasicEncHealthcheck) || !strings.Contains(cleanInst, "&{[") {
+	if strings.HasPrefix(cleanInst, df.InstPrefixBasicEncHealthcheck) || !strings.Contains(cleanInst, "&{[") {
 		//handling the basic Buildah encoding
 
 		var err error

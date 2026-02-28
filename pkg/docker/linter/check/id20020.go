@@ -3,10 +3,9 @@ package check
 
 import (
 	"fmt"
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/mintoolkit/mint/pkg/docker/instruction"
 )
 
 const (
@@ -51,10 +50,10 @@ func (c *TooManyLayers) Run(opts *Options, ctx *Context) (*Result, error) {
 		layerCount := 0
 		for _, inst := range stage.CurrentInstructions {
 			switch inst.Name {
-			case instruction.Run,
-				instruction.Workdir,
-				instruction.Copy,
-				instruction.Add:
+			case df.InstTypeRun,
+				df.InstTypeWorkdir,
+				df.InstTypeCopy,
+				df.InstTypeAdd:
 				layerCount++
 			}
 		}

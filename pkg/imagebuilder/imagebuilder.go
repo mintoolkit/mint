@@ -3,12 +3,11 @@ package imagebuilder
 import (
 	"errors"
 	"fmt"
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 	"io"
 	"os"
 	"strings"
 	"time"
-
-	"github.com/mintoolkit/mint/pkg/docker/instruction"
 )
 
 var (
@@ -208,46 +207,46 @@ func SimpleBuildOptionsFromDockerfileData(data string, ignoreExeInstructions boo
 
 		instName := strings.ToLower(parts[0])
 		switch instName {
-		case instruction.Entrypoint:
+		case df.InstTypeEntrypoint:
 			//options.Entrypoint []string
-		case instruction.Cmd:
+		case df.InstTypeCmd:
 			//options.Cmd []string
-		case instruction.Env:
+		case df.InstTypeEnv:
 			//options.EnvVars []string
-		case instruction.Expose:
+		case df.InstTypeExpose:
 			//options.ExposedPorts map[string]struct{}
-		case instruction.Label:
+		case df.InstTypeLabel:
 			//options.Labels map[string]string
-		case instruction.User:
+		case df.InstTypeUser:
 			//options.User = parts[1]
 			options.ImageConfig.Config.User = parts[1]
-		case instruction.Volume:
+		case df.InstTypeVolume:
 			//options.Volumes map[string]struct{}
-		case instruction.Workdir:
+		case df.InstTypeWorkdir:
 			//options.WorkDir = parts[1]
 			options.ImageConfig.Config.WorkingDir = parts[1]
-		case instruction.Add:
+		case df.InstTypeAdd:
 			//support tar files (ignore other things, at leas, for now)
 			//options.Layers []LayerDataInfo
-		case instruction.Copy:
+		case df.InstTypeCopy:
 			//options.Layers []LayerDataInfo
-		case instruction.Maintainer:
+		case df.InstTypeMaintainer:
 			//TBD
-		case instruction.Healthcheck:
+		case df.InstTypeHealthcheck:
 			//TBD
-		case instruction.From:
+		case df.InstTypeFrom:
 			//options.From string
-		case instruction.Arg:
+		case df.InstTypeArg:
 			//TODO
-		case instruction.Run:
+		case df.InstTypeRun:
 			if !ignoreExeInstructions {
 				return nil, fmt.Errorf("RUN instructions are not supported")
 			}
-		case instruction.Onbuild:
+		case df.InstTypeOnbuild:
 			//IGNORE
-		case instruction.Shell:
+		case df.InstTypeShell:
 			//IGNORE
-		case instruction.StopSignal:
+		case df.InstTypeStopSignal:
 			//IGNORE
 		}
 	}

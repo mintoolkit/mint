@@ -3,6 +3,7 @@ package parser
 
 import (
 	"errors"
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -71,7 +72,7 @@ func FromFile(fpath string) (*spec.Dockerfile, error) {
 				inst.Errors = append(inst.Errors, node.Errors...)
 			}
 
-			if inst.Name == instruction.Onbuild &&
+			if inst.Name == df.InstTypeOnbuild &&
 				node.Next != nil &&
 				len(node.Next.Children) > 0 {
 				inst.IsOnBuild = true
@@ -89,7 +90,7 @@ func FromFile(fpath string) (*spec.Dockerfile, error) {
 				inst.IsJSONForm = true
 			}
 
-			if inst.Name == instruction.From {
+			if inst.Name == df.InstTypeFrom {
 				currentStage = spec.NewBuildStage()
 				currentStage.FromInstruction = inst
 				currentStage.Index = len(dockerfile.Stages)
@@ -219,9 +220,9 @@ func FromFile(fpath string) (*spec.Dockerfile, error) {
 				inst.StageIndex = instStageIndex
 				currentStage.AllInstructions = append(currentStage.AllInstructions, inst)
 
-				if inst.Name == instruction.Onbuild {
+				if inst.Name == df.InstTypeOnbuild {
 					currentStage.OnBuildInstructions = append(currentStage.OnBuildInstructions, inst)
-				} else if inst.Name == instruction.Copy {
+				} else if inst.Name == df.InstTypeCopy {
 					for _, flag := range inst.Flags {
 						if strings.HasPrefix(flag, "--from=") {
 							fparts := strings.SplitN(flag, "=", 2)
@@ -252,7 +253,7 @@ func FromFile(fpath string) (*spec.Dockerfile, error) {
 
 					if inst.IsValid {
 						switch inst.Name {
-						case instruction.Arg:
+						case df.InstTypeArg:
 							for _, iarg := range inst.Args {
 								if iarg == "" {
 									continue
@@ -268,7 +269,7 @@ func FromFile(fpath string) (*spec.Dockerfile, error) {
 							//only one ARG is supposed to be defined, but we'll use all
 							//the 'ARG' value count lint check will detect the extra values
 							//the k=v ARG values are also not parsed (unlike ENV k=v values)
-						case instruction.Env:
+						case df.InstTypeEnv:
 							for i := 0; i < len(inst.Args) && (i+1) < len(inst.Args); i += 2 {
 								if len(inst.Args[i]) == 0 {
 									continue
@@ -280,7 +281,7 @@ func FromFile(fpath string) (*spec.Dockerfile, error) {
 					}
 				}
 			} else {
-				if inst.Name == instruction.Arg {
+				if inst.Name == df.InstTypeArg {
 					if inst.IsValid && len(inst.Args) > 0 {
 						dockerfile.ArgInstructions = append(dockerfile.ArgInstructions, inst)
 						parts := strings.Split(inst.Args[0], "=")
