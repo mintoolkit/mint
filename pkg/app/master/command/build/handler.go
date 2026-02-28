@@ -158,6 +158,7 @@ func OnCommand(
 	appNodejsInspectOpts config.AppNodejsInspectOptions,
 	imageBuildEngine string,
 	imageBuildArch string,
+	platform string,
 ) {
 	printState := true
 	logger := log.WithFields(log.Fields{"app": appName, "cmd": Name})
@@ -284,6 +285,7 @@ func OnCommand(
 				execCmd:                   execCmd,
 				imageBuildEngine:          imageBuildEngine,
 				imageBuildArch:            imageBuildArch,
+				platform:                  platform,
 			})
 
 		vinfo := <-viChan
@@ -634,7 +636,8 @@ func OnCommand(
 		gparams.StatePath,
 		client,
 		logger,
-		cmdReport)
+		cmdReport,
+		platform)
 
 	loadExtraIncludePaths := func() {
 		if (includeLastImageLayers > 0) ||

@@ -98,6 +98,7 @@ type kubeHandleOptions struct {
 	execCmd          string
 	imageBuildEngine string
 	imageBuildArch   string
+	platform         string
 }
 
 func (h *kubeHandler) Handle(
@@ -135,7 +136,8 @@ func (h *kubeHandler) Handle(
 		opts.StatePath,
 		h.dockerClient,
 		h.logger,
-		h.report)
+		h.report,
+		opts.platform)
 	workload.TargetContainer().Image = imageInspector.ImageRef
 
 	// 3. Patch and run the workload

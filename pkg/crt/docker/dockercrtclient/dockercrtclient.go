@@ -255,6 +255,7 @@ func (ref *Instance) PullImage(opts crt.PullImageOptions, authConfig crt.AuthCon
 	input := docker.PullImageOptions{
 		Repository: opts.Repository,
 		Tag:        opts.Tag,
+		Platform:   opts.Platform,
 	}
 
 	if opts.OutputStream != nil {

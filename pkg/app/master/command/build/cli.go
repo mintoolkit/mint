@@ -89,6 +89,7 @@ var BuildFlags = (append([]cli.Flag{
 	//Container Build Options
 	cflag(FlagImageBuildEngine),
 	cflag(FlagImageBuildArch),
+	command.Cflag(command.FlagPlatform),
 	cflag(FlagBuildFromDockerfile),
 	cflag(FlagDockerfileContext),
 	cflag(FlagTagFat),
@@ -866,7 +867,8 @@ var CLI = &cli.Command{
 			kubeOpts,
 			GetAppNodejsInspectOptions(ctx),
 			imageBuildEngine,
-			imageBuildArch)
+			imageBuildArch,
+			ctx.String(command.FlagPlatform))
 
 		return nil
 	},

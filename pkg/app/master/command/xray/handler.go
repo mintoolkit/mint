@@ -107,6 +107,7 @@ func OnCommand(
 	registryAccount string,
 	registrySecret string,
 	doShowPullLogs bool,
+	platform string,
 	changes map[string]struct{},
 	changesOutputs map[string]struct{},
 	layers map[string]struct{},
@@ -257,7 +258,7 @@ func OnCommand(
 					"message": "trying to pull target image",
 				})
 
-			err := imageInspector.Pull(doShowPullLogs, dockerConfigPath, registryAccount, registrySecret)
+			err := imageInspector.Pull(doShowPullLogs, dockerConfigPath, registryAccount, registrySecret, platform)
 			if err != nil {
 				if strings.Contains(err.Error(), "not found") ||
 					strings.Contains(err.Error(), "API error (404)") {

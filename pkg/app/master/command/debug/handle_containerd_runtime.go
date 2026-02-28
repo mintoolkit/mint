@@ -282,7 +282,11 @@ func HandleContainerdRuntime(
 	if err != nil {
 		logger.WithError(err).Trace("api.ImageService.Get")
 		logger.Debugf("api.Pull(%s)", commandParams.DebugContainerImage)
-		debugImage, err = api.Pull(ctx, commandParams.DebugContainerImage, containerd.WithPullUnpack)
+		pullOpts := []containerd.RemoteOpt{containerd.WithPullUnpack}
+		if commandParams.Platform != "" {
+			pullOpts = append(pullOpts, containerd.WithPlatform(commandParams.Platform))
+		}
+		debugImage, err = api.Pull(ctx, commandParams.DebugContainerImage, pullOpts...)
 		if err != nil {
 			logger.WithError(err).Error("api.Pull")
 			xc.FailOn(err)

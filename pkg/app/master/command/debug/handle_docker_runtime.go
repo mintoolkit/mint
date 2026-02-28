@@ -214,7 +214,7 @@ func HandleDockerRuntime(
 	noImage, err := imageInspector.NoImage()
 	errutil.FailOn(err)
 	if noImage {
-		err := imageInspector.Pull(true, "", "", "")
+		err := imageInspector.Pull(true, "", "", "", commandParams.Platform)
 		xc.FailOn(err)
 	}
 
