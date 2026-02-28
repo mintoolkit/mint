@@ -286,7 +286,9 @@ func (app *App) processFileActivity(e *syscallEvent) {
 				fsa.OpsAll++
 				fsa.Pids[e.pid] = struct{}{}
 				fsa.Syscalls[int(e.callNum)] = struct{}{}
-			if e.retVal == 0 || p.SyscallType() == OpenFileType {
+			if p.OKReturnStatus(e.retVal) {
+				fsa.HasSuccessfulAccess = true
+			}
 				fsa.HasSuccessfulAccess = true
 			}
 
