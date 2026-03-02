@@ -286,9 +286,9 @@ func (app *App) processFileActivity(e *syscallEvent) {
 				fsa.OpsAll++
 				fsa.Pids[e.pid] = struct{}{}
 				fsa.Syscalls[int(e.callNum)] = struct{}{}
-			if p.OKReturnStatus(e.retVal) {
-				fsa.HasSuccessfulAccess = true
-			}
+				if p.OKReturnStatus(e.retVal) {
+					fsa.HasSuccessfulAccess = true
+				}
 
 				if processor, found := syscallProcessors[int(e.callNum)]; found {
 					switch processor.SyscallType() {
