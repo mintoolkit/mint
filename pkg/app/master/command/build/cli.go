@@ -168,6 +168,7 @@ var BuildFlags = (append([]cli.Flag{
 	//Sensor flags:
 	command.Cflag(command.FlagSensorIPCEndpoint),
 	command.Cflag(command.FlagSensorIPCMode),
+	command.Cflag(command.FlagCRODeviceRequest),
 }, command.HTTPProbeFlags()...))
 
 var CLI = &cli.Command{

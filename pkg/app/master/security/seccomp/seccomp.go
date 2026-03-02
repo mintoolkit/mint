@@ -80,7 +80,7 @@ func GenProfile(artifactLocation string, profileName string) error {
 		return err
 	}
 
-	if !creport.Monitors.Pt.Enabled {
+	if creport.Monitors.Pt == nil || !creport.Monitors.Pt.Enabled {
 		log.Debug("seccomp.GenProfile: not generating seccomp profile (PT mon disabled, no syscall info)")
 		return nil
 	}
