@@ -289,8 +289,6 @@ func (app *App) processFileActivity(e *syscallEvent) {
 			if p.OKReturnStatus(e.retVal) {
 				fsa.HasSuccessfulAccess = true
 			}
-				fsa.HasSuccessfulAccess = true
-			}
 
 				if processor, found := syscallProcessors[int(e.callNum)]; found {
 					switch processor.SyscallType() {
