@@ -42,6 +42,7 @@ func inspectFatImage(
 	client *dockerapi.Client,
 	logger *log.Entry,
 	cmdReport *report.SlimCommand,
+	platform string,
 ) (*image.Inspector, string, string, string) {
 	crtClient := dockercrtclient.New(client)
 	imageInspector, err := image.NewInspector(crtClient, targetRef)
@@ -58,7 +59,7 @@ func inspectFatImage(
 					"message": "trying to pull target image",
 				})
 
-			err := imageInspector.Pull(doShowPullLogs, dockerConfigPath, registryAccount, registrySecret)
+			err := imageInspector.Pull(doShowPullLogs, dockerConfigPath, registryAccount, registrySecret, platform)
 			if err != nil {
 				if strings.Contains(err.Error(), "not found") ||
 					strings.Contains(err.Error(), "API error (404)") {

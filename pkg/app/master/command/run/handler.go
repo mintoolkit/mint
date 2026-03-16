@@ -92,7 +92,7 @@ func OnCommand(
 					"message": "trying to pull target image",
 				})
 
-			err := imageInspector.Pull(cparams.DoShowPullLogs, cparams.DockerConfigPath, cparams.RegistryAccount, cparams.RegistrySecret)
+			err := imageInspector.Pull(cparams.DoShowPullLogs, cparams.DockerConfigPath, cparams.RegistryAccount, cparams.RegistrySecret, cparams.Platform)
 			errutil.FailOn(err)
 		} else {
 			xc.Out.Info("target.image.error",

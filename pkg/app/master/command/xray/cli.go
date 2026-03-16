@@ -54,6 +54,7 @@ var XRayFlags = []cli.Flag{
 	command.Cflag(command.FlagRegistryAccount),
 	command.Cflag(command.FlagRegistrySecret),
 	command.Cflag(command.FlagShowPullLogs),
+	command.Cflag(command.FlagPlatform),
 	cflag(FlagChanges),
 	cflag(FlagChangesOutput),
 	cflag(FlagLayer),
@@ -204,6 +205,7 @@ var CLI = &cli.Command{
 		registryAccount := ctx.String(command.FlagRegistryAccount)
 		registrySecret := ctx.String(command.FlagRegistrySecret)
 		doShowPullLogs := ctx.Bool(command.FlagShowPullLogs)
+		platform := ctx.String(command.FlagPlatform)
 
 		changes, err := parseChangeTypes(ctx.StringSlice(FlagChanges))
 		if err != nil {
@@ -350,6 +352,7 @@ var CLI = &cli.Command{
 			registryAccount,
 			registrySecret,
 			doShowPullLogs,
+			platform,
 			changes,
 			changesOutputs,
 			layers,

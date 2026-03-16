@@ -82,6 +82,7 @@ const (
 	FlagRegistryAccount   = "registry-account"
 	FlagRegistrySecret    = "registry-secret"
 	FlagShowPullLogs      = "show-plogs"
+	FlagPlatform          = "platform"
 
 	//Compose-related flags
 	FlagComposeFile                    = "compose-file"
@@ -207,6 +208,7 @@ const (
 	FlagRegistryAccountUsage   = "Target registry account used when pulling images from private registries"
 	FlagRegistrySecretUsage    = "Target registry secret used when pulling images from private registries"
 	FlagShowPullLogsUsage      = "Show image pull logs"
+	FlagPlatformUsage          = "Target platform for the container image if it's a multi-architecture image (e.g., linux/arm64)"
 
 	//Compose-related flags
 	FlagComposeFileUsage                    = "Load container info from selected compose file(s)"
@@ -492,6 +494,12 @@ var CommonFlags = map[string]cli.Flag{
 		Name:    FlagShowPullLogs,
 		Usage:   FlagShowPullLogsUsage,
 		EnvVars: []string{"DSLIM_PLOG"},
+	},
+	FlagPlatform: &cli.StringFlag{
+		Name:    FlagPlatform,
+		Value:   "",
+		Usage:   FlagPlatformUsage,
+		EnvVars: []string{"DSLIM_PLATFORM"},
 	},
 	//
 	FlagComposeFile: &cli.StringSliceFlag{

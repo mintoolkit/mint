@@ -22,6 +22,7 @@ type CommandParams struct {
 	RegistryAccount  string
 	RegistrySecret   string
 	DoShowPullLogs   bool
+	Platform         string
 	Entrypoint       []string
 	Cmd              []string
 	DoLiveLogs       bool
@@ -41,6 +42,7 @@ func CommandFlagValues(ctx *cli.Context) (*CommandParams, error) {
 		RegistryAccount:  ctx.String(command.FlagRegistryAccount),
 		RegistrySecret:   ctx.String(command.FlagRegistrySecret),
 		DoShowPullLogs:   ctx.Bool(command.FlagShowPullLogs),
+		Platform:         ctx.String(command.FlagPlatform),
 		DoLiveLogs:       ctx.Bool(FlagLiveLogs),
 		DoTerminal:       ctx.Bool(FlagTerminal),
 		EnvVars:          ctx.StringSlice(command.FlagEnv),
@@ -88,6 +90,7 @@ var CLI = &cli.Command{
 		command.Cflag(command.FlagRegistryAccount),
 		command.Cflag(command.FlagRegistrySecret),
 		command.Cflag(command.FlagShowPullLogs),
+		command.Cflag(command.FlagPlatform),
 		command.Cflag(command.FlagEntrypoint),
 		command.Cflag(command.FlagCmd),
 		cflag(FlagLiveLogs),
