@@ -22,7 +22,7 @@ test-e2e-all: test-e2e-java
 test-e2e-all: test-e2e-node
 test-e2e-all: test-e2e-php
 test-e2e-all: test-e2e-python
-test-e2e-all: test-e2e-ruby
+# test-e2e-all: test-e2e-ruby  # TODO: Disabled until slimtoolkit/examples is updated for ffi >= 1.17 Ruby version requirement
 test-e2e-all: test-e2e-rust
 test-e2e-all:
 	@echo "OK"
@@ -99,13 +99,14 @@ test-e2e-python:
 
 .PHONY:
 test-e2e-ruby:
-	[ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_rails5_alpine/Makefile test-e2e
-	[ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_rails5_alpine_puma/Makefile test-e2e
-	[ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_rails5_alpine_puma_sh/Makefile test-e2e
-	[ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_rails5_alpine_unicorn_rails/Makefile test-e2e
-	[ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_rails5_standard/Makefile test-e2e
-	[ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_rails5_standard_puma/Makefile test-e2e
-	[ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_sinatra_ubuntu/Makefile test-e2e
+	# TODO: Disabled until slimtoolkit/examples is updated for ffi >= 1.17 Ruby version requirement
+	# [ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_rails5_alpine/Makefile test-e2e
+	# [ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_rails5_alpine_puma/Makefile test-e2e
+	# [ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_rails5_alpine_puma_sh/Makefile test-e2e
+	# [ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_rails5_alpine_unicorn_rails/Makefile test-e2e
+	# [ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_rails5_standard/Makefile test-e2e
+	# [ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_rails5_standard_puma/Makefile test-e2e
+	# [ "${ARCH}" = "arm64" ] || make -f $(DSLIM_EXAMPLES_DIR)/ruby2_sinatra_ubuntu/Makefile test-e2e
 
 .PHONY:
 test-e2e-rust:

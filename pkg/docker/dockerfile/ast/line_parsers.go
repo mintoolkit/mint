@@ -12,11 +12,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/mintoolkit/mint/pkg/docker/instruction"
 )
 
 type NameValError struct {
@@ -76,8 +75,8 @@ func parseSubCommand(rest string, d *Directive) (*Node, map[string]bool, error) 
 	return &Node{Children: []*Node{child}}, nil, nil
 }
 
-// helper to parse words (i.e space delimited or quoted strings) in a statement.
-// The quotes are preserved as part of this function and they are stripped later
+// helper to parse words (i.e. space delimited or quoted strings) in a statement.
+// The quotes are preserved as part of this function, and they are stripped later
 // as part of processWords().
 func parseWords(rest string, d *Directive) []string {
 	const (
@@ -224,12 +223,12 @@ func appendKeyValueNode(node, rootNode, prevNode *Node) (*Node, *Node) {
 }
 
 func parseEnv(rest string, d *Directive) (*Node, map[string]bool, error) {
-	node, err := parseNameVal(rest, instruction.Env, d)
+	node, err := parseNameVal(rest, df.InstTypeEnv, d)
 	return node, nil, err
 }
 
 func parseLabel(rest string, d *Directive) (*Node, map[string]bool, error) {
-	node, err := parseNameVal(rest, instruction.Label, d)
+	node, err := parseNameVal(rest, df.InstTypeLabel, d)
 	return node, nil, err
 }
 
