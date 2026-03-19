@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # Configuration
-VLLM_IMAGE="${VLLM_IMAGE:-vllm/vllm-openai:v0.15.1}"
+VLLM_IMAGE="${VLLM_IMAGE:-vllm/vllm-openai:v0.17.1-cu130}"
 SLIM_TAG="${SLIM_TAG:-$(echo $VLLM_IMAGE | sed 's|.*/||; s/:/-slim:/')}"
 MODEL="${MODEL:-TinyLlama/TinyLlama-1.1B-Chat-v1.0}"
 MAX_WAIT_MINUTES="${MAX_WAIT_MINUTES:-20}"
