@@ -282,34 +282,34 @@ func (app *App) processFileActivity(e *syscallEvent) {
 				!strings.HasPrefix(e.pathParam, "/proc/") &&
 				!strings.HasPrefix(e.pathParam, "/sys/") &&
 				!strings.HasPrefix(e.pathParam, "/dev/") {
-			if fsa, ok := app.fsActivity[e.pathParam]; ok {
-				fsa.OpsAll++
-				fsa.Pids[e.pid] = struct{}{}
-				fsa.Syscalls[int(e.callNum)] = struct{}{}
-			if e.retVal == 0 || p.SyscallType() == OpenFileType {
-				fsa.HasSuccessfulAccess = true
-			}
-
-				if processor, found := syscallProcessors[int(e.callNum)]; found {
-					switch processor.SyscallType() {
-					case CheckFileType:
-						fsa.OpsCheckFile++
+				if fsa, ok := app.fsActivity[e.pathParam]; ok {
+					fsa.OpsAll++
+					fsa.Pids[e.pid] = struct{}{}
+					fsa.Syscalls[int(e.callNum)] = struct{}{}
+					if e.retVal == 0 || p.SyscallType() == OpenFileType {
+						fsa.HasSuccessfulAccess = true
 					}
-				}
-			} else {
-				fsa := &report.FSActivityInfo{
-					OpsAll:              1,
-					OpsCheckFile:        1,
-					HasSuccessfulAccess: e.retVal == 0 || p.SyscallType() == OpenFileType,
-					Pids:                map[int]struct{}{},
-					Syscalls:            map[int]struct{}{},
-				}
 
-				fsa.Pids[e.pid] = struct{}{}
-				fsa.Syscalls[int(e.callNum)] = struct{}{}
+					if processor, found := syscallProcessors[int(e.callNum)]; found {
+						switch processor.SyscallType() {
+						case CheckFileType:
+							fsa.OpsCheckFile++
+						}
+					}
+				} else {
+					fsa := &report.FSActivityInfo{
+						OpsAll:              1,
+						OpsCheckFile:        1,
+						HasSuccessfulAccess: e.retVal == 0 || p.SyscallType() == OpenFileType,
+						Pids:                map[int]struct{}{},
+						Syscalls:            map[int]struct{}{},
+					}
 
-				app.fsActivity[e.pathParam] = fsa
-			}
+					fsa.Pids[e.pid] = struct{}{}
+					fsa.Syscalls[int(e.callNum)] = struct{}{}
+
+					app.fsActivity[e.pathParam] = fsa
+				}
 
 				if app.del != nil {
 					//NOTE:
