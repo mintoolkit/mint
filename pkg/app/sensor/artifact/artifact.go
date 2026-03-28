@@ -1985,7 +1985,7 @@ func (p *store) saveArtifacts() {
 
 	syscall.Umask(0)
 
-	excludePatterns := p.cmd.Excludes
+	excludePatterns := addImplicitExcludes(p.cmd.Excludes)
 	excludePatterns = append(excludePatterns, "/opt/_mint")
 	excludePatterns = append(excludePatterns, "/opt/_mint/**")
 	if p.cmd.ExcludeVarLockFiles {
@@ -3972,4 +3972,22 @@ func getFileDevice(fullName string) (uint64, error) {
 	}
 
 	return uint64(info.Dev), nil
+}
+
+func addImplicitExcludes(patterns []string) []string {
+	var newExcludes []string
+	for _, pattern := range patterns {
+		if strings.HasSuffix(pattern, "/**") {
+			base := strings.TrimSuffix(pattern, "/**")
+			if base != "" {
+				newExcludes = append(newExcludes, base)
+			}
+		}
+	}
+
+	if len(newExcludes) > 0 {
+		return append(patterns, newExcludes...)
+	}
+
+	return patterns
 }

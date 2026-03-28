@@ -52,6 +52,12 @@ func WithPreserves(path ...string) StartMonitorOpt {
 	}
 }
 
+func WithExcludes(path ...string) StartMonitorOpt {
+	return func(cmd *command.StartMonitor) {
+		cmd.Excludes = path
+	}
+}
+
 func NewMonitorStartCommand(opts ...StartMonitorOpt) command.StartMonitor {
 	cmd := command.StartMonitor{}
 
