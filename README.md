@@ -266,6 +266,10 @@ docker pull mintoolkit/mint
 
 See the [RUNNING CONTAINERIZED](#running-containerized) section for more usage info.
 
+### Guided Install via KubeStellar Console
+
+[KubeStellar Console](https://console.kubestellar.io) offers a [guided installation mission for Mint](https://console.kubestellar.io/missions/install-slimtoolkit) that walks you through the setup step by step, including pre-flight checks, platform detection, validation and troubleshooting.
+
 ## BASIC USAGE INFO
 
 `mint [global flags] [xray|slim|debug|profile|imagebuild|run|lint|merge|images|registry|vulnerability|app|help] [command-specific flags] <IMAGE_ID_OR_NAME>`
