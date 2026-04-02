@@ -286,9 +286,6 @@ func (app *App) processFileActivity(e *syscallEvent) {
 					fsa.OpsAll++
 					fsa.Pids[e.pid] = struct{}{}
 					fsa.Syscalls[int(e.callNum)] = struct{}{}
-					if e.retVal == 0 || p.SyscallType() == OpenFileType {
-						fsa.HasSuccessfulAccess = true
-					}
 
 					if processor, found := syscallProcessors[int(e.callNum)]; found {
 						switch processor.SyscallType() {
@@ -298,11 +295,10 @@ func (app *App) processFileActivity(e *syscallEvent) {
 					}
 				} else {
 					fsa := &report.FSActivityInfo{
-						OpsAll:              1,
-						OpsCheckFile:        1,
-						HasSuccessfulAccess: e.retVal == 0 || p.SyscallType() == OpenFileType,
-						Pids:                map[int]struct{}{},
-						Syscalls:            map[int]struct{}{},
+						OpsAll:       1,
+						OpsCheckFile: 1,
+						Pids:         map[int]struct{}{},
+						Syscalls:     map[int]struct{}{},
 					}
 
 					fsa.Pids[e.pid] = struct{}{}
@@ -508,21 +504,8 @@ func (app *App) FileActivity() map[string]*report.FSActivityInfo {
 				return false
 			}
 
-			adata, ok := av.(*report.FSActivityInfo)
-			if !ok {
-				return false
-			}
-
-			// Only mark as subdirectory if the child path was actually
-			// found on disk. ENOENT "ghost" children (e.g., Python probing
-			// for __init__.so/.py in a namespace package directory) must
-			// not cause the parent directory to be excluded.
-			if adata.HasSuccessfulAccess {
-				wdata.IsSubdir = true
-				return true
-			}
-
-			return false
+			wdata.IsSubdir = true
+			return true
 		}
 
 		t.WalkPrefix(wkey, walkAfter)
@@ -1248,12 +1231,7 @@ func (ref *checkFileSyscallProcessor) OKCall(cstate *syscallState) bool {
 }
 
 func (ref *checkFileSyscallProcessor) OKReturnStatus(retVal uint64) bool {
-	// Accept successful stat calls (0) and also failed attempts that indicate
-	// the application was looking for the file. This is important for Python
-	// imports which check multiple locations before finding the right file.
-	// Track ENOENT (file not found) and ENOTDIR (not a directory) in addition to success.
-	intRetVal := getIntVal(retVal)
-	return intRetVal == 0 || intRetVal == -2 || intRetVal == -20 // 0=success, -2=ENOENT, -20=ENOTDIR
+	return retVal == 0
 }
 
 func (ref *checkFileSyscallProcessor) EventOnCall() bool {

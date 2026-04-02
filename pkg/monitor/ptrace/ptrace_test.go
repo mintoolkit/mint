@@ -5,25 +5,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/mintoolkit/mint/pkg/mondel"
 	"github.com/mintoolkit/mint/pkg/report"
 	"github.com/mintoolkit/mint/pkg/system"
 )
-
-// mockPublisher captures MonitorDataEvents published during processFileActivity.
-type mockPublisher struct {
-	events []*report.MonitorDataEvent
-}
-
-func (m *mockPublisher) Publish(event *report.MonitorDataEvent) error {
-	m.events = append(m.events, event)
-	return nil
-}
-
-func (m *mockPublisher) Stop() {}
-
-// Verify mockPublisher satisfies the interface.
-var _ mondel.Publisher = (*mockPublisher)(nil)
 
 func TestGetIntVal(t *testing.T) {
 	tt := []struct {
@@ -45,6 +29,9 @@ func TestGetIntVal(t *testing.T) {
 	}
 }
 
+// TestCheckFileSyscallProcessorOKReturnStatus verifies that OKReturnStatus
+// only accepts successful stat calls (retVal == 0). ENOENT, ENOTDIR, and
+// other errors are rejected — only paths that actually exist get tracked.
 func TestCheckFileSyscallProcessorOKReturnStatus(t *testing.T) {
 	processor := &checkFileSyscallProcessor{
 		syscallProcessorCore: &syscallProcessorCore{},
@@ -58,37 +45,32 @@ func TestCheckFileSyscallProcessorOKReturnStatus(t *testing.T) {
 		{
 			retVal:   0,
 			expected: true,
-			desc:     "success (0)",
+			desc:     "success (0) - file exists, should be tracked",
 		},
 		{
 			retVal:   0xFFFFFFFE, // -2 as uint64
-			expected: true,
-			desc:     "ENOENT (-2) - file not found, should be tracked",
+			expected: false,
+			desc:     "ENOENT (-2) - file not found, should NOT be tracked",
 		},
 		{
 			retVal:   0xFFFFFFEC, // -20 as uint64
-			expected: true,
-			desc:     "ENOTDIR (-20) - not a directory, should be tracked",
+			expected: false,
+			desc:     "ENOTDIR (-20) - not a directory, should NOT be tracked",
 		},
 		{
 			retVal:   0xFFFFFFFF, // -1 as uint64
 			expected: false,
-			desc:     "EPERM (-1) - should not be tracked",
+			desc:     "EPERM (-1) - should NOT be tracked",
 		},
 		{
 			retVal:   0xFFFFFFFD, // -3 as uint64
 			expected: false,
-			desc:     "ESRCH (-3) - should not be tracked",
-		},
-		{
-			retVal:   0xFFFFFFED, // -19 as uint64
-			expected: false,
-			desc:     "ENODEV (-19) - should not be tracked",
+			desc:     "ESRCH (-3) - should NOT be tracked",
 		},
 		{
 			retVal:   1,
 			expected: false,
-			desc:     "positive return value - should not be tracked",
+			desc:     "positive return value - should NOT be tracked",
 		},
 	}
 
@@ -137,12 +119,10 @@ func TestCheckFileSyscallProcessorFailedReturnStatus(t *testing.T) {
 	}
 }
 
-// TestOKReturnStatusAndFailedReturnStatusOverlap demonstrates that for
-// checkFileSyscallProcessor, OKReturnStatus and FailedReturnStatus are NOT
-// complementary. ENOENT (-2) and ENOTDIR (-20) return true for BOTH methods.
-// This is by design: OKReturnStatus means "this path is interesting enough to
-// track" while FailedReturnStatus means "the syscall itself did not succeed."
-func TestOKReturnStatusAndFailedReturnStatusOverlap(t *testing.T) {
+// TestOKReturnStatusAndFailedReturnStatusAreComplements verifies that after
+// reverting OKReturnStatus to success-only, OKReturnStatus and
+// FailedReturnStatus are now proper complements (no overlap).
+func TestOKReturnStatusAndFailedReturnStatusAreComplements(t *testing.T) {
 	processor := &checkFileSyscallProcessor{
 		syscallProcessorCore: &syscallProcessorCore{},
 	}
@@ -157,25 +137,25 @@ func TestOKReturnStatusAndFailedReturnStatusOverlap(t *testing.T) {
 			retVal:     0,
 			okReturn:   true,
 			failReturn: false,
-			desc:       "success (0): OK=true, Failed=false — no overlap",
+			desc:       "success (0)",
 		},
 		{
 			retVal:     0xFFFFFFFE, // -2
-			okReturn:   true,
+			okReturn:   false,
 			failReturn: true,
-			desc:       "ENOENT (-2): OK=true AND Failed=true — OVERLAP (path tracked but file doesn't exist)",
+			desc:       "ENOENT (-2)",
 		},
 		{
 			retVal:     0xFFFFFFEC, // -20
-			okReturn:   true,
+			okReturn:   false,
 			failReturn: true,
-			desc:       "ENOTDIR (-20): OK=true AND Failed=true — OVERLAP (path tracked but not a directory)",
+			desc:       "ENOTDIR (-20)",
 		},
 		{
 			retVal:     0xFFFFFFFF, // -1
 			okReturn:   false,
 			failReturn: true,
-			desc:       "EPERM (-1): OK=false, Failed=true — no overlap",
+			desc:       "EPERM (-1)",
 		},
 	}
 
@@ -190,6 +170,10 @@ func TestOKReturnStatusAndFailedReturnStatusOverlap(t *testing.T) {
 			t.Errorf("[%s] FailedReturnStatus(0x%x) = %v, want %v",
 				test.desc, test.retVal, failResult, test.failReturn)
 		}
+		if okResult == failResult {
+			t.Errorf("[%s] OKReturnStatus and FailedReturnStatus should be "+
+				"complements but both returned %v", test.desc, okResult)
+		}
 	}
 }
 
@@ -197,16 +181,6 @@ func TestOKReturnStatusAndFailedReturnStatusOverlap(t *testing.T) {
 // and FileActivity without needing exec, ptrace, or signal infrastructure.
 func newTestApp() *App {
 	return &App{
-		fsActivity: map[string]*report.FSActivityInfo{},
-		logger:     log.WithField("test", true),
-	}
-}
-
-// newTestAppWithPublisher creates a test App with a mock event publisher,
-// so we can capture MonitorDataEvents emitted by processFileActivity.
-func newTestAppWithPublisher(pub mondel.Publisher) *App {
-	return &App{
-		del:        pub,
 		fsActivity: map[string]*report.FSActivityInfo{},
 		logger:     log.WithField("test", true),
 	}
@@ -234,14 +208,13 @@ func lookupOpenatCallNum() uint32 {
 	return num
 }
 
-// TestProcessFileActivity_GhostPathsRecorded shows that stat calls returning
-// ENOENT (-2) still get recorded in fsActivity (because OKReturnStatus accepts
-// ENOENT), but with HasSuccessfulAccess=false.
-func TestProcessFileActivity_GhostPathsRecorded(t *testing.T) {
+// TestProcessFileActivity_ENOENTNotRecorded verifies that stat calls returning
+// ENOENT (-2) are NOT recorded in fsActivity. Only successful calls (retVal==0)
+// pass the OKReturnStatus gate.
+func TestProcessFileActivity_ENOENTNotRecorded(t *testing.T) {
 	app := newTestApp()
 	statNum := lookupStatCallNum()
 
-	// Simulate a stat call that returned ENOENT (file not found)
 	app.processFileActivity(&syscallEvent{
 		returned:  true,
 		pid:       1,
@@ -250,29 +223,18 @@ func TestProcessFileActivity_GhostPathsRecorded(t *testing.T) {
 		pathParam: "/usr/lib/foo/__init__.cpython-311.so",
 	})
 
-	fsa, found := app.fsActivity["/usr/lib/foo/__init__.cpython-311.so"]
-	if !found {
-		t.Fatal("ghost path (ENOENT stat) was NOT recorded in fsActivity — " +
-			"OKReturnStatus should accept ENOENT to track Python import probes")
-	}
-
-	if fsa.HasSuccessfulAccess {
-		t.Error("ghost path should have HasSuccessfulAccess=false, got true — " +
-			"ENOENT paths should not be marked as successfully accessed")
-	}
-
-	if fsa.OpsAll != 1 {
-		t.Errorf("expected OpsAll=1, got %d", fsa.OpsAll)
+	if _, found := app.fsActivity["/usr/lib/foo/__init__.cpython-311.so"]; found {
+		t.Error("ENOENT stat path should NOT be recorded — " +
+			"OKReturnStatus should only accept retVal == 0")
 	}
 }
 
-// TestProcessFileActivity_SuccessPathsRecorded shows that stat calls returning
-// success (0) are recorded with HasSuccessfulAccess=true.
+// TestProcessFileActivity_SuccessPathsRecorded verifies that stat calls
+// returning success (0) are recorded in fsActivity.
 func TestProcessFileActivity_SuccessPathsRecorded(t *testing.T) {
 	app := newTestApp()
 	statNum := lookupStatCallNum()
 
-	// Simulate a stat call that succeeded (file exists)
 	app.processFileActivity(&syscallEvent{
 		returned:  true,
 		pid:       1,
@@ -281,24 +243,17 @@ func TestProcessFileActivity_SuccessPathsRecorded(t *testing.T) {
 		pathParam: "/usr/lib/foo/__init__.py",
 	})
 
-	fsa, found := app.fsActivity["/usr/lib/foo/__init__.py"]
-	if !found {
+	if _, found := app.fsActivity["/usr/lib/foo/__init__.py"]; !found {
 		t.Fatal("successful stat path was NOT recorded in fsActivity")
-	}
-
-	if !fsa.HasSuccessfulAccess {
-		t.Error("successful stat path should have HasSuccessfulAccess=true, got false")
 	}
 }
 
-// TestProcessFileActivity_OpenFileAlwaysSuccessful shows that for OpenFileType
-// syscalls (e.g., openat), HasSuccessfulAccess is always true when the path
-// passes OKReturnStatus (which requires fd >= 0 for open-type calls).
-func TestProcessFileActivity_OpenFileAlwaysSuccessful(t *testing.T) {
+// TestProcessFileActivity_OpenFileSuccessRecorded verifies that openat calls
+// with a successful fd (>= 0) are recorded.
+func TestProcessFileActivity_OpenFileSuccessRecorded(t *testing.T) {
 	app := newTestApp()
 	openatNum := lookupOpenatCallNum()
 
-	// Simulate an openat call that succeeded (returned fd=3)
 	app.processFileActivity(&syscallEvent{
 		returned:  true,
 		pid:       1,
@@ -307,18 +262,13 @@ func TestProcessFileActivity_OpenFileAlwaysSuccessful(t *testing.T) {
 		pathParam: "/etc/config.json",
 	})
 
-	fsa, found := app.fsActivity["/etc/config.json"]
-	if !found {
+	if _, found := app.fsActivity["/etc/config.json"]; !found {
 		t.Fatal("successful openat path was NOT recorded in fsActivity")
-	}
-
-	if !fsa.HasSuccessfulAccess {
-		t.Error("successful openat path should have HasSuccessfulAccess=true")
 	}
 }
 
-// TestProcessFileActivity_EPERMNotRecorded shows that stat calls returning
-// EPERM (-1) are NOT recorded, because OKReturnStatus rejects them.
+// TestProcessFileActivity_EPERMNotRecorded verifies that stat calls returning
+// EPERM (-1) are NOT recorded.
 func TestProcessFileActivity_EPERMNotRecorded(t *testing.T) {
 	app := newTestApp()
 	statNum := lookupStatCallNum()
@@ -332,34 +282,30 @@ func TestProcessFileActivity_EPERMNotRecorded(t *testing.T) {
 	})
 
 	if _, found := app.fsActivity["/root/secret"]; found {
-		t.Error("EPERM stat path should NOT be recorded — OKReturnStatus rejects -1")
+		t.Error("EPERM stat path should NOT be recorded")
 	}
 }
 
-// TestFileActivity_GhostChildrenDontTriggerIsSubdir demonstrates the fix from
-// da8eb2c7: ghost children (ENOENT stat results) with HasSuccessfulAccess=false
-// do NOT cause the parent directory to be marked IsSubdir=true and excluded.
-//
-// Scenario: Python namespace package — directory /usr/lib/foo/ is stat'd
-// successfully, but probes for __init__.*.so and __init__.py all return ENOENT.
-// The directory must NOT be excluded.
-func TestFileActivity_GhostChildrenDontTriggerIsSubdir(t *testing.T) {
+// TestFileActivity_NamespacePackageDirectoryPreserved tests that a namespace
+// package directory (no __init__.py) is preserved in FileActivity() when only
+// the directory itself has a successful stat. Since ENOENT probes are no longer
+// tracked, there are no ghost children to cause IsSubdir false positives.
+func TestFileActivity_NamespacePackageDirectoryPreserved(t *testing.T) {
 	app := newTestApp()
 	statNum := lookupStatCallNum()
 
-	// Parent directory stat — success
+	// Only the directory stat succeeds — ENOENT probes are not tracked
 	app.processFileActivity(&syscallEvent{
 		returned: true, pid: 1, callNum: statNum,
 		retVal: 0, pathParam: "/usr/lib/foo",
 	})
 
-	// Ghost children — ENOENT probes for __init__ variants
-	ghostPaths := []string{
+	// These ENOENT probes should be silently ignored by the gate
+	for _, p := range []string{
 		"/usr/lib/foo/__init__.cpython-311.so",
 		"/usr/lib/foo/__init__.so",
 		"/usr/lib/foo/__init__.py",
-	}
-	for _, p := range ghostPaths {
+	} {
 		app.processFileActivity(&syscallEvent{
 			returned: true, pid: 1, callNum: statNum,
 			retVal: 0xFFFFFFFE, pathParam: p, // ENOENT
@@ -368,33 +314,28 @@ func TestFileActivity_GhostChildrenDontTriggerIsSubdir(t *testing.T) {
 
 	result := app.FileActivity()
 
-	// The parent directory must NOT be filtered out
 	if _, found := result["/usr/lib/foo"]; !found {
-		t.Error("/usr/lib/foo was excluded by FileActivity() — " +
-			"ghost children with HasSuccessfulAccess=false should not trigger IsSubdir")
+		t.Error("/usr/lib/foo was excluded — namespace package directory " +
+			"should be preserved since no ghost children can trigger IsSubdir")
 	}
 
-	// Ghost children should still be present (they are leaf nodes, not IsSubdir)
-	for _, p := range ghostPaths {
-		if fsa, found := result[p]; found {
-			if fsa.HasSuccessfulAccess {
-				t.Errorf("ghost path %s should have HasSuccessfulAccess=false", p)
-			}
+	// Verify no ghost paths leaked into the result
+	if len(result) != 1 {
+		t.Errorf("expected exactly 1 entry (the directory), got %d", len(result))
+		for k := range result {
+			t.Logf("  result key: %s", k)
 		}
-		// Note: ghost paths ARE expected in the result — this is side effect #2
-		// from the analysis. They pass through FileActivity() because they are
-		// leaf nodes with no children.
 	}
 }
 
-// TestFileActivity_RealChildrenTriggerIsSubdir shows that when a child path has
-// HasSuccessfulAccess=true (i.e., the file actually exists), the parent IS
-// correctly marked IsSubdir and excluded from the result.
+// TestFileActivity_RealChildrenTriggerIsSubdir verifies that when a child path
+// has a successful stat (file exists), the parent directory is correctly marked
+// IsSubdir and excluded from the result.
 func TestFileActivity_RealChildrenTriggerIsSubdir(t *testing.T) {
 	app := newTestApp()
 	statNum := lookupStatCallNum()
 
-	// Parent directory stat — success
+	// Parent directory — success
 	app.processFileActivity(&syscallEvent{
 		returned: true, pid: 1, callNum: statNum,
 		retVal: 0, pathParam: "/usr/lib/bar",
@@ -408,48 +349,53 @@ func TestFileActivity_RealChildrenTriggerIsSubdir(t *testing.T) {
 
 	result := app.FileActivity()
 
-	// The parent directory SHOULD be filtered out (IsSubdir=true)
 	if _, found := result["/usr/lib/bar"]; found {
-		t.Error("/usr/lib/bar should be excluded by FileActivity() — " +
-			"a real child with HasSuccessfulAccess=true should trigger IsSubdir")
+		t.Error("/usr/lib/bar should be excluded — " +
+			"a real child should trigger IsSubdir")
 	}
 
-	// The child file should be present
 	if _, found := result["/usr/lib/bar/__init__.py"]; !found {
-		t.Error("/usr/lib/bar/__init__.py should be in FileActivity() result")
+		t.Error("/usr/lib/bar/__init__.py should be in result")
 	}
 }
 
-// TestFileActivity_GhostLeafPathsPassThrough demonstrates side effect #2:
-// ghost leaf paths (no children of their own) survive FileActivity() filtering
-// and appear in the final report, even though they represent non-existent files.
-func TestFileActivity_GhostLeafPathsPassThrough(t *testing.T) {
+// TestFileActivity_NoGhostPathsInReport verifies that ENOENT stat results
+// never appear in the FileActivity() output.
+func TestFileActivity_NoGhostPathsInReport(t *testing.T) {
 	app := newTestApp()
 	statNum := lookupStatCallNum()
 
-	// A ghost leaf path with no parent or children in fsActivity
+	// Mix of successful and failed stats
 	app.processFileActivity(&syscallEvent{
 		returned: true, pid: 1, callNum: statNum,
-		retVal: 0xFFFFFFFE, pathParam: "/usr/lib/nonexistent.so", // ENOENT
+		retVal: 0, pathParam: "/usr/lib/real.so",
+	})
+	app.processFileActivity(&syscallEvent{
+		returned: true, pid: 1, callNum: statNum,
+		retVal: 0xFFFFFFFE, pathParam: "/usr/lib/ghost.so", // ENOENT
+	})
+	app.processFileActivity(&syscallEvent{
+		returned: true, pid: 1, callNum: statNum,
+		retVal: 0xFFFFFFEC, pathParam: "/usr/lib/ghost2.so", // ENOTDIR
 	})
 
 	result := app.FileActivity()
 
-	fsa, found := result["/usr/lib/nonexistent.so"]
-	if !found {
-		t.Fatal("ghost leaf path was filtered out by FileActivity() — " +
-			"expected it to pass through (this IS a known side effect)")
+	if _, found := result["/usr/lib/real.so"]; !found {
+		t.Error("real path should be in result")
 	}
-
-	if fsa.HasSuccessfulAccess {
-		t.Error("ghost leaf path should have HasSuccessfulAccess=false")
+	if _, found := result["/usr/lib/ghost.so"]; found {
+		t.Error("ENOENT ghost path should NOT be in result")
+	}
+	if _, found := result["/usr/lib/ghost2.so"]; found {
+		t.Error("ENOTDIR ghost path should NOT be in result")
 	}
 }
 
-// TestFileActivity_MixedGhostAndRealChildren tests the realistic Python import
-// scenario: a package directory has both ghost probes (ENOENT) and one real file
-// (success). The parent should be marked IsSubdir because a real child exists.
-func TestFileActivity_MixedGhostAndRealChildren(t *testing.T) {
+// TestFileActivity_MixedRealAndGhostChildren tests the realistic Python
+// import scenario: a package directory has both ENOENT probes and one real
+// file. Only the real file and its IsSubdir effect should matter.
+func TestFileActivity_MixedRealAndGhostChildren(t *testing.T) {
 	app := newTestApp()
 	statNum := lookupStatCallNum()
 
@@ -459,7 +405,7 @@ func TestFileActivity_MixedGhostAndRealChildren(t *testing.T) {
 		retVal: 0, pathParam: "/usr/lib/pkg",
 	})
 
-	// Ghost probes — ENOENT
+	// ENOENT probes — should be silently ignored
 	app.processFileActivity(&syscallEvent{
 		returned: true, pid: 1, callNum: statNum,
 		retVal: 0xFFFFFFFE, pathParam: "/usr/lib/pkg/__init__.cpython-311.so",
@@ -477,9 +423,10 @@ func TestFileActivity_MixedGhostAndRealChildren(t *testing.T) {
 
 	result := app.FileActivity()
 
-	// Parent should be excluded (real child exists)
+	// Parent should be excluded (real child exists and triggers IsSubdir)
 	if _, found := result["/usr/lib/pkg"]; found {
-		t.Error("/usr/lib/pkg should be excluded — real child __init__.py exists")
+		t.Error("/usr/lib/pkg should be excluded — real child __init__.py " +
+			"triggers IsSubdir")
 	}
 
 	// Real child should be present
@@ -487,241 +434,11 @@ func TestFileActivity_MixedGhostAndRealChildren(t *testing.T) {
 		t.Error("/usr/lib/pkg/__init__.py should be in result")
 	}
 
-	// Ghost children should also be present (side effect #2)
-	for _, p := range []string{
-		"/usr/lib/pkg/__init__.cpython-311.so",
-		"/usr/lib/pkg/__init__.so",
-	} {
-		if fsa, found := result[p]; found {
-			if fsa.HasSuccessfulAccess {
-				t.Errorf("ghost path %s should have HasSuccessfulAccess=false", p)
-			}
+	// No ghost paths should be present
+	if len(result) != 1 {
+		t.Errorf("expected exactly 1 entry (__init__.py), got %d", len(result))
+		for k := range result {
+			t.Logf("  result key: %s", k)
 		}
 	}
-}
-
-// =============================================================================
-// Bug detection tests
-//
-// These tests verify whether the three possible open bugs identified in the
-// analysis document are live. Each test is structured so that:
-//   - If the bug IS LIVE, the test documents the buggy behavior (passes but
-//     logs what's wrong via t.Log).
-//   - If the bug is FIXED in the future, the test will fail, signaling that
-//     the fix landed and the test expectations should be updated.
-// =============================================================================
-
-// BUG #1: Ghost leaf paths leak into the final FSActivity report.
-//
-// FileActivity() only filters paths with IsSubdir=true. Ghost leaf paths
-// (ENOENT stat results with no children) have HasSuccessfulAccess=false but
-// are never filtered. They appear in Report.FSActivity and get passed to
-// prepareArtifact() for files that don't exist on disk.
-//
-// This test simulates a Python import that probes 3 non-existent paths and
-// finds 1 real file. It checks whether the ghost paths leak into the report.
-func TestBug1_GhostLeafPathsLeakIntoReport(t *testing.T) {
-	app := newTestApp()
-	statNum := lookupStatCallNum()
-
-	// Python probes these — all return ENOENT (file not found)
-	ghostPaths := []string{
-		"/usr/lib/mypackage/__init__.cpython-311.so",
-		"/usr/lib/mypackage/__init__.so",
-		"/usr/lib/mypackage/__init__.abi3.so",
-	}
-	for _, p := range ghostPaths {
-		app.processFileActivity(&syscallEvent{
-			returned: true, pid: 1, callNum: statNum,
-			retVal: 0xFFFFFFFE, pathParam: p, // ENOENT
-		})
-	}
-
-	// One real file found
-	app.processFileActivity(&syscallEvent{
-		returned: true, pid: 1, callNum: statNum,
-		retVal: 0, pathParam: "/usr/lib/mypackage/__init__.py",
-	})
-
-	result := app.FileActivity()
-
-	// Count how many ghost (non-existent) paths leaked into the report
-	leaked := 0
-	for _, p := range ghostPaths {
-		if fsa, found := result[p]; found {
-			leaked++
-			if fsa.HasSuccessfulAccess {
-				t.Errorf("ghost path %s has HasSuccessfulAccess=true (unexpected)", p)
-			}
-		}
-	}
-
-	if leaked > 0 {
-		// BUG IS LIVE: ghost paths leak into the report.
-		// When this bug is fixed, this branch will stop being reached and the
-		// test will fail at the assertion below — update it to expect 0.
-		t.Logf("BUG #1 IS LIVE: %d/%d ghost leaf paths leaked into FileActivity() report",
-			leaked, len(ghostPaths))
-		if leaked != len(ghostPaths) {
-			t.Errorf("expected all %d ghost paths to leak (or none if fixed), got %d",
-				len(ghostPaths), leaked)
-		}
-	} else {
-		// BUG IS FIXED: no ghost paths in the report.
-		t.Log("BUG #1 IS FIXED: ghost leaf paths are no longer in the report")
-	}
-}
-
-// BUG #2: Ghost paths are published as MDETypeArtifact events.
-//
-// processFileActivity() publishes a MonitorDataEvent for every path that passes
-// the OKReturnStatus gate, including ENOENT ghost paths. Event stream consumers
-// receive artifact events for files that don't exist.
-func TestBug2_GhostPathsPublishedAsArtifactEvents(t *testing.T) {
-	pub := &mockPublisher{}
-	app := newTestAppWithPublisher(pub)
-	statNum := lookupStatCallNum()
-
-	// Ghost path — ENOENT
-	app.processFileActivity(&syscallEvent{
-		returned: true, pid: 1, callNum: statNum,
-		retVal: 0xFFFFFFFE, pathParam: "/usr/lib/ghost.so", // ENOENT
-	})
-
-	// Real path — success
-	app.processFileActivity(&syscallEvent{
-		returned: true, pid: 1, callNum: statNum,
-		retVal: 0, pathParam: "/usr/lib/real.so",
-	})
-
-	// Check which paths got published
-	ghostPublished := false
-	realPublished := false
-	for _, ev := range pub.events {
-		if ev.Artifact == "/usr/lib/ghost.so" {
-			ghostPublished = true
-		}
-		if ev.Artifact == "/usr/lib/real.so" {
-			realPublished = true
-		}
-	}
-
-	if !realPublished {
-		t.Error("real path /usr/lib/real.so was NOT published as an event (unexpected)")
-	}
-
-	if ghostPublished {
-		// BUG IS LIVE: ghost paths are published as artifact events.
-		t.Log("BUG #2 IS LIVE: ghost path /usr/lib/ghost.so was published as " +
-			"an MDETypeArtifact event despite the file not existing on disk")
-	} else {
-		// BUG IS FIXED: ghost paths are not published.
-		t.Log("BUG #2 IS FIXED: ghost paths are no longer published as artifact events")
-	}
-}
-
-// BUG #3: OKReturnStatus/FailedReturnStatus naming trap causes regressions.
-//
-// This test reproduces the exact regression introduced by kilo-code-bot in
-// commit 3f8dcb47: using p.OKReturnStatus(e.retVal) for the HasSuccessfulAccess
-// condition instead of e.retVal == 0. Because OKReturnStatus accepts ENOENT,
-// ghost paths get HasSuccessfulAccess=true, which breaks the namespace package
-// fix — ghost children trigger IsSubdir on the parent directory.
-//
-// The test simulates what WOULD happen if someone made this mistake again,
-// by directly manipulating HasSuccessfulAccess to match what OKReturnStatus
-// would produce, and showing the cascade failure.
-func TestBug3_OKReturnStatusMisuseBreaksNamespacePackages(t *testing.T) {
-	statNum := lookupStatCallNum()
-	statProcessor, found := syscallProcessors[int(statNum)]
-	if !found {
-		t.Fatal("stat processor not found in syscallProcessors")
-	}
-
-	// --- Scenario: namespace package directory with only ghost children ---
-	// Current (correct) behavior: use e.retVal == 0 for HasSuccessfulAccess
-	t.Run("correct_behavior_retVal_eq_0", func(t *testing.T) {
-		app := newTestApp()
-
-		// Parent directory — success
-		app.processFileActivity(&syscallEvent{
-			returned: true, pid: 1, callNum: statNum,
-			retVal: 0, pathParam: "/usr/lib/nspkg",
-		})
-		// Ghost child — ENOENT
-		app.processFileActivity(&syscallEvent{
-			returned: true, pid: 1, callNum: statNum,
-			retVal: 0xFFFFFFFE, pathParam: "/usr/lib/nspkg/__init__.py",
-		})
-
-		result := app.FileActivity()
-		if _, found := result["/usr/lib/nspkg"]; !found {
-			t.Error("namespace package directory was incorrectly excluded")
-		}
-	})
-
-	// Simulated regression: if HasSuccessfulAccess used OKReturnStatus instead
-	// of retVal == 0, ENOENT ghost children would get HasSuccessfulAccess=true,
-	// triggering IsSubdir on the parent and excluding it.
-	t.Run("regression_if_OKReturnStatus_used_for_HasSuccessfulAccess", func(t *testing.T) {
-		app := newTestApp()
-
-		// Parent directory — success
-		app.fsActivity["/usr/lib/nspkg"] = &report.FSActivityInfo{
-			OpsAll: 1, OpsCheckFile: 1,
-			HasSuccessfulAccess: true,
-			Pids:                map[int]struct{}{1: {}},
-			Syscalls:            map[int]struct{}{int(statNum): {}},
-		}
-
-		// Ghost child — simulate what happens if HasSuccessfulAccess used
-		// OKReturnStatus: ENOENT (-2) returns true from OKReturnStatus, so
-		// HasSuccessfulAccess would be set to true (THIS IS THE BUG).
-		enoentRetVal := uint64(0xFFFFFFFE) // -2
-		buggyHasSuccessfulAccess := statProcessor.OKReturnStatus(enoentRetVal)
-		// Verify the premise: OKReturnStatus does accept ENOENT
-		if !buggyHasSuccessfulAccess {
-			t.Fatal("test premise failed: OKReturnStatus should accept ENOENT")
-		}
-
-		app.fsActivity["/usr/lib/nspkg/__init__.py"] = &report.FSActivityInfo{
-			OpsAll: 1, OpsCheckFile: 1,
-			HasSuccessfulAccess: buggyHasSuccessfulAccess, // true — THE BUG
-			Pids:                map[int]struct{}{1: {}},
-			Syscalls:            map[int]struct{}{int(statNum): {}},
-		}
-
-		result := app.FileActivity()
-
-		if _, found := result["/usr/lib/nspkg"]; found {
-			t.Log("BUG #3 CONFIRMED: if OKReturnStatus were used for " +
-				"HasSuccessfulAccess, this namespace package directory would " +
-				"survive (but only because there's no real child to trigger IsSubdir)")
-		} else {
-			// The parent was excluded — the ghost child with
-			// HasSuccessfulAccess=true triggered IsSubdir.
-			t.Log("BUG #3 IS LIVE (naming trap): using OKReturnStatus for " +
-				"HasSuccessfulAccess causes ghost children to trigger IsSubdir, " +
-				"excluding the namespace package directory from the slim image. " +
-				"This is the exact regression from commit 3f8dcb47.")
-		}
-
-		// The key assertion: the current code does NOT use OKReturnStatus for
-		// HasSuccessfulAccess, so verify the correct path still works.
-		correctApp := newTestApp()
-		correctApp.processFileActivity(&syscallEvent{
-			returned: true, pid: 1, callNum: statNum,
-			retVal: 0, pathParam: "/usr/lib/nspkg2",
-		})
-		correctApp.processFileActivity(&syscallEvent{
-			returned: true, pid: 1, callNum: statNum,
-			retVal: 0xFFFFFFFE, pathParam: "/usr/lib/nspkg2/__init__.py",
-		})
-		correctResult := correctApp.FileActivity()
-		if _, found := correctResult["/usr/lib/nspkg2"]; !found {
-			t.Error("REGRESSION: current code is excluding namespace package " +
-				"directories — the HasSuccessfulAccess condition may have been " +
-				"changed to use OKReturnStatus again")
-		}
-	})
 }
