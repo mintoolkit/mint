@@ -130,9 +130,10 @@ type ContainerRunOptions struct {
 	//Explicit overrides for the base and host config fields
 	//Host config field override are applied
 	//on top of the fields in the HostConfig struct if it's provided (volume mounts are merged though)
-	Runtime      string
-	SysctlParams map[string]string
-	ShmSize      int64
+	Runtime       string
+	SysctlParams  map[string]string
+	ShmSize       int64
+	DeviceRequest string
 }
 
 // VolumeMount provides the volume mount configuration information
