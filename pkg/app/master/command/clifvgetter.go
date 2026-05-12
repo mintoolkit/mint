@@ -51,6 +51,7 @@ func GetContainerRunOptions(ctx *cli.Context) (*config.ContainerRunOptions, erro
 	}
 
 	cro.ShmSize = ctx.Int64(FlagCROShmSize)
+	cro.DeviceRequest = ctx.String(FlagCRODeviceRequest)
 	return &cro, nil
 }
 
