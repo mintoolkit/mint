@@ -82,6 +82,7 @@ type CommandParams struct {
 	UID int64
 	/// GID to use for the debugging sidecar container
 	GID int64
+	Platform string
 	/// run the debug sidecar as a privileged container
 	DoRunPrivileged bool
 	/// use the security context params from the target container with the debug sidecar container
@@ -170,6 +171,7 @@ var CLI = &cli.Command{
 		cflag(FlagRunPrivileged),
 		cflag(FlagSecurityContextFromTarget),
 		cflag(FlagFallbackToTargetUser),
+		command.Cflag(command.FlagPlatform),
 		command.Cflag(command.FlagTUI),
 	},
 	Action: func(ctx *cli.Context) error {
@@ -220,6 +222,7 @@ var CLI = &cli.Command{
 			ActionConnectSession:           ctx.Bool(FlagConnectSession),
 			UID:                            ctx.Int64(FlagUID),
 			GID:                            ctx.Int64(FlagGID),
+			Platform:                       ctx.String(command.FlagPlatform),
 			DoRunPrivileged:                ctx.Bool(FlagRunPrivileged),
 			UseSecurityContextFromTarget:   ctx.Bool(FlagSecurityContextFromTarget),
 			DoFallbackToTargetUser:         ctx.Bool(FlagFallbackToTargetUser),

@@ -28,6 +28,7 @@ var CLI = &cli.Command{
 		command.Cflag(command.FlagRegistryAccount),
 		command.Cflag(command.FlagRegistrySecret),
 		command.Cflag(command.FlagShowPullLogs),
+		command.Cflag(command.FlagPlatform),
 		//Compose support
 		command.Cflag(command.FlagComposeFile),                    //not used yet
 		command.Cflag(command.FlagTargetComposeSvc),               //not used yet
@@ -119,6 +120,7 @@ var CLI = &cli.Command{
 		registryAccount := ctx.String(command.FlagRegistryAccount)
 		registrySecret := ctx.String(command.FlagRegistrySecret)
 		doShowPullLogs := ctx.Bool(command.FlagShowPullLogs)
+		platform := ctx.String(command.FlagPlatform)
 
 		doRmFileArtifacts := ctx.Bool(command.FlagRemoveFileArtifacts)
 		doCopyMetaArtifacts := ctx.String(command.FlagCopyMetaArtifacts)
@@ -293,6 +295,7 @@ var CLI = &cli.Command{
 			registryAccount,
 			registrySecret,
 			doShowPullLogs,
+			platform,
 			crOpts,
 			httpProbeOpts,
 			portBindings,

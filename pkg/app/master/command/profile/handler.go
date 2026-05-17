@@ -51,6 +51,7 @@ func OnCommand(
 	registryAccount string,
 	registrySecret string,
 	doShowPullLogs bool,
+	platform string,
 	crOpts *config.ContainerRunOptions,
 	httpProbeOpts config.HTTPProbeOptions,
 	portBindings map[docker.Port][]docker.PortBinding,
@@ -174,7 +175,7 @@ func OnCommand(
 					"message": "trying to pull target image",
 				})
 
-			err := imageInspector.Pull(doShowPullLogs, dockerConfigPath, registryAccount, registrySecret)
+			err := imageInspector.Pull(doShowPullLogs, dockerConfigPath, registryAccount, registrySecret, platform)
 			errutil.FailOn(err)
 		} else {
 			xc.Out.Info("target.image.error",

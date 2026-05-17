@@ -516,7 +516,7 @@ func HandleKubernetesRuntime(
 				if err == nil {
 					var foundImage bool
 					if noImage {
-						if err := imageInspector.Pull(true, "", "", ""); err != nil {
+						if err := imageInspector.Pull(true, "", "", "", commandParams.Platform); err != nil {
 							logger.WithError(err).Trace("imageInspector.Pull")
 						}
 

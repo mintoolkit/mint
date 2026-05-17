@@ -92,7 +92,7 @@ func (i *Inspector) NoImage() (bool, error) {
 }
 
 // Pull tries to download the target image
-func (i *Inspector) Pull(showPullLog bool, dockerConfigPath, registryAccount, registrySecret string) error {
+func (i *Inspector) Pull(showPullLog bool, dockerConfigPath, registryAccount, registrySecret, platform string) error {
 	var pullLog bytes.Buffer
 	var repo string
 	var tag string
@@ -108,6 +108,7 @@ func (i *Inspector) Pull(showPullLog bool, dockerConfigPath, registryAccount, re
 	input := crt.PullImageOptions{
 		Repository: repo,
 		Tag:        tag,
+		Platform:   platform,
 	}
 
 	if showPullLog {

@@ -109,6 +109,7 @@ type ImageHistory struct {
 type PullImageOptions struct {
 	Repository   string
 	Tag          string
+	Platform     string
 	OutputStream io.Writer
 }
 
