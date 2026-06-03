@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out slimtoolkit/slim repo
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6.0.3
 
       - name: Set up Go development environment
         uses: actions/setup-go@v6.3.0
@@ -60,7 +60,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out slimtoolkit/slim repo
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6.0.3
 
       - name: Set up Go development environment
         uses: actions/setup-go@v6.3.0
@@ -112,10 +112,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out slimtoolkit/slim repo
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6.0.3
 
       - name: Check out slimtoolkit/examples repo
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6.0.3
         with:
           repository: slimtoolkit/examples
           path: e2e
