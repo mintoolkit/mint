@@ -220,7 +220,7 @@ func OnCommand(
 		}
 
 		xc.Out.Info("image.data.inspection.process.image.start")
-		_, err = dockerimage.LoadPackage(
+		imagePkg, err := dockerimage.LoadPackage(
 			targetImageArchive,
 			imageID,
 			false,
@@ -245,6 +245,42 @@ func OnCommand(
 		}
 
 		xc.Out.State("image.data.inspection.done")
+
+		printImagePackage(
+			xc,
+			imagePkg,
+			appName,
+			cmdName,
+			changes,
+			changesOutputs,
+			layers,
+			layerChangesMax,
+			allChangesMax,
+			addChangesMax,
+			modifyChangesMax,
+			deleteChangesMax,
+			doHashData,
+			doDetectDuplicates,
+			doShowDuplicates,
+			doShowSpecialPerms,
+			changeMatchLayersOnly,
+			changeDataHashMatchers,
+			changePathMatchers,
+			changeDataMatchers,
+			cparams,
+			cmdReport)
+
+		if doAddImageManifest {
+			cmdReport.RawImageManifest = imagePkg.Manifest
+		}
+
+		if doAddImageConfig {
+			cmdReport.RawImageConfig = imagePkg.Config
+		}
+
+		if imagePkg.Config != nil {
+			cmdReport.ImageReport.BuildInfo = imagePkg.Config.BuildInfoDecoded
+		}
 
 		cmdReport.ImageArchiveLocation = targetImageArchive
 		cmdReport.State = cmd.StateCompleted

@@ -17,6 +17,7 @@ require (
 	github.com/compose-spec/compose-go v0.0.0-20210916141509-a7e1bc322970
 	github.com/containerd/console v1.0.4
 	github.com/containerd/containerd/api v1.7.19
+	github.com/containers/buildah v1.37.1
 	github.com/containers/common v0.60.1
 	github.com/containers/podman/v5 v5.2.1
 	github.com/containers/storage v1.55.0
@@ -33,6 +34,7 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/gorilla/websocket v1.4.2
 	github.com/jedib0t/go-pretty/v6 v6.4.9
+	github.com/klauspost/compress v1.17.9
 	github.com/miekg/dns v1.1.59
 	github.com/mintoolkit/go-update v0.0.0-20240707223427-2938d741c8df
 	github.com/mintoolkit/uiprogress v0.0.0-20240707234658-3f2f1f452aa6
@@ -86,7 +88,6 @@ require (
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
 	github.com/containerd/ttrpc v1.2.5 // indirect
 	github.com/containerd/typeurl/v2 v2.2.0 // indirect
-	github.com/containers/buildah v1.37.1 // indirect
 	github.com/containers/image/v5 v5.32.1 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/ocicrypt v1.2.0 // indirect
@@ -147,7 +148,6 @@ require (
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kennygrant/sanitize v1.2.4 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20240418210053-89b07f4543e0 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect

@@ -20,6 +20,7 @@ import (
 
 	"github.com/bmatcuk/doublestar/v3"
 	"github.com/dustin/go-humanize"
+	"github.com/klauspost/compress/zstd"
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	log "github.com/sirupsen/logrus"
 
@@ -523,8 +524,9 @@ type ArchiveInfo struct {
 }
 
 // GetArchiveInfo extracts basic image information from a Docker image archive
-// by reading the manifest.json file. This is useful when you have an archive
-// but don't have the image ID.
+// by reading the manifest.json file, falling back to the OCI index for pure
+// OCI layout archives (e.g., 'docker buildx --output type=oci'). This is
+// useful when you have an archive but don't have the image ID.
 func GetArchiveInfo(archivePath string) (*ArchiveInfo, error) {
 	afile, err := os.Open(archivePath)
 	if err != nil {
@@ -533,6 +535,7 @@ func GetArchiveInfo(archivePath string) (*ArchiveInfo, error) {
 	}
 	defer afile.Close()
 
+	var ociIndex *oci.Index
 	tr := tar.NewReader(afile)
 	for {
 		hdr, err := tr.Next()
@@ -545,6 +548,16 @@ func GetArchiveInfo(archivePath string) (*ArchiveInfo, error) {
 		}
 
 		if hdr == nil || hdr.Name == "" {
+			continue
+		}
+
+		if hdr.Name == ociIndexFileName {
+			var index oci.Index
+			if err := json.NewDecoder(tr).Decode(&index); err != nil {
+				log.Debugf("dockerimage.GetArchiveInfo: error decoding oci index - %v", err)
+			} else {
+				ociIndex = &index
+			}
 			continue
 		}
 
@@ -579,7 +592,150 @@ func GetArchiveInfo(archivePath string) (*ArchiveInfo, error) {
 		}
 	}
 
+	if ociIndex != nil {
+		return getOCIArchiveInfo(afile, ociIndex)
+	}
+
 	return nil, fmt.Errorf("manifest.json not found in archive")
+}
+
+// pickOCIImageManifestDesc selects the image manifest descriptor from an OCI
+// index, preferring a descriptor that matches the default platform.
+// Returns nil if the index has no image manifest references.
+func pickOCIImageManifestDesc(ociIndex *oci.Index) *oci.Descriptor {
+	// picking the first usable manifest descriptor (for now)
+	// make it selectable later
+	for _, md := range ociIndex.Manifests {
+		if md.MediaType == oci.MediaTypeImageManifest &&
+			md.Platform != nil &&
+			md.Platform.OS == DefaultOS &&
+			md.Platform.Architecture == DefaultRuntimeArch() {
+			return &md
+		}
+	}
+
+	for _, md := range ociIndex.Manifests {
+		if md.MediaType == oci.MediaTypeImageManifest &&
+			md.Platform != nil &&
+			md.Platform.OS == DefaultOS {
+			return &md
+		}
+	}
+
+	for _, md := range ociIndex.Manifests {
+		if md.MediaType == oci.MediaTypeImageManifest {
+			return &md
+		}
+	}
+
+	return nil
+}
+
+// getOCIArchiveInfo extracts the image info from a pure OCI layout archive
+// (no manifest.json) using the OCI index and the referenced image manifest.
+func getOCIArchiveInfo(afile *os.File, ociIndex *oci.Index) (*ArchiveInfo, error) {
+	manifestDesc := pickOCIImageManifestDesc(ociIndex)
+	if manifestDesc == nil {
+		return nil, fmt.Errorf("no image manifest references in oci index")
+	}
+
+	parts := strings.Split(manifestDesc.Digest.String(), ":")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("malformed oci image manifest digest - %s", manifestDesc.Digest.String())
+	}
+	manifestPath := filepath.Join(ociBlobDirName, parts[0], parts[1])
+
+	var repoTags []string
+	for _, key := range []string{"io.containerd.image.name", oci.AnnotationRefName} {
+		if name := manifestDesc.Annotations[key]; name != "" {
+			repoTags = append(repoTags, name)
+			break
+		}
+	}
+
+	if _, err := afile.Seek(0, 0); err != nil {
+		return nil, err
+	}
+
+	tr := tar.NewReader(afile)
+	for {
+		hdr, err := tr.Next()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			log.Errorf("dockerimage.getOCIArchiveInfo: error reading archive - %v", err)
+			return nil, err
+		}
+
+		if hdr == nil || hdr.Name == "" {
+			continue
+		}
+
+		if filepath.Clean(hdr.Name) != manifestPath {
+			continue
+		}
+
+		var manifest oci.Manifest
+		if err := json.NewDecoder(tr).Decode(&manifest); err != nil {
+			log.Errorf("dockerimage.getOCIArchiveInfo: error decoding oci image manifest - %v", err)
+			return nil, err
+		}
+
+		if manifest.Config.Digest.String() == "" {
+			return nil, fmt.Errorf("missing config digest in oci image manifest")
+		}
+
+		return &ArchiveInfo{
+			ImageID:  manifest.Config.Digest.String(),
+			RepoTags: repoTags,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("oci image manifest not found in archive - %s", manifestPath)
+}
+
+// MediaTypeDockerSchema2LayerGzip is the layer media type used by Docker schema2 manifests
+const MediaTypeDockerSchema2LayerGzip = "application/vnd.docker.image.rootfs.diff.tar.gzip"
+
+// layerTarReader wraps a layer blob stream in a tar.Reader, transparently
+// decompressing gzip and zstd layers. Compression is detected from the
+// stream's magic bytes, so it works even when the manifest media type is
+// missing or wrong. The returned close function is never nil and must be
+// called after the layer is processed.
+func layerTarReader(r io.Reader, layerName string, mediaType string) (*tar.Reader, func(), error) {
+	magic := make([]byte, 4)
+	n, err := io.ReadFull(r, magic)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		return nil, nil, fmt.Errorf("error reading layer magic bytes (%s): %w", layerName, err)
+	}
+
+	// re-inject the peeked bytes so no code path reads from a shifted offset
+	combined := io.MultiReader(bytes.NewReader(magic[:n]), r)
+
+	switch {
+	case n >= 2 && magic[0] == 0x1f && magic[1] == 0x8b:
+		// gzip magic bytes
+		gzReader, err := gzip.NewReader(combined)
+		if err != nil {
+			return nil, nil, fmt.Errorf("gzip decompression failed for layer '%s' (mediaType=%s): %w", layerName, mediaType, err)
+		}
+		log.Debugf("dockerimage.layerTarReader: gzip layer '%s' (mediaType=%s)", layerName, mediaType)
+		return tar.NewReader(gzReader), func() { gzReader.Close() }, nil
+	case n >= 4 && magic[0] == 0x28 && magic[1] == 0xb5 && magic[2] == 0x2f && magic[3] == 0xfd:
+		// zstd magic bytes
+		zstdReader, err := zstd.NewReader(combined)
+		if err != nil {
+			return nil, nil, fmt.Errorf("zstd decompression failed for layer '%s' (mediaType=%s): %w", layerName, mediaType, err)
+		}
+		log.Debugf("dockerimage.layerTarReader: zstd layer '%s' (mediaType=%s)", layerName, mediaType)
+		return tar.NewReader(zstdReader), zstdReader.Close, nil
+	default:
+		if strings.Contains(mediaType, "gzip") || strings.Contains(mediaType, "zstd") {
+			log.Warnf("dockerimage.layerTarReader: media type '%s' indicates compression, but layer '%s' has no matching magic bytes; reading as raw tar", mediaType, layerName)
+		}
+		return tar.NewReader(combined), func() {}, nil
+	}
 }
 
 func LoadPackage(archivePath string,
@@ -665,47 +821,11 @@ func LoadPackage(archivePath string,
 				if ociIndex.MediaType == oci.MediaTypeImageIndex {
 					// Docker bug (ociIndex.Manifests is null when image is saved by ID, not by name)
 					if len(ociIndex.Manifests) != 0 {
-						// picking the first usable manifest descriptor (for now)
-						// make it selectable later
-						for _, md := range ociIndex.Manifests {
-							md := md
-							if md.MediaType == oci.MediaTypeImageManifest &&
-								md.Platform != nil &&
-								md.Platform.OS == DefaultOS &&
-								md.Platform.Architecture == DefaultRuntimeArch() {
-								ociImageManifestDesc = &md
-								break
-							}
-						}
-
+						ociImageManifestDesc = pickOCIImageManifestDesc(&ociIndex)
 						if ociImageManifestDesc == nil {
-							for _, md := range ociIndex.Manifests {
-								md := md
-								if md.MediaType == oci.MediaTypeImageManifest &&
-									md.Platform != nil &&
-									md.Platform.OS == DefaultOS {
-									ociImageManifestDesc = &md
-									break
-								}
-							}
-						}
-
-						if ociImageManifestDesc == nil {
-							for _, md := range ociIndex.Manifests {
-								md := md
-								if md.MediaType == oci.MediaTypeImageManifest {
-									ociImageManifestDesc = &md
-									break
-								}
-							}
-
-							if ociImageManifestDesc == nil {
-								log.Debugf("dockerimage.LoadPackage: oci index from archive(%s/%s) has no image manifest references - '%s'",
-									archivePath, ociIndexFileName, jsonutil.ToString(ociIndex))
-							}
-						}
-
-						if ociImageManifestDesc != nil {
+							log.Debugf("dockerimage.LoadPackage: oci index from archive(%s/%s) has no image manifest references - '%s'",
+								archivePath, ociIndexFileName, jsonutil.ToString(ociIndex))
+						} else {
 							log.Tracef("dockerimage.LoadPackage: archive(%v) - OCI Index - found image manifest = '%#v'",
 								archivePath,
 								ociImageManifestDesc)
@@ -989,8 +1109,11 @@ func LoadPackage(archivePath string,
 	if pkg.ManifestOCI != nil {
 		// get layers from oci image manifest
 		for idx, layerInfo := range pkg.ManifestOCI.Layers {
-			// todo: add support for oci.MediaTypeImageLayerGzip and oci.MediaTypeImageLayerZstd
-			if layerInfo.MediaType == oci.MediaTypeImageLayer &&
+			isLayerMediaType := layerInfo.MediaType == oci.MediaTypeImageLayer ||
+				layerInfo.MediaType == oci.MediaTypeImageLayerGzip ||
+				layerInfo.MediaType == oci.MediaTypeImageLayerZstd ||
+				layerInfo.MediaType == MediaTypeDockerSchema2LayerGzip
+			if isLayerMediaType &&
 				layerInfo.Digest.String() != "" {
 				parts := strings.Split(layerInfo.Digest.String(), ":")
 				if len(parts) == 2 {
@@ -1034,7 +1157,7 @@ func LoadPackage(archivePath string,
 					log.Errorf("dockerimage.LoadPackage: malformed oci layer digest from archive(%s) - %s",
 						archivePath, layerInfo.Digest.String())
 				}
-			} else if layerInfo.MediaType != oci.MediaTypeImageLayer {
+			} else if !isLayerMediaType {
 				if layerInfo.Digest.String() != "" {
 					parts := strings.Split(layerInfo.Digest.String(), ":")
 					if len(parts) == 2 {
@@ -1146,10 +1269,16 @@ func LoadPackage(archivePath string,
 						layerDataFiles[parts[1]] = layerID
 					}
 				} else {
+					layerReader, closeLayer, lrErr := layerTarReader(tr, hdr.Name, "")
+					if lrErr != nil {
+						log.Errorf("dockerimage.LoadPackage: error preparing layer reader (%v/%v) - %v", archivePath, hdr.Name, lrErr)
+						return nil, lrErr
+					}
+
 					layer, err = layerFromStream(
 						pkg,
 						hdr.Name,
-						tar.NewReader(tr),
+						layerReader,
 						layerID,
 						topChangesMax,
 						doHashData,
@@ -1161,6 +1290,7 @@ func LoadPackage(archivePath string,
 						utf8Detector,
 						processorParams,
 					)
+					closeLayer()
 					if err != nil {
 						log.Errorf("dockerimage.LoadPackage: error reading layer from archive(%v/%v) - %v", archivePath, hdr.Name, err)
 						return nil, err
@@ -1196,35 +1326,16 @@ func LoadPackage(archivePath string,
 						layerID = hdr.Name
 					}
 
-					// Handle gzip-compressed OCI image layers
-					// Many Docker/OCI images use gzip-compressed layers with media types like:
-					// - application/vnd.docker.image.rootfs.diff.tar.gzip
-					// - application/vnd.oci.image.layer.v1.tar+gzip
-					var layerReader io.Reader = tr
-					mediaType, hasMediaType := nonLayerFileNames[hdr.Name]
-					isGzipByMediaType := hasMediaType && (strings.Contains(mediaType, "gzip") || strings.Contains(mediaType, "+gzip"))
-
-					// Try gzip decompression - gzip.NewReader validates the gzip header
-					gzReader, gzErr := gzip.NewReader(tr)
-					if gzErr == nil {
-						layerReader = gzReader
-						defer gzReader.Close()
-						if isGzipByMediaType {
-							log.Debugf("dockerimage.LoadPackage: using gzip decompression for layer '%s' (mediaType: %s)", hdr.Name, mediaType)
-						} else {
-							log.Debugf("dockerimage.LoadPackage: auto-detected gzip compression for layer '%s'", hdr.Name)
-						}
-					} else if isGzipByMediaType {
-						// Media type indicates gzip but decompression failed - this is an error
-						log.Errorf("dockerimage.LoadPackage: gzip decompression failed for layer(%s/%s) with gzip mediaType '%s' - %v", archivePath, hdr.Name, mediaType, gzErr)
-						return nil, gzErr
+					layerReader, closeLayer, lrErr := layerTarReader(tr, hdr.Name, nonLayerFileNames[hdr.Name])
+					if lrErr != nil {
+						log.Errorf("dockerimage.LoadPackage: error preparing layer reader (%s/%s) - %v", archivePath, hdr.Name, lrErr)
+						return nil, lrErr
 					}
-					// else: not gzip compressed, use raw tar reader
 
 					layer, err := layerFromStream(
 						pkg,
 						hdr.Name,
-						tar.NewReader(layerReader),
+						layerReader,
 						layerID,
 						topChangesMax,
 						doHashData,
@@ -1236,6 +1347,7 @@ func LoadPackage(archivePath string,
 						utf8Detector,
 						processorParams,
 					)
+					closeLayer()
 					if err != nil {
 						log.Errorf("dockerimage.LoadPackage: error reading oci layer from archive(%s/%s) - %v", archivePath, hdr.Name, err)
 						return nil, err

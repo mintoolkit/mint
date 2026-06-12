@@ -75,14 +75,14 @@ const (
 
 // Shared command flag names
 const (
-	FlagCommandParamsFile    = "command-params-file"
-	FlagTarget               = "target"
-	FlagTargetImageArchive   = "target-image-archive"
-	FlagPull                 = "pull"
-	FlagDockerConfigPath  = "docker-config-path"
-	FlagRegistryAccount   = "registry-account"
-	FlagRegistrySecret    = "registry-secret"
-	FlagShowPullLogs      = "show-plogs"
+	FlagCommandParamsFile  = "command-params-file"
+	FlagTarget             = "target"
+	FlagTargetImageArchive = "target-image-archive"
+	FlagPull               = "pull"
+	FlagDockerConfigPath   = "docker-config-path"
+	FlagRegistryAccount    = "registry-account"
+	FlagRegistrySecret     = "registry-secret"
+	FlagShowPullLogs       = "show-plogs"
 
 	//Compose-related flags
 	FlagComposeFile                    = "compose-file"
@@ -202,14 +202,14 @@ const (
 
 // Shared command flag usage info
 const (
-	FlagCommandParamsFileUsage   = "JSON file with all command parameters"
-	FlagTargetUsage              = "Target container image (name or ID)"
-	FlagTargetImageArchiveUsage  = "Target container image archive (tar file path)"
-	FlagPullUsage                = "Try pulling target if it's not available locally"
-	FlagDockerConfigPathUsage  = "Docker config path (used to fetch registry credentials)"
-	FlagRegistryAccountUsage   = "Target registry account used when pulling images from private registries"
-	FlagRegistrySecretUsage    = "Target registry secret used when pulling images from private registries"
-	FlagShowPullLogsUsage      = "Show image pull logs"
+	FlagCommandParamsFileUsage  = "JSON file with all command parameters"
+	FlagTargetUsage             = "Target container image (name or ID)"
+	FlagTargetImageArchiveUsage = "Target container image archive (tar file path)"
+	FlagPullUsage               = "Try pulling target if it's not available locally"
+	FlagDockerConfigPathUsage   = "Docker config path (used to fetch registry credentials)"
+	FlagRegistryAccountUsage    = "Target registry account used when pulling images from private registries"
+	FlagRegistrySecretUsage     = "Target registry secret used when pulling images from private registries"
+	FlagShowPullLogsUsage       = "Show image pull logs"
 
 	//Compose-related flags
 	FlagComposeFileUsage                    = "Load container info from selected compose file(s)"
