@@ -102,6 +102,7 @@ func OnCommand(
 	gparams *command.GenericParams,
 	cparams *CommandParams,
 	targetRef string,
+	targetImageArchive string,
 	doPull bool,
 	dockerConfigPath string,
 	registryAccount string,
@@ -162,12 +163,99 @@ func OnCommand(
 
 	xc.Out.Info("cmd.input.params",
 		ovars{
-			"runtime":            rr,
-			"target":             targetRef,
-			"add-image-manifest": doAddImageManifest,
-			"add-image-config":   doAddImageConfig,
-			"rm-file-artifacts":  doRmFileArtifacts,
+			"runtime":              rr,
+			"target":               targetRef,
+			"target-image-archive": targetImageArchive,
+			"add-image-manifest":   doAddImageManifest,
+			"add-image-config":     doAddImageConfig,
+			"rm-file-artifacts":    doRmFileArtifacts,
 		})
+
+	// Handle archive-based analysis (when --target-image-archive is provided)
+	if targetImageArchive != "" {
+		logger.Debugf("using target image archive: %s", targetImageArchive)
+
+		if !fsutil.IsRegularFile(targetImageArchive) {
+			xc.Out.Error("target.image.archive", "archive file not found")
+			exitCode := command.ECTCommon | command.ECCImageNotFound
+			xc.Out.State("exited", ovars{"exit.code": exitCode})
+			xc.Exit(exitCode)
+		}
+
+		// Get image info from archive
+		archiveInfo, err := dockerimage.GetArchiveInfo(targetImageArchive)
+		if err != nil {
+			xc.Out.Error("target.image.archive", fmt.Sprintf("error reading archive info: %v", err))
+			xc.Out.State("exited", ovars{"exit.code": -1})
+			xc.Exit(-1)
+		}
+
+		imageID := archiveInfo.ImageID
+		logger.Debugf("archive image ID: %s, tags: %v", imageID, archiveInfo.RepoTags)
+
+		cmdReport.TargetReference = targetImageArchive
+		if len(archiveInfo.RepoTags) > 0 {
+			cmdReport.TargetReference = archiveInfo.RepoTags[0]
+		}
+
+		xc.Out.State("image.data.inspection.start")
+		xc.Out.Info("image.archive",
+			ovars{
+				"path":      targetImageArchive,
+				"image.id":  imageID,
+				"repo.tags": strings.Join(archiveInfo.RepoTags, ","),
+			})
+
+		pp := &dockerimage.ProcessorParams{
+			DetectIdentities: &dockerimage.DetectOpParam{
+				Enabled:      cparams.DetectIdentities.Enabled,
+				DumpRaw:      cparams.DetectIdentities.DumpRaw,
+				IsConsoleOut: cparams.DetectIdentities.IsConsoleOut,
+				IsDirOut:     cparams.DetectIdentities.IsDirOut,
+				OutputPath:   cparams.DetectIdentities.OutputPath,
+				InputParams:  cparams.DetectIdentities.InputParams,
+			},
+			DetectAllCertFiles:   cparams.DetectAllCertFiles,
+			DetectAllCertPKFiles: cparams.DetectAllCertPKFiles,
+		}
+
+		xc.Out.Info("image.data.inspection.process.image.start")
+		_, err = dockerimage.LoadPackage(
+			targetImageArchive,
+			imageID,
+			false,
+			topChangesMax,
+			doHashData,
+			doDetectDuplicates,
+			changeDataHashMatchers,
+			changePathMatchers,
+			changeDataMatchers,
+			utf8Detector,
+			pp)
+
+		if err != nil {
+			xc.Out.Error("image.data.inspection", fmt.Sprintf("error loading package: %v", err))
+			xc.Out.State("exited", ovars{"exit.code": -1})
+			xc.Exit(-1)
+		}
+		xc.Out.Info("image.data.inspection.process.image.end")
+
+		if utf8Detector != nil {
+			errutil.FailOn(utf8Detector.Close())
+		}
+
+		xc.Out.State("image.data.inspection.done")
+
+		cmdReport.ImageArchiveLocation = targetImageArchive
+		cmdReport.State = cmd.StateCompleted
+		cmdReport.Save()
+
+		vinfo := <-viChan
+		version.PrintCheckVersion(xc, "", vinfo)
+
+		xc.Out.State("done")
+		return
+	}
 
 	resolved := command.ResolveAutoRuntime(cparams.Runtime)
 	logger.Tracef("runtime.handler: rt=%s resolved=%s", cparams.Runtime, resolved)
