@@ -1,8 +1,8 @@
 <!-- ![SK](assets/images/dslim/logo.png) -->
 
-[![Follow](https://img.shields.io/badge/follow-on%20twitter-%231DA1F2.svg?style=for-the-badge&logoColor=white)](https://twitter.com/kcqon)
+[![Follow](<https://img.shields.io/badge/follow-on%20twitter-%231DA1F2.svg?style=for-the-badge&logoColor=white>)](https://twitter.com/kcqon)
 
-[![Discord chat](https://img.shields.io/static/v1.svg?label=chat&message=on%20discord&color=7389D8&style=for-the-badge)](https://discord.gg/fAvq4ruKsG)
+[![Discord chat](<https://img.shields.io/static/v1.svg?label=chat&message=on%20discord&color=7389D8&style=for-the-badge>)](https://discord.gg/fAvq4ruKsG)
 
 <!-- [![Youtube](https://img.shields.io/badge/-YouTube-red?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/channel/UCy7RHjJlaBhpCCbChrd8POA?sub_confirmation=1) -->
 
@@ -12,7 +12,7 @@
 
 [![Install Mint](https://img.shields.io/badge/install-mint-blue?style=for-the-badge)](https://github.com/mintoolkit/mint#installation)
 
-[![Get Examples](https://img.shields.io/badge/mint-app%20examples-green?style=for-the-badge)](https://github.com/mintoolkit/examples)
+[![Get Examples](<https://img.shields.io/badge/mint-app%20examples-green?style=for-the-badge>)](https://github.com/mintoolkit/examples)
 
 # Optimize Your Experience with Containers. Make Your Containers Better, Smaller, More Secure and Do Less to Get There (free and open source!)
 
@@ -143,6 +143,7 @@ Elixir application images:
 ---
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
+
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 - [RECENT UPDATES](#recent-updates)
@@ -169,12 +170,12 @@ Elixir application images:
 - [DEMO STEPS](#demo-steps)
 - [FAQ](#faq)
   - [Is it safe for production use?](#is-it-safe-for-production-use)
-  - [How can I contribute if I don't know Go?](#how-can-i-contribute-if-i-dont-know-go)
-  - [What's the best application for Mint?](#whats-the-best-application-for-mint)
+  - [How can I contribute if I don&#39;t know Go?](#how-can-i-contribute-if-i-dont-know-go)
+  - [What&#39;s the best application for Mint?](#whats-the-best-application-for-mint)
   - [Can I use Mint with dockerized command line tools?](#can-i-use-mint-with-dockerized-command-line-tools)
   - [What if my Docker images uses the USER command?](#what-if-my-docker-images-uses-the-user-command)
   - [Nginx fails in my minified image](#nginx-fails-in-my-minified-image)
-  - [Mint fails with a 'no permission to read from' error](#mint-fails-with-a-no-permission-to-read-from-error)
+  - [Mint fails with a &#39;no permission to read from&#39; error](#mint-fails-with-a-no-permission-to-read-from-error)
 - [EXPLORE SOURCE CODE WITH AI](#explore-source-code-with-ai)
 - [BUILD PROCESS](#build-process)
   - [Build Steps](#build-steps)
@@ -211,15 +212,10 @@ mint update
 1. Download the zip package for your platform.
 
    - [Latest Mac binaries](https://github.com/mintoolkit/mint/releases/download/1.41.8/dist_mac.zip) (`curl -L -o ds.zip https://github.com/mintoolkit/mint/releases/download/1.41.8/dist_mac.zip`)
-
    - [Latest Mac M1 binaries](https://github.com/mintoolkit/mint/releases/download/1.41.8/dist_mac_m1.zip) (`curl -L -o ds.zip https://github.com/mintoolkit/mint/releases/download/1.41.8/dist_mac_m1.zip)`)
-
    - [Latest Linux binaries](https://github.com/mintoolkit/mint/releases/download/1.41.8/dist_linux.tar.gz) (`curl -L -o ds.tar.gz https://github.com/mintoolkit/mint/releases/download/1.41.8/dist_linux.tar.gz`)
-
    - [Latest Linux ARM binaries](https://github.com/mintoolkit/mint/releases/download/1.41.8/dist_linux_arm.tar.gz) (`curl -L -o ds.tar.gz https://github.com/mintoolkit/mint/releases/download/1.41.8/dist_linux_arm.tar.gz`)
-
    - [Latest Linux ARM64 binaries](https://github.com/mintoolkit/mint/releases/download/1.41.8/dist_linux_arm64.tar.gz) (`curl -L -o ds.tar.gz https://github.com/mintoolkit/mint/releases/download/1.41.8/dist_linux_arm64.tar.gz`)
-
 2. Unzip the package and optionally move it to your bin directory.
 
 Linux (for non-intel replace `dist_linux` with the platform-specific extracted path):
@@ -417,7 +413,6 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--registry-account` - Account to be used when pulling images from private registries (used with the `--pull` flag).
 - `--registry-secret` - Account secret to be used when pulling images from private registries (used with the `--pull` and `--registry-account` flags).
 - `--show-plogs` - Show image pull logs (default: false).
-
 - `--compose-file` - Load container info from selected compose file
 - `--target-compose-svc` - Target service from compose file
 - `--target-compose-svc-image` - Override the container image name and/or tag when targetting a compose service using the target-compose-svc parameter (format: tag_name or image_name:tag_name)
@@ -711,9 +706,7 @@ Merge two container images. Optimized to merge minified images.
 Flags:
 
 - `--image` - Image to merge. Flag instance position determines the merge order. The command supports two instances of this flag.
-
 - `--use-last-image-metadata` - Use only the last image metadata for the merged image.
-
 - `--tag` - Custom tags for the output image (multiple instances).
 
 ### `REGISTRY` COMMAND OPTIONS
@@ -857,7 +850,7 @@ Different CI/CD services have different containerized environment designs that i
 
 ### Using `*-file` Flags
 
-- There are several flags that accept file paths (`--include-path-file`, `--compose-file`, `--http-probe-cmd-file`, etc). You need volume mount the location of the referenced paths or the file paths themselves when you use the containerized version of **Mint** because the **Mint** app container won't have accept to the referenced files otherwise.
+- There are several flags that accept file paths (`--include-path-file`, `--compose-file`, `--http-probe-cmd-file`, etc). You need volume mount the location of the referenced paths or the file paths themselves when you use the containerized version of **Mint** because the **Mint** app container won't have access to the referenced files otherwise.
 
 ## CI/CD INTEGRATIONS
 
@@ -967,10 +960,10 @@ pipeline {
                 }
             }
         }
-        stage("Push Slim Image to Regristy") {
+        stage("Push Slim Image to Registry") {
             steps {
                 script {
-                    echo 'pushing image to docker regristry...'
+                    echo 'pushing image to docker registry...'
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
                         sh 'docker tag node_alpine:slim-$BUILD_NUMBER $USER/node_alpine:slim-$BUILD_NUMBER'
                         sh 'echo $PASS | docker login -u $USER --password-stdin'
@@ -1008,7 +1001,7 @@ You can integrate the Docker-Slim Github Action in your workflow by inserting th
 - uses: docker/build-push-action@v4
   with:
     push: false
-    tags: IMAGE_NAME:{{github.run_number}}
+    tags: IMAGE_NAME:${{ github.run_number }}
 
 # Slim the Image
 - uses: kitabisa/docker-slim-action@v1
@@ -1016,7 +1009,7 @@ You can integrate the Docker-Slim Github Action in your workflow by inserting th
     DSLIM_HTTP_PROBE: false
   with:
     target: IMAGE_NAME:{{github.run_number}}
-    tag: "slim-{{github.run_number}}"
+    tag: "slim-${{ github.run_number }}"
 
 # Docker Hub Login
   uses: docker/login-action@v2
@@ -1026,15 +1019,15 @@ You can integrate the Docker-Slim Github Action in your workflow by inserting th
 
 # Push to the registry
 - run: |
-   docker tag IMAGE_NAME:slim-{{github.run_number}} ${{ secrets.DOCKERHUB_USERNAME }}/IMAGE_NAME:slim-{{github.run_number}}
-   docker push ${{ secrets.DOCKERHUB_USERNAME }}/IMAGE_NAME:slim-{{github.run_number}}
+   docker tag IMAGE_NAME:slim-${{ github.run_number }} ${{ secrets.DOCKERHUB_USERNAME }}/IMAGE_NAME:slim-${{ github.run_number }}
+   docker push ${{ secrets.DOCKERHUB_USERNAME }}/IMAGE_NAME:slim-${{ github.run_number }}
 ```
 
 The workflow above indicates four steps:
 
 - A [Docker Build/Push Github Action](https://github.com/docker/build-push-action) for building a docker image with the image name/tag--IMAGE_NAME:{{github.run_number}}, you should give replace IMAGE_NAME with your desired image name. Note that this Action must have a false option to push the built image--given that you need the image slimmed/minified before pushing it to a container registry.
 - A Docker-Slim Github Action which minifies the target image--IMAGE_NAME:{{github.run_number}}, this Action has the "slim-{{github.run_number}}" tag and adds this tag to the slimmed/minified docker image such that the image name/tag becomes IMAGE_NAME:slim-{{github.run_number}}.
-- A Docker Login Github Action which logs into your DockerHub container regristry account, you should store your DockerHub username and personal access token as secrets in the github repository meant for the workflow. Suppose your container registry is not DockerHub, you can check the [Docker Login Github Action documentation](https://github.com/docker/login-action) for the use case of logging into your desired container registry.
+- A Docker Login Github Action which logs into your DockerHub container registry account, you should store your DockerHub username and personal access token as secrets in the github repository meant for the workflow. Suppose your container registry is not DockerHub, you can check the [Docker Login Github Action documentation](https://github.com/docker/login-action) for the use case of logging into your desired container registry.
 - A docker tag command for naming/tagging the slimmed image with your DockerHub account remote repository name which could be the same name(IMAGE_NAME) as the slimmed image; A docker push command to push the slimmed image to your Dockerhub account remote repository.
 
 ## CONTAINER RUNTIME CONNECT OPTIONS
@@ -1446,7 +1439,7 @@ This is an optional step to make sure the target app container is doing somethin
 
 You'll see the mapped ports printed to the console when the **Mint** app starts the target container. You can also get the port number either from the `docker ps` or `docker port <CONTAINER_ID>` commands. You can also map the exposed ports to specific host ports you want to use.
 
-6. Press <enter> and wait until the **Mint** app says it's done
+6. Press <enter></enter> and wait until the **Mint** app says it's done
 
 By default or when http probing is enabled explicitly the **Mint** app will continue its execution once the http probe is done running. If you explicitly picked a different `continue-after` option follow the expected steps. For example, for the `enter` `continue-after` option you must press the `enter` button on your keyboard.
 
