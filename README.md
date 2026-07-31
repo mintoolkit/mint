@@ -1439,7 +1439,7 @@ This is an optional step to make sure the target app container is doing somethin
 
 You'll see the mapped ports printed to the console when the **Mint** app starts the target container. You can also get the port number either from the `docker ps` or `docker port <CONTAINER_ID>` commands. You can also map the exposed ports to specific host ports you want to use.
 
-6. Press <ENTER> key and wait until the **Mint** app says it's done
+6. Press `<ENTER>` key and wait until the **Mint** app says it's done
 
 By default or when http probing is enabled explicitly the **Mint** app will continue its execution once the http probe is done running. If you explicitly picked a different `continue-after` option follow the expected steps. For example, for the `enter` `continue-after` option you must press the `enter` button on your keyboard.
 
