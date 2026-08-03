@@ -15,7 +15,7 @@ func splitCommand(line string) (string, []string, string, error) {
 
 	// Make sure we get the same results irrespective of leading/trailing spaces
 	cmdline := tokenWhitespace.Split(strings.TrimSpace(line), 2)
-	cmd := strings.ToLower(cmdline[0])
+	cmd := strings.ToUpper(cmdline[0])
 
 	if len(cmdline) == 2 {
 		var err error

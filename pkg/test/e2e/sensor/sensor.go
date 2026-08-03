@@ -394,12 +394,19 @@ func (s *Sensor) ExecuteControlCommand(ctx context.Context, cmd control.Command)
 		return fmt.Errorf("cannot execute control command - sensor is not in the standalone mode")
 	}
 
+	if cmd != control.StopTargetAppCommand {
+		return fmt.Errorf("unsupported control command: %s", cmd)
+	}
+
+	cmdScript := fmt.Sprintf(`#!/bin/sh
+fifoPath="/opt/_slim/commands.json.fifo"
+echo '%s' > "$fifoPath"
+`, `{"name":"cmd.monitor.stop"}`)
+
 	if out, err := containerExec(
 		ctx,
 		s.contID,
-		sensorExePath,
-		"control",
-		string(cmd),
+		"sh", "-c", cmdScript,
 	); err != nil {
 		return fmt.Errorf("cannot execute control command: %w\n%s", err, string(out))
 	}
@@ -418,13 +425,26 @@ func (s *Sensor) WaitForEvent(ctx context.Context, evt event.Type) error {
 		return errNotStarted
 	}
 
+	eventStr := string(evt)
+	cmdScript := fmt.Sprintf(`#!/bin/sh
+eventsFile="/opt/_mint/artifacts/events.json"
+timeout=60
+elapsed=0
+while [ $elapsed -lt $timeout ]; do
+	if grep -q '"%s"' "$eventsFile" 2>/dev/null; then
+		exit 0
+	fi
+	sleep 1
+	elapsed=$((elapsed + 1))
+done
+echo "timeout waiting for event: %s" >&2
+exit 1
+`, eventStr, eventStr)
+
 	if out, err := containerExec(
 		ctx,
 		s.contID,
-		sensorExePath,
-		"control",
-		string(control.WaitForEventCommand),
-		string(evt),
+		"sh", "-c", cmdScript,
 	); err != nil {
 		return fmt.Errorf("cannot wait for sensor event %s: %w\n%s", evt, err, string(out))
 	}

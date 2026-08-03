@@ -3,10 +3,9 @@ package check
 
 import (
 	"fmt"
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/mintoolkit/mint/pkg/docker/instruction"
 )
 
 func init() {
@@ -38,7 +37,7 @@ func (c *DeprecatedInstruction) Run(opts *Options, ctx *Context) (*Result, error
 		Source: &c.Info,
 	}
 
-	if instructions, ok := ctx.Dockerfile.InstructionsByType[instruction.Maintainer]; ok {
+	if instructions, ok := ctx.Dockerfile.InstructionsByType[df.InstTypeMaintainer]; ok {
 		result.Hit = true
 		result.Message = c.MainMessage
 

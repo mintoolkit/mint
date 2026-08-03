@@ -3,6 +3,7 @@ package check
 
 import (
 	"fmt"
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 
 	log "github.com/sirupsen/logrus"
 
@@ -43,9 +44,9 @@ func (c *UnnecessaryLayer) Run(opts *Options, ctx *Context) (*Result, error) {
 		var prevInst *instruction.Field
 		for _, inst := range stage.CurrentInstructions {
 
-			if inst.Name == instruction.Run &&
+			if inst.Name == df.InstTypeRun &&
 				prevInst != nil &&
-				prevInst.Name == instruction.Run {
+				prevInst.Name == df.InstTypeRun {
 				//very primitive unnecessary layer that only checks the previous RUN instruction
 				//should have a separate check with more advanced unnecessary layer detection
 				if !result.Hit {

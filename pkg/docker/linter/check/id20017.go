@@ -3,11 +3,10 @@ package check
 
 import (
 	"fmt"
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/mintoolkit/mint/pkg/docker/instruction"
 )
 
 func init() {
@@ -43,7 +42,7 @@ func (c *LastUserRoot) Run(opts *Options, ctx *Context) (*Result, error) {
 	if lastStageIdx > -1 {
 		stage := ctx.Dockerfile.Stages[lastStageIdx]
 
-		if instructions, ok := stage.CurrentInstructionsByType[instruction.User]; ok {
+		if instructions, ok := stage.CurrentInstructionsByType[df.InstTypeUser]; ok {
 			lastUserIdx := len(instructions) - 1
 			if lastUserIdx > -1 {
 				inst := instructions[lastUserIdx]

@@ -3,12 +3,11 @@ package check
 
 import (
 	"fmt"
+	df "github.com/mintoolkit/mint/pkg/docker/dockerfile"
 	"strings"
 
 	"github.com/google/shlex"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/mintoolkit/mint/pkg/docker/instruction"
 )
 
 func init() {
@@ -53,7 +52,7 @@ func (check *BadContainerCommands) Run(opts *Options, ctx *Context) (*Result, er
 	}
 
 	for _, stage := range ctx.Dockerfile.Stages {
-		if instructions, ok := stage.CurrentInstructionsByType[instruction.Run]; ok {
+		if instructions, ok := stage.CurrentInstructionsByType[df.InstTypeRun]; ok {
 			for _, inst := range instructions {
 				if len(inst.ArgsRaw) == 0 {
 					continue

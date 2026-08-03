@@ -106,7 +106,7 @@ func (ref *Instance) BuildImage(options imagebuilder.DockerfileBuildOptions) err
 
 	if options.OutputStream != nil {
 		buildOptions.OutputStream = options.OutputStream
-	} else if ref.showBuildLogs {
+	} else {
 		ref.buildLog.Reset()
 		buildOptions.OutputStream = &ref.buildLog
 	}
