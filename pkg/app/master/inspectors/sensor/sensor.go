@@ -20,7 +20,10 @@ const (
 )
 
 func EnsureLocalBinary(xc *app.ExecutionContext, logger *log.Entry, statePath string, printState bool) string {
-	sensorPath := filepath.Join(fsutil.ExeDir(), LocalBinFile)
+	sensorPath := os.Getenv("DSLIM_SENSOR_PATH")
+	if sensorPath == "" {
+		sensorPath = filepath.Join(fsutil.ExeDir(), LocalBinFile)
+	}
 
 	if runtime.GOOS == "darwin" {
 		stateSensorPath := filepath.Join(statePath, LocalBinFile)
