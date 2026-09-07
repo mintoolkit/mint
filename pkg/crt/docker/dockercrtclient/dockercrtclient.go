@@ -106,7 +106,11 @@ func (ref *Instance) BuildImage(options imagebuilder.DockerfileBuildOptions) err
 
 	if options.OutputStream != nil {
 		buildOptions.OutputStream = options.OutputStream
-	} else if ref.showBuildLogs {
+	} else {
+		// go-dockerclient's BuildImage() unconditionally rejects a nil
+		// OutputStream (see vendor/github.com/fsouza/go-dockerclient/image.go,
+		// ErrMissingOutputStream), so a destination must always be provided,
+		// not just when showBuildLogs is requested (mintoolkit/mint#87).
 		ref.buildLog.Reset()
 		buildOptions.OutputStream = &ref.buildLog
 	}
