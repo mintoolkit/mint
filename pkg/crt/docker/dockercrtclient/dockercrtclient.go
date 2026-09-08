@@ -104,10 +104,16 @@ func (ref *Instance) BuildImage(options imagebuilder.DockerfileBuildOptions) err
 		}
 	}
 
+	// go-dockerclient's BuildImage() unconditionally rejects a nil OutputStream
+	// (see vendor/github.com/fsouza/go-dockerclient/image.go,
+	// ErrMissingOutputStream), so a destination must always be provided, not
+	// just when showBuildLogs is requested (mintoolkit/mint#87). The buffer is
+	// reset on every build so BuildOutputLog() can never return the output of
+	// a previous build, including when the caller supplies its own stream.
+	ref.buildLog.Reset()
 	if options.OutputStream != nil {
 		buildOptions.OutputStream = options.OutputStream
-	} else if ref.showBuildLogs {
-		ref.buildLog.Reset()
+	} else {
 		buildOptions.OutputStream = &ref.buildLog
 	}
 
