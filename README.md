@@ -18,7 +18,7 @@
 
 Note that **DockerSlim** is now **MinToolkit** or just **Mint** (it was also called **SlimToolkit**, but that name was too similar to a commercial company name and using a different name was a CNCF requirement for the project). It's no longer limited only to the Docker runtime and its support for additional container runtimes and tools is growing. The "**min**" part of the name represents the ability to create **minimal container images**, which is now the unofficial defacto name to call slim images. "**min**" is also short for **minify**. The "**T**" part is short for "**toolkit**". Together **min** and **t** is a good way to describe the core functionality where the tool mints/creates new and improved container images.
 
-**Mint** was created by [Kyle](https://github.com/kcq) [Quest](https://twitter.com/kcqon) and it's been improved by many [contributors](https://github.com/mintoolkit/mint/graphs/contributors). New contributors are always welcome and the project is commited to providing more resources and support to make it easy to contribute.
+**Mint** was created by [Kyle](https://github.com/kcq) [Quest](https://twitter.com/kcqon) and it's been improved by many [contributors](https://github.com/mintoolkit/mint/graphs/contributors). New contributors are always welcome and the project is committed to providing more resources and support to make it easy to contribute.
 
 ## Overview
 
@@ -381,14 +381,14 @@ To disable the version checks set the global `--check-version` flag to `false` (
 - `--change-data value` - Include changes for the files that match the data pattern (regex). Value formats: `<data regex>` | `dump:<output type>:<path pattern>:<data regex>` | `::<path pattern>:<data regex>` | `:::<data regex>` where `output type` is `console` or a directory name. If `value` starts with `dump:` the match will be 'dumped' to the selected `output type`. [can use this flag multiple times]
 - `--change-data-hash value` - Include changes for the files that match the provided data hashes (sha1). Value formats: `<sha1 hash>` | `dump:<output type>:<sha1 hash>` | `::<sha1 hash>` where `output type` is `console` or a directory name. If `value` starts with `dump:` the match will be 'dumped' to the selected `output type`. [can use this flag multiple times]
 - `--reuse-saved-image` - Reuse saved container image (default: true).
-- `--top-changes-max` - Maximum number of top changes to track (defalt: 20).
+- `--top-changes-max` - Maximum number of top changes to track (default: 20).
 - `--hash-data` - Generate file data hashes (default: false).
 - `--detect-duplicates` - Detect duplicate files based on their hashes (default: true).
 - `--show-duplicates` - Show all discovered duplicate file paths (default: false).
 - `--show-special-perms` - Show files with special permissions (setuid,setgid,sticky) (default: true)
 - `--detect-utf8` - Detect utf8 files and optionally extract the discovered utf8 file content (possible values: "true" or "dump" or "dump:output_target.tgz" or "dump:output_target.tgz::max_size_bytes" or "dump:output_target.tgz:::max_size_bytes").
-- `--detect-all-certs` - Detect all certifcate files
-- `--detect-all-cert-pks` - Detect all certifcate private key files
+- `--detect-all-certs` - Detect all certificate files
+- `--detect-all-cert-pks` - Detect all certificate private key files
 - `--detect-identities` - Detect system identities (users, groups) and their properties (default: true)
 - `--change-match-layers-only` - Show only layers with change matches (default: false).
 - `--export-all-data-artifacts` - TAR archive file path to export all text data artifacts (if value is set to `.` then the archive file path defaults to `./data-artifacts.tar`)
@@ -415,7 +415,7 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--show-plogs` - Show image pull logs (default: false).
 - `--compose-file` - Load container info from selected compose file
 - `--target-compose-svc` - Target service from compose file
-- `--target-compose-svc-image` - Override the container image name and/or tag when targetting a compose service using the target-compose-svc parameter (format: tag_name or image_name:tag_name)
+- `--target-compose-svc-image` - Override the container image name and/or tag when targeting a compose service using the target-compose-svc parameter (format: tag_name or image_name:tag_name)
 - `--target-compose-svc-no-ports` - Do not publish ports for target service from compose file
 - `--dep-exclude-compose-svc-all` - Do not start any compose services as target dependencies
 - `--dep-include-compose-svc` - Include specific compose service as a target dependency (only selected services will be started)
@@ -468,8 +468,8 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--entrypoint` - Override ENTRYPOINT analyzing image at runtime
 - `--cmd` - Override CMD analyzing image at runtime
 - `--mount` - Mount volume analyzing image (the mount parameter format is identical to the `-v` mount command in Docker) [can use this flag multiple times]
-- `--include-path` - Include directory (and what's in it) or file from image [can use this flag multiple times] (optionally overwriting the artifact's permissions, user and group information; full format: `targetPath:octalPermFlags#uid#gid`, mimimal format: `targetPath` ; see the non-default USER FAQ section for more details)
-- `--include-path-file` - Load directory or file includes from a file (optionally overwriting the artifact's permissions, user and group information; full format: `targetPath:octalPermFlags#uid#gid`, mimimal format: `targetPath` ; see the non-default USER FAQ section for more details)
+- `--include-path` - Include directory (and what's in it) or file from image [can use this flag multiple times] (optionally overwriting the artifact's permissions, user and group information; full format: `targetPath:octalPermFlags#uid#gid`, minimal format: `targetPath` ; see the non-default USER FAQ section for more details)
+- `--include-path-file` - Load directory or file includes from a file (optionally overwriting the artifact's permissions, user and group information; full format: `targetPath:octalPermFlags#uid#gid`, minimal format: `targetPath` ; see the non-default USER FAQ section for more details)
 - `--include-paths-creport-file` - Keep files from the referenced creport
 - `--include-bin value` - Include binary from image (executable or shared object using its absolute path)
 - `--include-bin-file` - Load shared binary file includes from a file (similar to `--include-path-file`)
@@ -693,7 +693,7 @@ Flags:
 - `--show-plogs` - Show image pull logs.
 - `--entrypoint` - Override ENTRYPOINT running the target image.
 - `--cmd` - Override CMD running the target image.
-- `--live-logs` - Show live logs for the container (cant use with --terminal).
+- `--live-logs` - Show live logs for the container (can't use with --terminal).
 - `--terminal` - Attach interactive terminal to the container.
 - `--publish` - Map container port to host port (format => port | hostPort:containerPort | hostIP:hostPort:containerPort | hostIP::containerPort ).
 - `--rm` - Remove the container when it exits.
@@ -744,7 +744,7 @@ Flags:
 
 Note that `mint registry push LOCAL_DOCKER_IMAGE_NAME` is a shortcut for `mint registry push --docker LOCAL_DOCKER_IMAGE_NAME`.
 
-Normally you have to explicitly tag the target image to have a name that's appropriate for the destination registry. The `--as` flag is a convinient way to tag the image while you are pushing it. Here's an example pushing a local Docker `nginx` image to a local registry: `mint registry push --docker nginx --as localhost:5000/nginx`
+Normally you have to explicitly tag the target image to have a name that's appropriate for the destination registry. The `--as` flag is a convenient way to tag the image while you are pushing it. Here's an example pushing a local Docker `nginx` image to a local registry: `mint registry push --docker nginx --as localhost:5000/nginx`
 
 You can create a local registry using the `server` subcommand. See the `server` sub-command section below for more details.
 
@@ -882,7 +882,7 @@ sudo usermod -aG docker ec2-user
 docker run -p 8080:8080 -p 50000:50000 -d -v jenkins_home:/var/jenkins_home jenkins/jenkins:lts
 ```
 
-- Given Jenkins is now running as a containerized environment in the virtual machine, you need to make docker available in the Jenkins container, you can do this by bind mounting the virtual machine docker unix socket onto the jenkins container, note that to carry out this step you need to stop the running jenkins container, you can find the jenkins container ID by using the docker ps command, the commands to execute are highlighted below. This step is essential as it makes docker available in the Jenkins container, and with docker you can pull **Mint** app image which is to be used in furthur steps.
+- Given Jenkins is now running as a containerized environment in the virtual machine, you need to make docker available in the Jenkins container, you can do this by bind mounting the virtual machine docker unix socket onto the jenkins container, note that to carry out this step you need to stop the running jenkins container, you can find the jenkins container ID by using the docker ps command, the commands to execute are highlighted below. This step is essential as it makes docker available in the Jenkins container, and with docker you can pull **Mint** app image which is to be used in further steps.
 
 ```
 docker ps
@@ -1201,7 +1201,7 @@ The current version of the `debug` command supports multiple container runtimes:
 
 Use the `--runtime` flag to explicitly select your target container runtime. By default, the flag value is set to `auto` and the command will try to auto-detect the installed runtime(s). If the auto-select isn't picking up your installation set the flag explicitly.
 
-By default the `debug` command will provide you with an interactive terminal when it attaches the debuging sidecar image to the target container. The interactive terminal will allow you navigate the target container filesystem as if you were connected to the target container. To disable this behavior set `--run-as-target-shell` to `false`.
+By default the `debug` command will provide you with an interactive terminal when it attaches the debugging sidecar image to the target container. The interactive terminal will allow you navigate the target container filesystem as if you were connected to the target container. To disable this behavior set `--run-as-target-shell` to `false`.
 
 Other default behavior:
 
@@ -1425,7 +1425,7 @@ The extracted directory contains two binaries (and now it also contains a symlin
 
 4. Run the **Mint** app:
 
-`./min build my/sample-node-app` <- run it from the location where you extraced the **Mint** app binaries (or update your `PATH` env var to include the directory where the **Mint** app binaries are located)
+`./min build my/sample-node-app` <- run it from the location where you extracted the **Mint** app binaries (or update your `PATH` env var to include the directory where the **Mint** app binaries are located)
 
 **Mint** creates a special container based on the target image you provided. It also creates a resource directory where it stores the information it discovers about your image: `<min directory>/.images/<TARGET_IMAGE_ID>`.
 
@@ -1523,7 +1523,7 @@ This problem shouldn't happen anymore because the exported artifacts are saved i
 
 If you run older versions of **Mint** you can get around this problem by running **Mint** from a root shell. That way it will have access to all exported files.
 
-**Mint** copies the relevant image artifacts trying to preserve their permissions. If the permissions are too restrictive the master app might not have sufficient priviledge to access these files when it's building the new minified image.
+**Mint** copies the relevant image artifacts trying to preserve their permissions. If the permissions are too restrictive the master app might not have sufficient privilege to access these files when it's building the new minified image.
 
 ## EXPLORE SOURCE CODE WITH AI
 
