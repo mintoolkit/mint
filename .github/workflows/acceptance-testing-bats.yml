@@ -9,9 +9,6 @@ on:
     types: [opened, synchronize, closed]
 jobs:
   test:
-    strategy:
-      matrix:
-        go: ['1.21']
     runs-on: 'ubuntu-latest'
     steps:
       - uses: actions/checkout@v6.0.2
@@ -21,7 +18,7 @@ jobs:
 
       - uses: actions/setup-go@v6.3.0
         with:
-          go-version: ${{ matrix.go }}
+          go-version-file: 'go.mod'
 
       - name: Build Slim (quick dev)
         run: make build_dev
