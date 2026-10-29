@@ -19,5 +19,10 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes libbtrfs-dev libgpgme-dev pkg-config
+
       - name: Run tests
         run: make test
