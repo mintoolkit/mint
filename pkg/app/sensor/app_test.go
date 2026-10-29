@@ -606,14 +606,19 @@ func TestStopSignal_ForceKill(t *testing.T) {
 
 func TestControlCommands_StopTargetApp(t *testing.T) {
 	runID := newTestRun(t)
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
 
 	sensor := testsensor.NewSensorOrFail(t, ctx, t.TempDir(), runID, imageSimpleService)
-	defer sensor.Cleanup(t, ctx)
+	defer func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cleanupCancel()
+		sensor.Cleanup(t, cleanupCtx)
+	}()
 
 	sensor.StartStandaloneOrFail(t, ctx, nil)
 
-	go testutil.Delayed(ctx, 5*time.Second, func() {
+	testutil.Delayed(ctx, 5*time.Second, func() {
 		sensor.ExecuteControlCommandOrFail(t, ctx, control.StopTargetAppCommand)
 		sensor.WaitForEventOrFail(t, ctx, event.StopMonitorDone)
 		sensor.WaitForEventOrFail(t, ctx, event.ShutdownSensorDone)
