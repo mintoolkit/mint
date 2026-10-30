@@ -925,7 +925,7 @@ stage("Build and Slim Docker Image") {
           sh 'docker build -t IMAGE_NAME:$BUILD_NUMBER .'
           sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock mintoolkit/mint \
               build --target IMAGE_NAME:$BUILD_NUMBER --tag IMAGE_NAME:slim-$BUILD_NUMBER \
-              exit'
+              --http-probe=false --continue-after=app-exit'
       }
   }
 }
@@ -956,7 +956,7 @@ pipeline {
                     sh 'docker build -t node_alpine:$BUILD_NUMBER .'
                     sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock mintoolkit/mint \
                         build --target node_alpine:$BUILD_NUMBER --tag node_alpine:slim-$BUILD_NUMBER \
-                        exit'
+                        --http-probe=false --continue-after=app-exit'
                 }
             }
         }
@@ -994,7 +994,7 @@ Integrating Slim in Github Actions in your CI/CD workflow involves using the [Do
 
 #### Github Actions Workflow
 
-You can integrate the Docker-Slim Github Action in your workflow by inserting the Action after a [Docker Build/Push Github Action](https://github.com/docker/build-push-action), before [Docker Login Github Action](https://github.com/docker/login-action) and docker tag/push commands, a customized example workflow is highlighted below. Note that the environment variable tag--{{github.run_number}} in the workflow represents a unique incremental number allocated by Github Actions each time your workflow runs.
+You can integrate the Docker-Slim Github Action in your workflow by inserting the Action after a [Docker Build/Push Github Action](https://github.com/docker/build-push-action), before [Docker Login Github Action](https://github.com/docker/login-action) and docker tag/push commands, a customized example workflow is highlighted below. Note that the image tag `${{ github.run_number }}` in the workflow represents a unique incremental number allocated by Github Actions each time your workflow runs.
 
 ```
 # Build the Docker image first
@@ -1008,11 +1008,11 @@ You can integrate the Docker-Slim Github Action in your workflow by inserting th
   env:
     DSLIM_HTTP_PROBE: false
   with:
-    target: IMAGE_NAME:{{github.run_number}}
+    target: IMAGE_NAME:${{ github.run_number }}
     tag: "slim-${{ github.run_number }}"
 
 # Docker Hub Login
-  uses: docker/login-action@v2
+- uses: docker/login-action@v2
   with:
     username: ${{ secrets.DOCKERHUB_USERNAME }}
     password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -1025,10 +1025,95 @@ You can integrate the Docker-Slim Github Action in your workflow by inserting th
 
 The workflow above indicates four steps:
 
-- A [Docker Build/Push Github Action](https://github.com/docker/build-push-action) for building a docker image with the image name/tag--IMAGE_NAME:{{github.run_number}}, you should give replace IMAGE_NAME with your desired image name. Note that this Action must have a false option to push the built image--given that you need the image slimmed/minified before pushing it to a container registry.
-- A Docker-Slim Github Action which minifies the target image--IMAGE_NAME:{{github.run_number}}, this Action has the "slim-{{github.run_number}}" tag and adds this tag to the slimmed/minified docker image such that the image name/tag becomes IMAGE_NAME:slim-{{github.run_number}}.
+- A [Docker Build/Push Github Action](https://github.com/docker/build-push-action) for building a docker image with the image name/tag `IMAGE_NAME:${{ github.run_number }}`; replace `IMAGE_NAME` with your desired image name. Note that this Action must have a false option to push the built image--given that you need the image slimmed/minified before pushing it to a container registry.
+- A Docker-Slim Github Action which minifies the target image `IMAGE_NAME:${{ github.run_number }}`; this Action uses the `slim-${{ github.run_number }}` tag so the slimmed image becomes `IMAGE_NAME:slim-${{ github.run_number }}`.
 - A Docker Login Github Action which logs into your DockerHub container registry account, you should store your DockerHub username and personal access token as secrets in the github repository meant for the workflow. Suppose your container registry is not DockerHub, you can check the [Docker Login Github Action documentation](https://github.com/docker/login-action) for the use case of logging into your desired container registry.
 - A docker tag command for naming/tagging the slimmed image with your DockerHub account remote repository name which could be the same name(IMAGE_NAME) as the slimmed image; A docker push command to push the slimmed image to your Dockerhub account remote repository.
+
+### Integrating Mint in GitLab CI
+
+GitLab CI jobs that use Docker-in-Docker (`dind`) often reach the Docker daemon over TCP instead of a mounted Unix socket. Pass `DOCKER_HOST` and any TLS-related variables (`DOCKER_TLS_VERIFY`, `DOCKER_CERT_PATH`) into the **Mint** container. The **RUNNING CONTAINERIZED** section above includes a GitLab `dind` one-liner; the job below shows a typical build-and-slim flow using the `build` command flags:
+
+```yaml
+slim-image:
+  stage: slim
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" .
+    - |
+      docker run --rm \
+        -e DOCKER_HOST -e DOCKER_TLS_VERIFY -e DOCKER_CERT_PATH \
+        mintoolkit/mint build \
+          --target "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" \
+          --tag "$CI_REGISTRY_IMAGE:slim-$CI_COMMIT_SHA" \
+          --http-probe=false \
+          --continue-after=app-exit
+```
+
+If **Mint** cannot talk to the sensor inside the temporary container, try `--sensor-ipc-mode` and `--sensor-ipc-endpoint` (see the Google Cloud Build note in **RUNNING CONTAINERIZED**).
+
+### Integrating Mint in CircleCI
+
+CircleCI **remote Docker** exposes the daemon through TLS (`DOCKER_HOST`, `DOCKER_TLS_VERIFY`, `DOCKER_CERT_PATH`). Stage the client certificates in a helper volume before running **Mint**, matching the CircleCI snippet in **RUNNING CONTAINERIZED**:
+
+```yaml
+  - run:
+      name: Build and slim Docker image
+      command: |
+        docker build -t myapp:${CIRCLE_BUILD_NUM} .
+        docker create -v /dcert_path --name dcert alpine:latest /bin/true
+        docker cp "$DOCKER_CERT_PATH/." dcert:/dcert_path
+        docker run --rm --volumes-from dcert \
+          -e DOCKER_HOST -e DOCKER_TLS_VERIFY -e DOCKER_CERT_PATH=/dcert_path \
+          mintoolkit/mint build \
+            --target myapp:${CIRCLE_BUILD_NUM} \
+            --tag myapp:slim-${CIRCLE_BUILD_NUM} \
+            --http-probe=false \
+            --continue-after=app-exit
+```
+
+Run this after `setup_remote_docker` in your `.circleci/config.yml`.
+
+### Integrating Mint in Azure Pipelines
+
+On agents where the Docker socket is available (self-hosted agents or jobs that start Docker), mount `/var/run/docker.sock` and run **Mint** after `docker build`:
+
+```yaml
+- script: |
+    docker build -t myapp:$(Build.BuildId) .
+    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock mintoolkit/mint build \
+      --target myapp:$(Build.BuildId) \
+      --tag myapp:slim-$(Build.BuildId) \
+      --http-probe=false \
+      --continue-after=app-exit
+  displayName: Slim container image
+```
+
+### Integrating Mint in Google Cloud Build
+
+Google Cloud Build runs each step in its own container; sensor IPC settings often matter more than on a default Docker socket setup. See the [`Google Cloud Build`](https://medium.com/google-cloud/integrating-dockerslim-container-minify-step-on-cloud-build-64da29fd58d1) walkthrough for `--sensor-ipc-mode` and `--sensor-ipc-endpoint`. A minimal `cloudbuild.yaml` pattern after the image is built locally in the same worker pool:
+
+```yaml
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/myapp:$BUILD_ID', '.']
+  - name: mintoolkit/mint
+    args:
+      - build
+      - --target=gcr.io/$PROJECT_ID/myapp:$BUILD_ID
+      - --tag=gcr.io/$PROJECT_ID/myapp:slim-$BUILD_ID
+      - --http-probe=false
+      - --continue-after=app-exit
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+```
+
+Adjust sensor IPC flags and Docker connectivity for your Cloud Build setup as described in the linked article.
 
 ## CONTAINER RUNTIME CONNECT OPTIONS
 
