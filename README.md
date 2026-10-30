@@ -1362,7 +1362,7 @@ Here's a sample `slim` (aka `build`) command:
 
 `mint slim --show-clogs=true --cmd docker-compose.yml --mount $(pwd)/data/:/data/ mintoolkit/container-transform`
 
-It's used to minify the `container-transform` tool. You can get the minified image from [`Docker Hub`](https://hub.docker.com/r/mintoolkit/container-transform.slim/).
+It's used to minify the `container-transform` tool. You can get the minified image from [`Docker Hub`](https://hub.docker.com/r/dslim/container-transform.slim/).
 
 ## QUICK SECCOMP EXAMPLE
 
