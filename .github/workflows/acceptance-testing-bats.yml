@@ -9,9 +9,6 @@ on:
     types: [opened, synchronize, closed]
 jobs:
   test:
-    strategy:
-      matrix:
-        go: ['1.21']
     runs-on: 'ubuntu-latest'
     steps:
       - uses: actions/checkout@v6.0.2
@@ -21,10 +18,37 @@ jobs:
 
       - uses: actions/setup-go@v6.3.0
         with:
-          go-version: ${{ matrix.go }}
+          go-version-file: 'go.mod'
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes libbtrfs-dev libgpgme-dev pkg-config
 
       - name: Build Slim (quick dev)
-        run: make build_dev
+        # Mirror src.build.quick.sh; enable native GPGME only for the CI Mint binary.
+        run: |
+          set -e
+          BDIR="${GITHUB_WORKSPACE:?}"
+
+          BUILD_TIME="$(date -u '+%Y-%m-%d_%I:%M:%S%p')"
+          TAG="current"
+          REVISION="current"
+          if hash git 2>/dev/null && [ -e "${BDIR}/.git" ]; then
+            TAG="$(git describe --tags --always)"
+            REVISION="$(git rev-parse HEAD)"
+          fi
+
+          LD_FLAGS="-s -w -X github.com/mintoolkit/mint/pkg/version.appVersionTag=${TAG} -X github.com/mintoolkit/mint/pkg/version.appVersionRev=${REVISION} -X github.com/mintoolkit/mint/pkg/version.appVersionTime=${BUILD_TIME}"
+
+          go generate github.com/mintoolkit/mint/pkg/appbom
+
+          BINDIR="${BDIR}/bin"
+          mkdir -p "$BINDIR"
+          rm -rf "${BINDIR:?}/"*
+
+          CGO_ENABLED=1 go build -ldflags="${LD_FLAGS}" -tags "remote" -mod=vendor -o "${BINDIR}/mint" "${BDIR}/cmd/mint/main.go"
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="${LD_FLAGS}" -mod=vendor -o "${BINDIR}/mint-sensor" "${BDIR}/cmd/mint-sensor/main.go"
 
       - name: Run the bats test suite
         run: ./test/bats/bin/bats test/debug.bats

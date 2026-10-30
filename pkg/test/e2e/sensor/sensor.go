@@ -41,7 +41,8 @@ const (
 	EventsFileName    = "events.json"
 	runArchiveName    = "run.tar"
 
-	sensorExePath = "/opt/_slim/sensor"
+	sensorExePath          = "/opt/_slim/sensor"
+	sensorCommandsFilePath = "/opt/_mint/commands.json"
 )
 
 var (
@@ -288,7 +289,7 @@ func (s *Sensor) StartStandalone(
 				"--name", s.contName,
 				"--user", s.user,
 				"--volume", s.sensorExePath + ":" + sensorExePath,
-				"--volume", commandsFilePath + ":/opt/_slim/commands.json",
+				"--volume", commandsFilePath + ":" + sensorCommandsFilePath,
 				"--entrypoint", sensorExePath,
 			},
 		),
@@ -298,7 +299,7 @@ func (s *Sensor) StartStandalone(
 			// Standalone flags
 			[]string{
 				"-m", "standalone",
-				"-c", "/opt/_slim/commands.json",
+				"-c", sensorCommandsFilePath,
 				"-s", stopSignal,
 				"-w", stopTimeout.String(),
 				"--",

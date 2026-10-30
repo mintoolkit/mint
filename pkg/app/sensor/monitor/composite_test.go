@@ -8,6 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/mintoolkit/mint/pkg/ipc/command"
 	stubmonitor "github.com/mintoolkit/mint/pkg/test/stub/sensor/monitor"
 )
 
@@ -17,6 +18,7 @@ func init() {
 
 func TestCompositeMonitor_Lifecycle(t *testing.T) {
 	mon := &monitor{
+		cmd:    &command.StartMonitor{},
 		fanMon: stubmonitor.NewFanMonitor(context.Background()),
 		ptMon:  stubmonitor.NewPtMonitor(context.Background()),
 	}
