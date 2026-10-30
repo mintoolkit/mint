@@ -136,7 +136,9 @@ func inspectFatImage(
 					})
 
 				cmdReport.Error = "image.already.optimized"
-				xc.Exit(exitCode)
+				// Exit with 0, so it's not considered a failure
+				// The actual status code is in in command report file
+				xc.Exit(0)
 			}
 		}
 	}
