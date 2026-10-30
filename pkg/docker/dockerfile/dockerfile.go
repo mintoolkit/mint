@@ -12,40 +12,16 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	"github.com/mintoolkit/mint/pkg/consts"
+	"github.com/mintoolkit/mint/pkg/docker/instruction"
 	v "github.com/mintoolkit/mint/pkg/version"
 )
 
-// note: dup (todo: refactor)
-const (
-	//MAINTAINER:
-	instPrefixMaintainer = "MAINTAINER "
-	//ENTRYPOINT:
-	instTypeEntrypoint   = "ENTRYPOINT"
-	instPrefixEntrypoint = "ENTRYPOINT "
-	//CMD:
-	instTypeCmd   = "CMD"
-	instPrefixCmd = "CMD "
-	//USER:
-	instTypeUser   = "USER"
-	instPrefixUser = "USER "
-	//EXPOSE:
-	instTypeExpose   = "EXPOSE"
-	instPrefixExpose = "EXPOSE "
-	//WORKDIR:
-	instTypeWorkdir   = "WORKDIR"
-	instPrefixWorkdir = "WORKDIR "
-	//HEALTHCHECK:
-	instTypeHealthcheck   = "HEALTHCHECK"
-	instPrefixHealthcheck = "HEALTHCHECK "
-	//ONBUILD:
-	instTypeOnbuild = "ONBUILD"
-	//RUN:
-	instTypeRun   = "RUN"
-	instPrefixRun = "RUN "
-	//ADD:
-	instTypeAdd = "ADD"
-	//COPY:
-	instTypeCopy = "COPY"
+// Instruction prefixes in the uppercase form written to the Dockerfile,
+// derived from the canonical names in pkg/docker/instruction
+var (
+	instPrefixUser    = strings.ToUpper(instruction.User) + " "
+	instPrefixExpose  = strings.ToUpper(instruction.Expose) + " "
+	instPrefixWorkdir = strings.ToUpper(instruction.Workdir) + " "
 )
 
 // GenerateFromInfo builds and saves a Dockerfile file object
