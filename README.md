@@ -1525,10 +1525,6 @@ If you run older versions of **Mint** you can get around this problem by running
 
 **Mint** copies the relevant image artifacts trying to preserve their permissions. If the permissions are too restrictive the master app might not have sufficient priviledge to access these files when it's building the new minified image.
 
-## EXPLORE SOURCE CODE WITH AI
-
-You can explore the project code and ask questions about the code using a Perplexity-like [`Code Sage`](https://sage.storia.ai/) portal created by [`Storia AI`](https://storia.ai/): https://sage.storia.ai/mintoolkit
-
 ## BUILD PROCESS
 
 #### Build Options
