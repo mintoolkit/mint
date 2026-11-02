@@ -16,6 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/mintoolkit/mint/pkg/crt"
+	"github.com/mintoolkit/mint/pkg/docker/instruction"
 )
 
 var (
@@ -105,45 +106,45 @@ const (
 	runInstArgsPrefix   = "|"
 )
 
-const (
-	//MAINTAINER:
-	instTypeMaintainer   = "MAINTAINER"
-	instPrefixMaintainer = "MAINTAINER "
-	//ENTRYPOINT:
-	instTypeEntrypoint   = "ENTRYPOINT"
-	instPrefixEntrypoint = "ENTRYPOINT "
-	//CMD:
-	instTypeCmd   = "CMD"
-	instPrefixCmd = "CMD "
-	//USER:
-	instTypeUser   = "USER"
-	instPrefixUser = "USER "
-	//EXPOSE:
-	instTypeExpose   = "EXPOSE"
-	instPrefixExpose = "EXPOSE "
-	//WORKDIR:
-	instTypeWorkdir   = "WORKDIR"
-	instPrefixWorkdir = "WORKDIR "
-	//HEALTHCHECK:
-	instTypeHealthcheck           = "HEALTHCHECK"
-	instPrefixHealthcheck         = "HEALTHCHECK "
-	instPrefixBasicEncHealthcheck = "HEALTHCHECK --"
-	//ONBUILD:
-	instTypeOnbuild = "ONBUILD"
-	//RUN:
-	instTypeRun   = "RUN"
-	instPrefixRun = "RUN "
-	//ADD:
-	instTypeAdd = "ADD"
-	//COPY:
-	instTypeCopy = "COPY"
+// Instruction names in the uppercase form used in image history data,
+// derived from the canonical names in pkg/docker/instruction
+var (
+	instTypeMaintainer   = strings.ToUpper(instruction.Maintainer)
+	instPrefixMaintainer = instTypeMaintainer + " "
 
-	instTypeVolume     = "VOLUME"
-	instTypeEnv        = "ENV"
-	instTypeLabel      = "LABEL"
-	instTypeStopSignal = "STOPSIGNAL"
-	instTypeShell      = "SHELL"
-	instTypeArg        = "ARG" //shouldn't see it as an standalone instruction
+	instTypeEntrypoint   = strings.ToUpper(instruction.Entrypoint)
+	instPrefixEntrypoint = instTypeEntrypoint + " "
+
+	instTypeCmd   = strings.ToUpper(instruction.Cmd)
+	instPrefixCmd = instTypeCmd + " "
+
+	instTypeUser   = strings.ToUpper(instruction.User)
+	instPrefixUser = instTypeUser + " "
+
+	instTypeExpose   = strings.ToUpper(instruction.Expose)
+	instPrefixExpose = instTypeExpose + " "
+
+	instTypeWorkdir   = strings.ToUpper(instruction.Workdir)
+	instPrefixWorkdir = instTypeWorkdir + " "
+
+	instTypeHealthcheck           = strings.ToUpper(instruction.Healthcheck)
+	instPrefixHealthcheck         = instTypeHealthcheck + " "
+	instPrefixBasicEncHealthcheck = instTypeHealthcheck + " --"
+
+	instTypeOnbuild = strings.ToUpper(instruction.Onbuild)
+
+	instTypeRun   = strings.ToUpper(instruction.Run)
+	instPrefixRun = instTypeRun + " "
+
+	instTypeAdd  = strings.ToUpper(instruction.Add)
+	instTypeCopy = strings.ToUpper(instruction.Copy)
+
+	instTypeVolume     = strings.ToUpper(instruction.Volume)
+	instTypeEnv        = strings.ToUpper(instruction.Env)
+	instTypeLabel      = strings.ToUpper(instruction.Label)
+	instTypeStopSignal = strings.ToUpper(instruction.StopSignal)
+	instTypeShell      = strings.ToUpper(instruction.Shell)
+	instTypeArg        = strings.ToUpper(instruction.Arg) //shouldn't see it as an standalone instruction
 )
 
 var instructionTypes = map[string]struct{}{
