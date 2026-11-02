@@ -456,8 +456,8 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--http-max-concurrent-crawlers` - Number of concurrent crawlers in the HTTP probe (default value: 1)
 - `--http-probe-apispec` - Run HTTP probes for API spec where the value represents the target path where the spec is available (supports Swagger 2.x and OpenAPI 3.x) [can use this flag multiple times]
 - `--http-probe-apispec-file` - Run HTTP probes for API spec from file (supports Swagger 2.x and OpenAPI 3.x) [can use this flag multiple times]
-- `--http-probe-exec` - App to execute when running HTTP probes. [can use this flag multiple times]
-- `--http-probe-exec-file` - Apps to execute when running HTTP probes loaded from file.
+- `--host-exec` - Host commands to execute when running HTTP probes (aka host command probes). [can use this flag multiple times]
+- `--host-exec-file` - Host commands to execute when running HTTP probes, loaded from file.
 - `--publish-port` - Map container port to host port analyzing image at runtime to make it easier to integrate external tests (format => port | hostPort:containerPort | hostIP:hostPort:containerPort | hostIP::containerPort )[can use this flag multiple times]
 - `--publish-exposed-ports` - Map all exposed ports to the same host ports analyzing image at runtime (default value: false)
 - `--show-clogs` - Show container logs (from the container used to perform dynamic inspection)
@@ -1187,9 +1187,9 @@ Probing based on the Swagger/OpenAPI spec is another experimental capability. Th
 - `http-probe-apispec` - value: `<path_to_fetch_spec>:<api_endpoint_prefix>`
 - `http-probe-apispec-file` - value: `<local_file_path_to_spec>`
 
-You can use the `--http-probe-exec` and `--http-probe-exec-file` options to run the user provided commands when the http probes are executed. This example shows how you can run `curl` against the temporary container created by **Mint** when the http probes are executed.
+You can use the `--host-exec` and `--host-exec-file` options to run the user provided commands when the http probes are executed. This example shows how you can run `curl` against the temporary container created by **Mint** when the http probes are executed.
 
-`mint slim --http-probe-exec 'curl http://localhost:YOUR_CONTAINER_PORT_NUM/some/path' --publish-port YOUR_CONTAINER_PORT_NUM your-container-image-name`
+`mint slim --host-exec 'curl http://localhost:YOUR_CONTAINER_PORT_NUM/some/path' --publish-port YOUR_CONTAINER_PORT_NUM your-container-image-name`
 
 ## DEBUGGING MINIFIED CONTAINERS
 
