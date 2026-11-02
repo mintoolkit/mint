@@ -10,7 +10,7 @@ We will also introduce advanced AI-powered security insights capabilities where 
 
 1. The standard CLI-based interface is hard to use because users don't know about all CLI flags and when they do know about them they don't know how to use them especially with their specific container images. Is it possible to create an AI-powered interface that wouldn't require deep knowledge of the DockerSlim capabilities and its parameters? 
 
-2. The data produced by the DockerSlim commands expecially by the XRAY command is often low level and it needs to be interpreted to derive high level security insights. This requires additional domain knowledge in security and it also requires a deep understanding of the containerized applications, which many users don't have. Is it possible to autonomously analyze low level data produced by DockerSlim and produce higher level security insights?
+2. The data produced by the DockerSlim commands especially by the XRAY command is often low level and it needs to be interpreted to derive high level security insights. This requires additional domain knowledge in security and it also requires a deep understanding of the containerized applications, which many users don't have. Is it possible to autonomously analyze low level data produced by DockerSlim and produce higher level security insights?
 
 3. The current security related data produced by the tool is very basic. Is it possible to build a set of specialized security research agents that can identify advanced security threats and insights in the target container images?
 
