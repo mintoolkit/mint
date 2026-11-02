@@ -1,8 +1,8 @@
 package system
 
 const (
-	SyscallX86MaxNum32   = 462
-	SyscallX86LastName32 = "mseal"
+	SyscallX86MaxNum32   = 472
+	SyscallX86LastName32 = "fchroot"
 )
 
 // https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_32.tbl
@@ -471,6 +471,16 @@ var syscallNumTableX86Family32 = [...]string{
 	"lsm_set_self_attr",       // 460
 	"lsm_list_modules",        // 461
 	"mseal",                   // 462
+	"setxattrat",              // 463
+	"getxattrat",              // 464
+	"listxattrat",             // 465
+	"removexattrat",           // 466
+	"open_tree_attr",          // 467
+	"file_getattr",            // 468
+	"file_setattr",            // 469
+	"listns",                  // 470
+	"rseq_slice_yield",        // 471
+	"fchroot",                 // 472
 }
 
 func callNameX86Family32(num uint32) string {

@@ -1,8 +1,8 @@
 package system
 
 const (
-	SyscallX86MaxNum64   = 462
-	SyscallX86LastName64 = "mseal"
+	SyscallX86MaxNum64   = 472
+	SyscallX86LastName64 = "fchroot"
 )
 
 // https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_64.tbl , https://github.com/torvalds/linux/blob/master/scripts/syscall.tbl
@@ -344,7 +344,7 @@ var syscallNumTableX86Family64 = [...]string{
 	"io_pgetevents",
 	"rseq",      // 334
 	"uretprobe", // 335
-	"reserved.336",
+	"uprobe",    // 336
 	"reserved.337",
 	"reserved.338",
 	"reserved.339",
@@ -471,6 +471,16 @@ var syscallNumTableX86Family64 = [...]string{
 	"lsm_set_self_attr",       // 460
 	"lsm_list_modules",        // 461
 	"mseal",                   // 462
+	"setxattrat",              // 463
+	"getxattrat",              // 464
+	"listxattrat",             // 465
+	"removexattrat",           // 466
+	"open_tree_attr",          // 467
+	"file_getattr",            // 468
+	"file_setattr",            // 469
+	"listns",                  // 470
+	"rseq_slice_yield",        // 471
+	"fchroot",                 // 472
 }
 
 func callNameX86Family64(num uint32) string {
