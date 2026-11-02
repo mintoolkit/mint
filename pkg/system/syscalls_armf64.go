@@ -4,8 +4,8 @@ const (
 	SyscallArmUnknownNum64  = -1
 	SyscallArmUnknownName64 = "unknown_syscall"
 	SyscallArmMinNum64      = 0
-	SyscallArmMaxNum64      = 462
-	SyscallArmLastName64    = "mseal"
+	SyscallArmMaxNum64      = 472
+	SyscallArmLastName64    = "fchroot"
 )
 
 // https://github.com/torvalds/linux/blob/master/scripts/syscall.tbl
@@ -330,6 +330,16 @@ var syscallNumTableArmFamily64 = map[uint32]string{
 	460: "lsm_set_self_attr",
 	461: "lsm_list_modules",
 	462: "mseal",
+	463: "setxattrat",
+	464: "getxattrat",
+	465: "listxattrat",
+	466: "removexattrat",
+	467: "open_tree_attr",
+	468: "file_getattr",
+	469: "file_setattr",
+	470: "listns",
+	471: "rseq_slice_yield",
+	472: "fchroot",
 }
 
 func callNameArmFamily64(num uint32) string {
