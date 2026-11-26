@@ -283,7 +283,7 @@ const (
 
 	FlagUseLocalMountsUsage  = "Mount local paths for target container artifact input and output"
 	FlagUseSensorVolumeUsage = "Sensor volume name to use"
-	FlagContinueAfterUsage   = "Select continue mode: enter | signal | probe | timeout-number-in-seconds | container.probe"
+	FlagContinueAfterUsage   = "Select continue mode: enter | signal | probe | exec | host-exec | timeout-number-in-seconds | container-probe"
 
 	FlagRTAOnbuildBaseImageUsage = "Enable runtime analysis for onbuild base images"
 	FlagRTASourcePTUsage         = "Enable PTRACE runtime analysis source"

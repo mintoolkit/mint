@@ -456,8 +456,8 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--http-max-concurrent-crawlers` - Number of concurrent crawlers in the HTTP probe (default value: 1)
 - `--http-probe-apispec` - Run HTTP probes for API spec where the value represents the target path where the spec is available (supports Swagger 2.x and OpenAPI 3.x) [can use this flag multiple times]
 - `--http-probe-apispec-file` - Run HTTP probes for API spec from file (supports Swagger 2.x and OpenAPI 3.x) [can use this flag multiple times]
-- `--host-exec` - Host commands to execute when running HTTP probes (aka host command probes). [can use this flag multiple times]
-- `--host-exec-file` - Host commands to execute when running HTTP probes, loaded from file.
+- `--host-exec` - Host commands to execute (aka host command probes). [can use this flag multiple times]
+- `--host-exec-file` - Host commands to execute loaded from file (aka host command probes).
 - `--publish-port` - Map container port to host port analyzing image at runtime to make it easier to integrate external tests (format => port | hostPort:containerPort | hostIP:hostPort:containerPort | hostIP::containerPort )[can use this flag multiple times]
 - `--publish-exposed-ports` - Map all exposed ports to the same host ports analyzing image at runtime (default value: false)
 - `--show-clogs` - Show container logs (from the container used to perform dynamic inspection)
@@ -521,7 +521,7 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--container-dns` - Add a dns server analyzing image at runtime [can use this flag multiple times]
 - `--container-dns-search` - Add a dns search domain for unqualified hostnames analyzing image at runtime [can use this flag multiple times]
 - `--image-overrides` - Save runtime overrides in generated image (values is `all` or a comma delimited list of override types: `entrypoint`, `cmd`, `workdir`, `env`, `expose`, `volume`, `label`). Use this flag if you need to set a runtime value and you want to persist it in the optimized image. If you only want to add, edit or delete an image value in the optimized image use one of the `--new-*` or `--remove-*` flags (define below).
-- `--continue-after` - Select continue mode: `enter` | `signal` | `probe` | `exec` | `timeout-number-in-seconds` | `container.probe` (default value if http probes are disabled: `enter`). You can also select `probe` and `exec` together: `'probe&exec'` (make sure to use quotes around the two modes or the `&` will break the shell command).
+- `--continue-after` - Select continue mode: `enter` | `signal` | `probe` | `exec` | `host-exec` | `timeout-number-in-seconds` | `container-probe` (default value if http probes are disabled: `enter`). You can also select `probe` and `exec` together: `'probe&exec'` (make sure to use quotes around the two modes or the `&` will break the shell command).
 - `--dockerfile` - The source Dockerfile name to build the fat image before it's optimized.
 - `--tag-fat` - Custom tag for the fat image built from Dockerfile.
 - `--cbo-add-host` - Add an extra host-to-IP mapping in /etc/hosts to use when building an image (Container Build Option).
@@ -567,7 +567,7 @@ In the interactive CLI prompt mode you must specify the target image using the `
 
 The `--include-path` option is useful if you want to customize your minified image adding extra files and directories. The `--include-path-file` option allows you to load multiple includes from a newline delimited file. Use this option if you have a lot of includes. The includes from `--include-path` and `--include-path-file` are combined together. You can also use the `--exclude-pattern` flag to control what shouldn't be included.
 
-The `--continue-after` option is useful if you need to script the **Mint** app. If you pick the `probe` option then **Mint** will continue executing the build command after the HTTP probe is done executing. If you pick the `exec` options then **Mint** will continue executing the build command after the container exec shell commands (specified using the `--exec-file` or `--exec` flags) are done executing. If you pick the `timeout` option **Mint** will allow the target container to run for 60 seconds before it will attempt to collect the artifacts. You can specify a custom timeout value by passing a number of seconds you need instead of the `timeout` string. If you pick the `signal` option you'll need to send a `USR1` signal to the **Mint** app process. The `signal` option is useful when you want to run your own tests against the temporary container **Mint** creates. Your test automation / CI/CD pipeline will be able to notify the **Mint** app that it's done running its test by sending the `USR1` to it.
+The `--continue-after` option is useful if you need to script the **Mint** app. If you pick the `probe` option then **Mint** will continue executing the build command after the HTTP probe is done executing. If you pick the `exec` options then **Mint** will continue executing the build command after the container exec shell commands (specified using the `--exec-file` or `--exec` flags) are done executing. If you pick the `host-exec` option then **Mint** will continue executing the build command after the host commands (specified using the `--host-exec` or `--host-exec-file` flags) are done executing (this mode is added automatically when you use those flags). If you pick the `timeout` option **Mint** will allow the target container to run for 60 seconds before it will attempt to collect the artifacts. You can specify a custom timeout value by passing a number of seconds you need instead of the `timeout` string. If you pick the `signal` option you'll need to send a `USR1` signal to the **Mint** app process. The `signal` option is useful when you want to run your own tests against the temporary container **Mint** creates. Your test automation / CI/CD pipeline will be able to notify the **Mint** app that it's done running its test by sending the `USR1` to it.
 
 You can also combine multiple `continue-after` modes. For now only combining `probe` and `exec` is supported (using either `probe&exec` or `exec&probe` as the `--continue-after` flag value). Other combinations may work too. Combining `probe` and `signal` is not supported.
 
@@ -1187,7 +1187,7 @@ Probing based on the Swagger/OpenAPI spec is another experimental capability. Th
 - `http-probe-apispec` - value: `<path_to_fetch_spec>:<api_endpoint_prefix>`
 - `http-probe-apispec-file` - value: `<local_file_path_to_spec>`
 
-You can use the `--host-exec` and `--host-exec-file` options to run the user provided commands when the http probes are executed. This example shows how you can run `curl` against the temporary container created by **Mint** when the http probes are executed.
+You can use the `--host-exec` and `--host-exec-file` options to run user provided commands on the host while the temporary container created by **Mint** is running. These host command probes run independently of the HTTP probes (the `host-exec` `continue-after` mode is added automatically when you use these flags). This example shows how you can run `curl` against the temporary container created by **Mint**.
 
 `mint slim --host-exec 'curl http://localhost:YOUR_CONTAINER_PORT_NUM/some/path' --publish-port YOUR_CONTAINER_PORT_NUM your-container-image-name`
 
