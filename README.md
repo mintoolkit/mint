@@ -16,7 +16,7 @@
 
 # Optimize Your Experience with Containers. Make Your Containers Better, Smaller, More Secure and Do Less to Get There (free and open source!)
 
-Note that **DockerSlim** is now **MinToolkit** or just **Mint** (it was also called **SlimToolkit**, but that name was too similar to a commercial company name and using a different name was a CNCF requirement for the project). It's no longer limited only to the Docker runtime and its support for additional container runtimes and tools is growing. The "**min**" part of the name represents the ability to create **minimal container images**, which is now the unofficial defacto name to call slim images. "**min**" is also short for **minify**. The "**T**" part is short for "**toolkit**". Together **min** and **t** is a good way to describe the core functionality where the tool mints/creates new and improved container images.
+Note that **DockerSlim** is now **MinToolkit** or just **Mint** (it was also called **SlimToolkit**, but that name was too similar to a commercial company name and using a different name was a CNCF requirement for the project). It's no longer limited only to the Docker runtime and its support for additional container runtimes and tools is growing. The "**min**" part of the name represents the ability to create **minimal container images**, which is now the unofficial de facto name to call slim images. "**min**" is also short for **minify**. The "**T**" part is short for "**toolkit**". Together **min** and **t** is a good way to describe the core functionality where the tool mints/creates new and improved container images.
 
 **Mint** was created by [Kyle](https://github.com/kcq) [Quest](https://twitter.com/kcqon) and it's been improved by many [contributors](https://github.com/mintoolkit/mint/graphs/contributors). New contributors are always welcome and the project is committed to providing more resources and support to make it easy to contribute.
 
@@ -173,7 +173,7 @@ Elixir application images:
   - [How can I contribute if I don&#39;t know Go?](#how-can-i-contribute-if-i-dont-know-go)
   - [What&#39;s the best application for Mint?](#whats-the-best-application-for-mint)
   - [Can I use Mint with dockerized command line tools?](#can-i-use-mint-with-dockerized-command-line-tools)
-  - [What if my Docker images uses the USER command?](#what-if-my-docker-images-uses-the-user-command)
+  - [What if my Docker image uses the USER command?](#what-if-my-docker-image-uses-the-user-command)
   - [Nginx fails in my minified image](#nginx-fails-in-my-minified-image)
   - [Mint fails with a &#39;no permission to read from&#39; error](#mint-fails-with-a-no-permission-to-read-from-error)
 - [EXPLORE SOURCE CODE WITH AI](#explore-source-code-with-ai)
@@ -327,7 +327,7 @@ Global options:
 - `--output-format` - set the output format to use ('text' (default), or 'json')
 - `--log` - log file to store logs
 - `--host` - Docker host address or socket (prefix with `tcp://` or `unix://`)
-- `--crt-connection` - Container runtime connection (for non-Docker runtimes / for Docker user --host)
+- `--crt-connection` - Container runtime connection (for non-Docker runtimes / for Docker use --host)
 - `--crt-context` - Container runtime context name if supported (for Docker similar to setting '--context' or DOCKER_CONTEXT)
 - `--crt-io-inactivity-timeout` - CRT I/O general inactivity timeout.
 - `--crt-save-inactivity-timeout` - CRT save image operation inactivity timeout (overrides the general I/O timeout). If not set, defaults to 30 seconds.
@@ -392,7 +392,7 @@ To disable the version checks set the global `--check-version` flag to `false` (
 - `--detect-identities` - Detect system identities (users, groups) and their properties (default: true)
 - `--change-match-layers-only` - Show only layers with change matches (default: false).
 - `--export-all-data-artifacts` - TAR archive file path to export all text data artifacts (if value is set to `.` then the archive file path defaults to `./data-artifacts.tar`)
-- `--remove-file-artifacts` - Remove file artifacts when command is done (note: you'll loose the reverse engineered Dockerfile)
+- `--remove-file-artifacts` - Remove file artifacts when command is done (note: you'll lose the reverse engineered Dockerfile)
 - `--command-params-file` - JSON file with all command parameters - the JSON file can use a snake case formatted commands example `--docker-config-path` would be `docker_config_path`
 
 Change Types:
@@ -437,7 +437,7 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--http-probe-client-timeout-crawl` - Crawl probe network client timeout in seconds (defaults to probe network client timeout if set or internal default if not, 10 seconds)
 - `--http-probe-cmd` - User defined HTTP probe(s) as `[[[[\"crawl\":]PROTO:]METHOD:]PATH]` [can use this flag multiple times]
 - `--http-probe-cmd-file` - File with user defined HTTP probe commands
-- `--http-probe-cmd-upload` - User defined HTTP probe(s) to submit form data as `[[[[[PROTO:]FORM_FILE_NAME:]FORM_FIELD_NAME:]FILE_OR_GENERATE_TYPE:]PATH]` [can use this flag multiple times
+- `--http-probe-cmd-upload` - User defined HTTP probe(s) to submit form data as `[[[[[PROTO:]FORM_FILE_NAME:]FORM_FIELD_NAME:]FILE_OR_GENERATE_TYPE:]PATH]` [can use this flag multiple times]
 - `--http-probe-start-wait` - Number of seconds to wait before starting HTTP probing
 - `--http-probe-retry-off` - Disable retries for probes (alternative way to disable probes)
 - `--http-probe-retry-count` - Number of retries for each probe (set to -1 to disable probe retries / default value: 5)
@@ -463,7 +463,7 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--show-clogs` - Show container logs (from the container used to perform dynamic inspection)
 - `--show-blogs` - Show build logs (when the minified container is built)
 - `--copy-meta-artifacts` - Copy meta artifacts to the provided location
-- `--remove-file-artifacts` - Remove file artifacts when command is done (note: you'll loose autogenerated Seccomp and Apparmor profiles unless you copy them with the `copy-meta-artifacts` flag or if you archive the state)
+- `--remove-file-artifacts` - Remove file artifacts when command is done (note: you'll lose autogenerated Seccomp and Apparmor profiles unless you copy them with the `copy-meta-artifacts` flag or if you archive the state)
 - `--tag` - Use a custom tag for the generated image (instead of the default value: `<original_image_name>.slim`) [can use this flag multiple times if you need to create additional tags for the optimized image]
 - `--entrypoint` - Override ENTRYPOINT analyzing image at runtime
 - `--cmd` - Override CMD analyzing image at runtime
@@ -473,7 +473,7 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--include-paths-creport-file` - Keep files from the referenced creport
 - `--include-bin value` - Include binary from image (executable or shared object using its absolute path)
 - `--include-bin-file` - Load shared binary file includes from a file (similar to `--include-path-file`)
-- `--include-dir-bins value` - Include binaries in the target directory and include their dependencies, which could be in other locations (executables or shared objects using its absolute path)
+- `--include-dir-bins value` - Include binaries in the target directory and include their dependencies, which could be in other locations (executables or shared objects using their absolute paths)
 - `--include-exe value` - Include executable from image (by executable name)
 - `--include-exe-file` - Load executable file includes from a file (similar to `--include-path-file`)
 - `--include-shell` - Include basic shell functionality (default value: false)
@@ -520,7 +520,7 @@ In the interactive CLI prompt mode you must specify the target image using the `
 - `--etc-hosts-map` - Add a host to IP mapping to /etc/hosts analyzing image at runtime [can use this flag multiple times]
 - `--container-dns` - Add a dns server analyzing image at runtime [can use this flag multiple times]
 - `--container-dns-search` - Add a dns search domain for unqualified hostnames analyzing image at runtime [can use this flag multiple times]
-- `--image-overrides` - Save runtime overrides in generated image (values is `all` or a comma delimited list of override types: `entrypoint`, `cmd`, `workdir`, `env`, `expose`, `volume`, `label`). Use this flag if you need to set a runtime value and you want to persist it in the optimized image. If you only want to add, edit or delete an image value in the optimized image use one of the `--new-*` or `--remove-*` flags (define below).
+- `--image-overrides` - Save runtime overrides in generated image (value is `all` or a comma delimited list of override types: `entrypoint`, `cmd`, `workdir`, `env`, `expose`, `volume`, `label`). Use this flag if you need to set a runtime value and you want to persist it in the optimized image. If you only want to add, edit or delete an image value in the optimized image use one of the `--new-*` or `--remove-*` flags (defined below).
 - `--continue-after` - Select continue mode: `enter` | `signal` | `probe` | `exec` | `host-exec` | `timeout-number-in-seconds` | `container-probe` (default value if http probes are disabled: `enter`). You can also select `probe` and `exec` together: `'probe&exec'` (make sure to use quotes around the two modes or the `&` will break the shell command).
 - `--dockerfile` - The source Dockerfile name to build the fat image before it's optimized.
 - `--tag-fat` - Custom tag for the fat image built from Dockerfile.
@@ -567,13 +567,13 @@ In the interactive CLI prompt mode you must specify the target image using the `
 
 The `--include-path` option is useful if you want to customize your minified image adding extra files and directories. The `--include-path-file` option allows you to load multiple includes from a newline delimited file. Use this option if you have a lot of includes. The includes from `--include-path` and `--include-path-file` are combined together. You can also use the `--exclude-pattern` flag to control what shouldn't be included.
 
-The `--continue-after` option is useful if you need to script the **Mint** app. If you pick the `probe` option then **Mint** will continue executing the build command after the HTTP probe is done executing. If you pick the `exec` options then **Mint** will continue executing the build command after the container exec shell commands (specified using the `--exec-file` or `--exec` flags) are done executing. If you pick the `host-exec` option then **Mint** will continue executing the build command after the host commands (specified using the `--host-exec` or `--host-exec-file` flags) are done executing (this mode is added automatically when you use those flags). If you pick the `timeout` option **Mint** will allow the target container to run for 60 seconds before it will attempt to collect the artifacts. You can specify a custom timeout value by passing a number of seconds you need instead of the `timeout` string. If you pick the `signal` option you'll need to send a `USR1` signal to the **Mint** app process. The `signal` option is useful when you want to run your own tests against the temporary container **Mint** creates. Your test automation / CI/CD pipeline will be able to notify the **Mint** app that it's done running its test by sending the `USR1` to it.
+The `--continue-after` option is useful if you need to script the **Mint** app. If you pick the `probe` option then **Mint** will continue executing the build command after the HTTP probe is done executing. If you pick the `exec` option then **Mint** will continue executing the build command after the container exec shell commands (specified using the `--exec-file` or `--exec` flags) are done executing. If you pick the `host-exec` option then **Mint** will continue executing the build command after the host commands (specified using the `--host-exec` or `--host-exec-file` flags) are done executing (this mode is added automatically when you use those flags). If you pick the `timeout` option **Mint** will allow the target container to run for 60 seconds before it will attempt to collect the artifacts. You can specify a custom timeout value by passing a number of seconds you need instead of the `timeout` string. If you pick the `signal` option you'll need to send a `USR1` signal to the **Mint** app process. The `signal` option is useful when you want to run your own tests against the temporary container **Mint** creates. Your test automation / CI/CD pipeline will be able to notify the **Mint** app that it's done running its test by sending the `USR1` to it.
 
 You can also combine multiple `continue-after` modes. For now only combining `probe` and `exec` is supported (using either `probe&exec` or `exec&probe` as the `--continue-after` flag value). Other combinations may work too. Combining `probe` and `signal` is not supported.
 
-The `--include-shell` option provides a simple way to keep a basic shell in the minified container. Not all shell commands are included. To get additional shell commands or other command line utilities use the `--include-exe` and/or `--include-bin` options. Note that the extra apps and binaries might missed some of the non-binary dependencies (which don't get picked up during static analysis). For those additional dependencies use the `--include-path` and `--include-path-file` options.
+The `--include-shell` option provides a simple way to keep a basic shell in the minified container. Not all shell commands are included. To get additional shell commands or other command line utilities use the `--include-exe` and/or `--include-bin` options. Note that the extra apps and binaries might miss some of the non-binary dependencies (which don't get picked up during static analysis). For those additional dependencies use the `--include-path` and `--include-path-file` options.
 
-The `--dockerfile` option makes it possible to build a new minified image directly from source Dockerfile. Pass the Dockerfile name as the value for this flag and pass the build context directory or URL instead of the docker image name as the last parameter for the `build` command: `mint slim --dockerfile Dockerfile --tag my/custom_minified_image_name .` If you want to see the console output from the build stages (when the fat and slim images are built) add the `--show-blogs` build flag. Note that the build console output is not interactive and it's printed only after the corresponding build step is done. The fat image created during the build process has the `.fat` suffix in its name. If you specify a custom image tag (with the `--tag` flag) the `.fat` suffix is added to the name part of the tag. If you don't provide a custom tag the generated fat image name will have the following format: `slim-tmp-fat-image.<pid_of_slim>.<current_timestamp>`. The minified image name will have the `.slim` suffix added to that auto-generated container image name (`slim-tmp-fat-image.<pid_of_slim>.<current_timestamp>.slim`). Take a look at this [python examples](https://github.com/mintoolkit/examples/tree/master/python_ubuntu_18_py27_from_dockerfile) to see how it's using the `--dockerfile` flag.
+The `--dockerfile` option makes it possible to build a new minified image directly from source Dockerfile. Pass the Dockerfile name as the value for this flag and pass the build context directory or URL instead of the docker image name as the last parameter for the `build` command: `mint slim --dockerfile Dockerfile --tag my/custom_minified_image_name .` If you want to see the console output from the build stages (when the fat and slim images are built) add the `--show-blogs` build flag. Note that the build console output is not interactive and it's printed only after the corresponding build step is done. The fat image created during the build process has the `.fat` suffix in its name. If you specify a custom image tag (with the `--tag` flag) the `.fat` suffix is added to the name part of the tag. If you don't provide a custom tag the generated fat image name will have the following format: `slim-tmp-fat-image.<pid_of_slim>.<current_timestamp>`. The minified image name will have the `.slim` suffix added to that auto-generated container image name (`slim-tmp-fat-image.<pid_of_slim>.<current_timestamp>.slim`). Take a look at this [python example](https://github.com/mintoolkit/examples/tree/master/python_ubuntu_18_py27_from_dockerfile) to see how it's using the `--dockerfile` flag.
 
 The `--use-local-mounts` option is used to choose how the **Mint** sensor is added to the target container and how the sensor artifacts are delivered back to the master. If you enable this option you'll get the original **Mint** app behavior where it uses local file system volume mounts to add the sensor executable and to extract the artifacts from the target container. This option doesn't always work as expected in the dockerized environment where **Mint** itself is running in a Docker container. When this option is disabled (default behavior) then a separate Docker volume is used to mount the sensor and the sensor artifacts are explicitly copied from the target container.
 
@@ -601,7 +601,7 @@ Debug minimal or regular container images running in Docker, Podman, Kubernetes 
 - `--gid` - GID to use for the debugging sidecar container.
 - `--run-privileged` - Run the debug sidecar as a privileged container (true by default).
 - `--security-context-from-target` - Use the security context params from the target container with the debug sidecar container.
-- `--fallback-to-target-user` - Fallback to using target container user if it's non-root (true by default; set it to false to disable this behavior).
+- `--fallback-to-target-user` - Fall back to using target container user if it's non-root (true by default; set it to false to disable this behavior).
 - `--run-as-target-shell` - Attach an interactive terminal to the debug container and run shell as if it's running in the target container environment (true by default).
 - `--list-sessions` - List all debug sessions for the selected target (pod and optionally selected container for k8s or container for other runtimes).
 - `--show-session-logs` - Show logs for the selected debug session (using namespace, pod, target container or debug session container name for k8s or debug session container name for other runtimes).
@@ -625,7 +625,7 @@ Flags:
 - `--engine` - Container image build engine to use: `docker` (Native Docker container build engine), `podman` (Native Podman/Buildah container build engine), `buildkit` (BuildKit container build engine), `depot` (Depot.dev cloud-based container build engine), `simple` (built-in simple image build engine)
 - `--image-name` - Container image name to use (including tag).
 - `--image-archive-file` - Local file path for the image tar archive file (used for the `depot` and `buildkit` engines).
-- `--dockerfile` - Local Dockerfile path (for `buildkit` and `depot`) or a relative to the build context directory (for `docker` or `podman`). Default: `Dockerfile`.
+- `--dockerfile` - Local Dockerfile path (for `buildkit` and `depot`) or a path relative to the build context directory (for `docker` or `podman`). Default: `Dockerfile`.
 - `--context-dir` - Local build context directory. Default: `.`.
 - `--build-arg` - Build time variable (ARG). [can use this flag multiple times]
 - `--label` - Image label to add. [can use this flag multiple times]
@@ -636,7 +636,7 @@ Flags:
 - `--runtime-load` - Container runtime where to load the created image: `none`, `docker`, `podman`.
 - `--base` - `simple` build engine: base image to use (from selected runtime, docker by default, or pulled if not available)
 - `--base-tar` - `simple` build engine: base image from a local tar file
-- `--base-with-certs` - `simple` build engine: boolean flat to use the static-debian12 distroless base image - contains only certs and timezone info
+- `--base-with-certs` - `simple` build engine: boolean flag to use the static-debian12 distroless base image - contains only certs and timezone info
 - `--exe-path` - `simple` build engine: local (linux) executable file that will be used as the entrypoint for the new image (added to the selected base image or scratch image if no base image is provided)
 - `--registry-push` - Push the built image to a container registry
 - `--use-docker-credentials` - Use the registry credentials from the default Docker config file (defaults to true).
@@ -675,7 +675,7 @@ A `Podman` engine example:
 mint imagebuild --engine podman --image-name imagebuild-podman-app:latest --build-arg BA=1 --label LONE=value --label LTWO="label two value" --dockerfile Dockerfile --context-dir node_app
 ```
 
-Note that this example also building the same image in the `node_app` directory, but here the `--dockerfile` flag value is set to `Dockerfile`. In this case, setting the `--dockerfile` flag was not necessary, because `Dockerfile` is the default `--dockerfile` flag value.
+Note that this example is also building the same image in the `node_app` directory, but here the `--dockerfile` flag value is set to `Dockerfile`. In this case, setting the `--dockerfile` flag was not necessary, because `Dockerfile` is the default `--dockerfile` flag value.
 
 ### `RUN` COMMAND OPTIONS
 
@@ -711,7 +711,7 @@ Flags:
 
 ### `REGISTRY` COMMAND OPTIONS
 
-For the operations that require authentication you can reuse the registry credentials from Docker (do `docker login` first and then use the `--use-docker-credentials` flag with the `registry` command) or you can specify the auth info using the `--account` and `--secret` flags).
+For the operations that require authentication you can reuse the registry credentials from Docker (do `docker login` first and then use the `--use-docker-credentials` flag with the `registry` command) or you can specify the auth info using the `--account` and `--secret` flags.
 
 Current sub-commands: `pull`, `push`, `image-index-create`, `server`.
 
@@ -788,7 +788,7 @@ USAGE: `mint [GLOBAL FLAGS] vulnerability [SHARED FLAGS] [SUBCOMMAND] [FLAGS]`
 
 Current sub-commands:
 
-- `epss` - Gets EPPS information for the target vulnerabilities or based on the selected vulnerability filters.
+- `epss` - Gets EPSS information for the target vulnerabilities or based on the selected vulnerability filters.
 
 Shared Command Level Flags:
 
@@ -805,13 +805,13 @@ Flags:
 - `--with-history` - Return EPSS results with historical data. Works with the `lookup` and `list` operations.
 - `--limit` - Limit the number of returned records.
 - `offset` - Offset where to start returning records.
-- `filter-cve-id-pattern` - 'CVE ID pattern' ESPP list operation filter.
-- `filter-days-since-added` - 'days since added' ESPP list operation filter.
-- `filter-score-gt` - 'score is greater than' ESPP list operation filter.
-- `filter-score-lt` - 'score is less than' ESPP list operation filter.
-- `filter-percentile-gt` - 'percentile is greater than' ESPP list operation filter.
-- `filter-percentile-lt` - 'percentile is less than' ESPP list operation filter.
-- `filter-order-records` - 'order returned records' ESPP list operation filter ('score-desc' | 'score-asc' | 'percentile-desc' | 'percentile-asc').
+- `filter-cve-id-pattern` - 'CVE ID pattern' EPSS list operation filter.
+- `filter-days-since-added` - 'days since added' EPSS list operation filter.
+- `filter-score-gt` - 'score is greater than' EPSS list operation filter.
+- `filter-score-lt` - 'score is less than' EPSS list operation filter.
+- `filter-percentile-gt` - 'percentile is greater than' EPSS list operation filter.
+- `filter-percentile-lt` - 'percentile is less than' EPSS list operation filter.
+- `filter-order-records` - 'order returned records' EPSS list operation filter ('score-desc' | 'score-asc' | 'percentile-desc' | 'percentile-asc').
 
 Examples:
 
@@ -850,7 +850,7 @@ Different CI/CD services have different containerized environment designs that i
 
 ### Using `*-file` Flags
 
-- There are several flags that accept file paths (`--include-path-file`, `--compose-file`, `--http-probe-cmd-file`, etc). You need volume mount the location of the referenced paths or the file paths themselves when you use the containerized version of **Mint** because the **Mint** app container won't have access to the referenced files otherwise.
+- There are several flags that accept file paths (`--include-path-file`, `--compose-file`, `--http-probe-cmd-file`, etc). You need to volume mount the location of the referenced paths or the file paths themselves when you use the containerized version of **Mint** because the **Mint** app container won't have access to the referenced files otherwise.
 
 ## CI/CD INTEGRATIONS
 
@@ -933,8 +933,8 @@ stage("Build and Slim Docker Image") {
 
 - The snippet stage above allows for customization, you should replace the image name--IMAGE_NAME with your desired image name, the environment variable tag--$BUILD_NUMBER represents a unique incremental number allocated by Jenkins each time your jenkins pipeline runs.
 - The docker build command builds a Docker Image of your application from a Dockerfile.
-- The docker run command runs **Mint** in a non-interactive mode via the docker unix socket, minifies the built(target) image--IMAGE_NAME:$BUILD_NUMBER, and adjusting it to a new slimmed image with the image/tag--IMAGE_NAME:slim-$BUILD_NUMBER.
-- You should put the **Mint** stage before a docker tag/push stage and after a build/test artifact in your Jenkinsfile, an example pipeline is highlighted below for a sample nodejs application; The first stage test and builds an artifact of the application; The second stage builds a docker image and a slimmed version of the docker image; The third stage tags the slimmed docker image with a DockerHub account remote repository and pushes the image to the remote repository.
+- The docker run command runs **Mint** in a non-interactive mode via the docker unix socket, minifies the built(target) image--IMAGE_NAME:$BUILD_NUMBER, and adjusts it to a new slimmed image with the image/tag--IMAGE_NAME:slim-$BUILD_NUMBER.
+- You should put the **Mint** stage before a docker tag/push stage and after a build/test artifact in your Jenkinsfile, an example pipeline is highlighted below for a sample nodejs application; The first stage tests and builds an artifact of the application; The second stage builds a docker image and a slimmed version of the docker image; The third stage tags the slimmed docker image with a DockerHub account remote repository and pushes the image to the remote repository.
 
 ```
 pipeline {
@@ -1025,7 +1025,7 @@ You can integrate the Docker-Slim Github Action in your workflow by inserting th
 
 The workflow above indicates four steps:
 
-- A [Docker Build/Push Github Action](https://github.com/docker/build-push-action) for building a docker image with the image name/tag--IMAGE_NAME:{{github.run_number}}, you should give replace IMAGE_NAME with your desired image name. Note that this Action must have a false option to push the built image--given that you need the image slimmed/minified before pushing it to a container registry.
+- A [Docker Build/Push Github Action](https://github.com/docker/build-push-action) for building a docker image with the image name/tag--IMAGE_NAME:{{github.run_number}}, you should replace IMAGE_NAME with your desired image name. Note that this Action must have a false option to push the built image--given that you need the image slimmed/minified before pushing it to a container registry.
 - A Docker-Slim Github Action which minifies the target image--IMAGE_NAME:{{github.run_number}}, this Action has the "slim-{{github.run_number}}" tag and adds this tag to the slimmed/minified docker image such that the image name/tag becomes IMAGE_NAME:slim-{{github.run_number}}.
 - A Docker Login Github Action which logs into your DockerHub container registry account, you should store your DockerHub username and personal access token as secrets in the github repository meant for the workflow. Suppose your container registry is not DockerHub, you can check the [Docker Login Github Action documentation](https://github.com/docker/login-action) for the use case of logging into your desired container registry.
 - A docker tag command for naming/tagging the slimmed image with your DockerHub account remote repository name which could be the same name(IMAGE_NAME) as the slimmed image; A docker push command to push the slimmed image to your Dockerhub account remote repository.
@@ -1066,7 +1066,7 @@ To configure Docker Desktop to create the default Unix socket open its UI and go
 
 ### COLIMA
 
-Similar to Docker Desktop, but the socked will need to be configured to use `unix://${HOME}/.colima/<PROFILE>/docker.sock` where `${HOME}/.colima` is `$COLIMA_HOME` and `<PROFILE>` is `default` (unless you created a custom profile).
+Similar to Docker Desktop, but the socket will need to be configured to use `unix://${HOME}/.colima/<PROFILE>/docker.sock` where `${HOME}/.colima` is `$COLIMA_HOME` and `<PROFILE>` is `default` (unless you created a custom profile).
 
 The Colima Docker socket can also be accessed through Docker context.
 
@@ -1095,7 +1095,7 @@ The `--http-probe-cmd` option is good when you want to specify a small number of
 
 The `--http-probe-cmd-upload` option is good when you want to upload a file. The file upload is done using a multipart form data request (the most common way to upload files). The flag value has the following format: `[[[[[PROTO:]FORM_FILE_NAME:]FORM_FIELD_NAME:]FILE_OR_GENERATE_TYPE:]PATH]`. The most basic flag value is a `PATH` (e.g., `--http-probe-cmd-upload /uploadpath`). When no file to upload or data generate instruction is provided a simple text file is generated. The `FILE_OR_GENERATE_TYPE` section can either point to a local file path for the file to upload or it can be one of the data generate instructions: `generate.text`, `generate.text.json`, `generate.image`, `generate.image.png`, `generate.image.jpeg`, `generate.image.gif`. You can specify a custom form field name to use for the request using the `FORM_FIELD_NAME` section (defaults to `file`). You can also specify the file name for the upload using the `FORM_FILE_NAME` section (defaults to `file.data` or the base path of the file name when `FILE_OR_GENERATE_TYPE` points to a local file). The `PROTO` section is used to scope the request to a specific protocol (`http`, `https`, etc). Note that you can also specify an upload command using a JSON record provided with the `--http-probe-cmd-file` flag (see below).
 
-If you only want to use custom HTTP probe command and you don't want the default `GET /` command added to the command list you explicitly provided you'll need to set `--http-probe` to false when you specify your custom HTTP probe command. Note that this inconsistency will be addressed in the future releases to make it less confusing.
+If you only want to use a custom HTTP probe command and you don't want the default `GET /` command added to the command list you explicitly provided you'll need to set `--http-probe` to false when you specify your custom HTTP probe command. Note that this inconsistency will be addressed in the future releases to make it less confusing.
 
 Possible field combinations:
 
@@ -1122,7 +1122,7 @@ Available HTTP command options:
 - `resource` - target resource URL
 - `port` - port number
 - `protocol` - `http`, `https`, `http2`, `http2c` (cleartext version of http2), `ws`, `wss` (secure websocket)
-- `headers` - array of strings with column delimited key/value pairs (e.g., "Content-Type: application/json")
+- `headers` - array of strings with colon delimited key/value pairs (e.g., "Content-Type: application/json")
 - `body` - request body as a string
 - `body_file` - request body loaded from the provided file
 - `body_generate` - auto-generate request body using one of the instructions: `generate.text`, `generate.text.json`, `generate.image`, `generate.image.png`, `generate.image.jpeg`, `generate.image.gif`
@@ -1201,7 +1201,7 @@ The current version of the `debug` command supports multiple container runtimes:
 
 Use the `--runtime` flag to explicitly select your target container runtime. By default, the flag value is set to `auto` and the command will try to auto-detect the installed runtime(s). If the auto-select isn't picking up your installation set the flag explicitly.
 
-By default the `debug` command will provide you with an interactive terminal when it attaches the debugging sidecar image to the target container. The interactive terminal will allow you navigate the target container filesystem as if you were connected to the target container. To disable this behavior set `--run-as-target-shell` to `false`.
+By default the `debug` command will provide you with an interactive terminal when it attaches the debugging sidecar image to the target container. The interactive terminal will allow you to navigate the target container filesystem as if you were connected to the target container. To disable this behavior set `--run-as-target-shell` to `false`.
 
 Other default behavior:
 
@@ -1406,7 +1406,7 @@ The demo runs on Mac OS X, but you can build a linux version. Note that these st
 
 Unzip them and optionally add their directory to your `PATH` environment variable if you want to use the app from other locations.
 
-The extracted directory contains two binaries (and now it also contains a symlink for the old n ame):
+The extracted directory contains two binaries (and now it also contains a symlink for the old name):
 
 - `mint` <- the main **Mint** application binary
 - `mint-sensor` <- the sensor application used to collect information from running containers
@@ -1449,7 +1449,7 @@ If http probing is enabled (when `http-probe` is set) and if `continue-after` is
 
 `docker images`
 
-You should see `my/sample-node-app.slim` in the list of images. Right now all generated images have `.slim` at the end of its name.
+You should see `my/sample-node-app.slim` in the list of images. Right now all generated images have `.slim` at the end of their names.
 
 8. Use the minified image
 
@@ -1479,11 +1479,11 @@ You can explore the artifacts **Mint** generates when it's creating a slim image
 
 If you don't want to create a minified image and only want to "reverse engineer" the Dockerfile you can use the `info` command.
 
-### What if my Docker images uses the USER command?
+### What if my Docker image uses the USER command?
 
 The current version of **Mint** does include support for non-default users (take a look at the non-default user examples (including the ElasticSearch example located in the `3rdparty` directory) in the [`examples`](https://github.com/mintoolkit/examples) repo. Please open tickets if something doesn't work for you.
 
-Everything should work as-is, but for the special cases where the current behavior don't work as expected you can adjust what **Mint** does using various `build` command parameters: `--run-target-as-user`, `--keep-perms`, `--path-perms`, `--path-perms-file` (along with the `--include-*` parameters).
+Everything should work as-is, but for the special cases where the current behavior doesn't work as expected you can adjust what **Mint** does using various `build` command parameters: `--run-target-as-user`, `--keep-perms`, `--path-perms`, `--path-perms-file` (along with the `--include-*` parameters).
 
 The `--run-target-as-user` parameter is enabled by default and it controls if the application in the temporary container is started using the identity from the USER instruction in the container's Dockerfile.
 
@@ -1491,7 +1491,7 @@ The `--keep-perms` parameter is also enabled by default. It tells **Mint** to re
 
 The `--path-perms` and `--path-perms-file` parameters are similar to the `--include-path` and `--include-path-file` parameters. They are used to overwrite the permission and the user/group information for the target files and directories. Note that the target files/directories are expected to be in the optimized container image. If you don't know if the target files/directories will be in the optimized container you'll need to use one of the `--include-*` parameters (e.g., `--include-path-file`) to explicitly require those artifacts to be included. You can specify the permissions and the ownership information in the `--include-*` parameters too (so you don't need to have the `--path-*` parameters just to set the permissions).
 
-The `--path-*` and `--include-*` params use the same format to communicate the permission/owernship info: `TARGET_PATH_OR_NAME:PERMS_IN_OCTAL_FORMAT#USER_ID#GROUP_ID`.
+The `--path-*` and `--include-*` params use the same format to communicate the permission/ownership info: `TARGET_PATH_OR_NAME:PERMS_IN_OCTAL_FORMAT#USER_ID#GROUP_ID`.
 
 You don't have to specify the user and group IDs if you don't want to change them.
 
@@ -1515,7 +1515,7 @@ Also note that for now you have to use numeric user and group IDs. The future ve
 
 ### Nginx fails in my minified image
 
-If you see `nginx: [emerg] mkdir() "/var/lib/nginx/body" failed` it means your nginx setup uses a non-standard temporary directory. Nginx will fail if the base directory for its temporary folders doesn't exist (they won't create the missing intermediate directories). Normally it's `/var/lib/nginx`, but if you have a custom config that points to something else you'll need to add an `--include-path` flag as an extra flag when you run the **Mint** app.
+If you see `nginx: [emerg] mkdir() "/var/lib/nginx/body" failed` it means your nginx setup uses a non-standard temporary directory. Nginx will fail if the base directory for its temporary folders doesn't exist (it won't create the missing intermediate directories). Normally it's `/var/lib/nginx`, but if you have a custom config that points to something else you'll need to add an `--include-path` flag as an extra flag when you run the **Mint** app.
 
 ### Mint fails with a 'no permission to read from' error
 

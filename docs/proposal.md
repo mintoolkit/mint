@@ -2,7 +2,7 @@
 
 DockerSlim is known for its ability to shrink container images reducing the container attack surface that can be exploited. It's used by developers, DevOps engineers and security engineers.  Even though it's popular and useful a lot of users struggle to use it successfully because they don't know enough about the available capabilities and they don't know enough about the containerized applications they are trying to secure.
 
-We will introduce an AI-based interface in DockerSlim that will allow users to communicate the high level intent and outcome they need and the AI engine will figure out the details how to achieve it and what capabilities in DockerSlim to use.
+We will introduce an AI-based interface in DockerSlim that will allow users to communicate the high level intent and outcome they need and the AI engine will figure out the details of how to achieve it and what capabilities in DockerSlim to use.
 
 We will also introduce advanced AI-powered security insights capabilities where the low level data DockerSlim produces will be presented, contextualized and explained in a meaningful way based on the high level intent and outcome users requested. We will add a set of specialized security research agents that will look for and analyze suspicious container image components and application dependencies.
 
