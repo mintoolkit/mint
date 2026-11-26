@@ -344,6 +344,36 @@ func HandlePodmanRuntime(
 	}
 
 	logger.Tracef("Debugger sidecar spec: %s", jsonutil.ToString(cntrSpec))
+	if len(commandParams.PublishPorts) > 0 {
+		targetIP := ""
+		if targetContainer.NetworkSettings != nil {
+			targetIP = targetContainer.NetworkSettings.IPAddress
+			if targetIP == "" {
+				for _, netCfg := range targetContainer.NetworkSettings.Networks {
+					if netCfg != nil && netCfg.IPAddress != "" {
+						targetIP = netCfg.IPAddress
+						break
+					}
+				}
+			}
+		}
+
+		pf, err := StartPortForwarder(targetIP, commandParams.PublishPorts)
+		if err != nil {
+			xc.Out.Error("debug.port.forward", err.Error())
+			xc.FailOn(err)
+		}
+		defer pf.Close()
+
+		for _, b := range pf.Bindings() {
+			xc.Out.Info("debug.port.forward", ovars{
+				"host":      b.HostAddr,
+				"container": b.ContainerPort,
+				"target":    b.TargetAddr,
+			})
+		}
+	}
+
 	cntr, err := containers.CreateWithSpec(connCtx, cntrSpec, nil)
 	xc.FailOn(err)
 	logger.Debugf("Debugger sidecar created - (ID=%s)", cntr.ID)

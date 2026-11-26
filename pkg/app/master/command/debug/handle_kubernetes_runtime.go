@@ -51,6 +51,14 @@ func HandleKubernetesRuntime(
 	logger.WithField("cparams", string(cpJson)).Trace("call")
 	defer logger.Trace("exit")
 
+	if len(commandParams.PublishPorts) > 0 {
+		xc.Out.Info("debug.port.forward", ovars{
+			"status":  "unsupported",
+			"runtime": "kubernetes",
+			"message": "--publish-port is currently supported on docker and podman runtimes",
+		})
+	}
+
 	ctx := context.Background()
 	crtClient := dockercrtclient.New(dockerClient)
 

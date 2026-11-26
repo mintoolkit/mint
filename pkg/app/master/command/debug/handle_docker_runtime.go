@@ -297,6 +297,24 @@ func HandleDockerRuntime(
 	xc.FailOn(err)
 
 	logger.Tracef("Debugger sidecar spec: %s", jsonutil.ToString(exe))
+	if len(commandParams.PublishPorts) > 0 {
+		targetIP := resolveDockerTargetIP(targetContainerInfo)
+		pf, err := StartPortForwarder(targetIP, commandParams.PublishPorts)
+		if err != nil {
+			xc.Out.Error("debug.port.forward", err.Error())
+			xc.FailOn(err)
+		}
+		defer pf.Close()
+
+		for _, b := range pf.Bindings() {
+			xc.Out.Info("debug.port.forward", ovars{
+				"host":      b.HostAddr,
+				"container": b.ContainerPort,
+				"target":    b.TargetAddr,
+			})
+		}
+	}
+
 	err = exe.Start()
 	xc.FailOn(err)
 

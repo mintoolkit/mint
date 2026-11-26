@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	dockerapi "github.com/fsouza/go-dockerclient"
 	"github.com/urfave/cli/v2"
 
 	"github.com/mintoolkit/mint/pkg/app"
@@ -88,6 +89,8 @@ type CommandParams struct {
 	UseSecurityContextFromTarget bool
 	/// fallback to using target container user if it's non-root (mostly for kubernetes)
 	DoFallbackToTargetUser bool
+	/// port bindings to publish from the debugged container to the host
+	PublishPorts map[dockerapi.Port][]dockerapi.PortBinding
 	// `debug --tui` use mode`
 	TUI bool
 }
@@ -170,6 +173,7 @@ var CLI = &cli.Command{
 		cflag(FlagRunPrivileged),
 		cflag(FlagSecurityContextFromTarget),
 		cflag(FlagFallbackToTargetUser),
+		cflag(FlagPublishPort),
 		command.Cflag(command.FlagTUI),
 	},
 	Action: func(ctx *cli.Context) error {
@@ -257,6 +261,13 @@ var CLI = &cli.Command{
 		}
 
 		var err error
+		if rawPorts := ctx.StringSlice(FlagPublishPort); len(rawPorts) > 0 {
+			commandParams.PublishPorts, err = command.ParsePortBindings(rawPorts)
+			if err != nil {
+				return err
+			}
+		}
+
 		if rawEntrypoint := ctx.String(FlagEntrypoint); rawEntrypoint != "" {
 			commandParams.Entrypoint, err = command.ParseExec(rawEntrypoint)
 			if err != nil {

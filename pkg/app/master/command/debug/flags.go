@@ -4,6 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
+	"github.com/mintoolkit/mint/pkg/app/master/command"
 	"github.com/mintoolkit/mint/pkg/crt"
 )
 
@@ -98,6 +99,9 @@ const (
 
 	FlagFallbackToTargetUser      = "fallback-to-target-user"
 	FlagFallbackToTargetUserUsage = "Fallback to using target container user if it's non-root (true by default)"
+
+	FlagPublishPort      = command.FlagPublishPort
+	FlagPublishPortUsage = command.FlagPublishPortUsage
 )
 
 var Flags = map[string]cli.Flag{
@@ -268,6 +272,13 @@ var Flags = map[string]cli.Flag{
 		Value:   true, //true by default
 		Usage:   FlagFallbackToTargetUserUsage,
 		EnvVars: []string{"DSLIM_DBG_FALLBACK_TO_TARGET_USER"},
+	},
+	FlagPublishPort: &cli.StringSliceFlag{
+		Name:    FlagPublishPort,
+		Aliases: []string{"publish", "p"},
+		Value:   cli.NewStringSlice(),
+		Usage:   FlagPublishPortUsage,
+		EnvVars: []string{"DSLIM_DBG_PUBLISH_PORT"},
 	},
 }
 

@@ -70,6 +70,10 @@ func OnCommand(
 		paramVars["namespace"] = commandParams.TargetNamespace
 	}
 
+	if len(commandParams.PublishPorts) > 0 {
+		paramVars["publish-ports"] = commandParams.PublishPorts
+	}
+
 	xc.Out.Info("cmd.input.params", paramVars)
 
 	sid := generateSessionID()
