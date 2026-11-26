@@ -16,12 +16,36 @@ import (
 	v "github.com/mintoolkit/mint/pkg/version"
 )
 
-// Instruction prefixes in the uppercase form written to the Dockerfile,
+// Instruction names and prefixes in the uppercase form written to the Dockerfile,
 // derived from the canonical names in pkg/docker/instruction
 var (
-	instPrefixUser    = strings.ToUpper(instruction.User) + " "
-	instPrefixExpose  = strings.ToUpper(instruction.Expose) + " "
-	instPrefixWorkdir = strings.ToUpper(instruction.Workdir) + " "
+	instPrefixMaintainer = strings.ToUpper(instruction.Maintainer) + " "
+
+	instTypeEntrypoint   = strings.ToUpper(instruction.Entrypoint)
+	instPrefixEntrypoint = instTypeEntrypoint + " "
+
+	instTypeCmd   = strings.ToUpper(instruction.Cmd)
+	instPrefixCmd = instTypeCmd + " "
+
+	instTypeUser   = strings.ToUpper(instruction.User)
+	instPrefixUser = instTypeUser + " "
+
+	instTypeExpose   = strings.ToUpper(instruction.Expose)
+	instPrefixExpose = instTypeExpose + " "
+
+	instTypeWorkdir   = strings.ToUpper(instruction.Workdir)
+	instPrefixWorkdir = instTypeWorkdir + " "
+
+	instTypeHealthcheck   = strings.ToUpper(instruction.Healthcheck)
+	instPrefixHealthcheck = instTypeHealthcheck + " "
+
+	instTypeOnbuild = strings.ToUpper(instruction.Onbuild)
+
+	instTypeRun   = strings.ToUpper(instruction.Run)
+	instPrefixRun = instTypeRun + " "
+
+	instTypeAdd  = strings.ToUpper(instruction.Add)
+	instTypeCopy = strings.ToUpper(instruction.Copy)
 )
 
 // GenerateFromInfo builds and saves a Dockerfile file object
