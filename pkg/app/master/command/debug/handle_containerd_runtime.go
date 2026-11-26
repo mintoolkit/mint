@@ -57,6 +57,14 @@ func HandleContainerdRuntime(
 	logger.WithField("cparams", jsonutil.ToString(commandParams)).Trace("call")
 	defer logger.Trace("exit")
 
+	if len(commandParams.PublishPorts) > 0 {
+		xc.Out.Info("debug.port.forward", ovars{
+			"status":  "unsupported",
+			"runtime": "containerd",
+			"message": "--publish-port is currently supported on docker and podman runtimes",
+		})
+	}
+
 	if runtime.GOOS != "linux" {
 		xc.Out.Info("unsupported.runtime.os",
 			ovars{

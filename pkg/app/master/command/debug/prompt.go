@@ -35,6 +35,7 @@ var CommandFlagSuggestions = &command.FlagSuggestions{
 		{Text: command.FullFlagName(FlagRunPrivileged), Description: FlagRunPrivilegedUsage},
 		{Text: command.FullFlagName(FlagSecurityContextFromTarget), Description: FlagSecurityContextFromTargetUsage},
 		{Text: command.FullFlagName(FlagFallbackToTargetUser), Description: FlagFallbackToTargetUserUsage},
+		{Text: command.FullFlagName(FlagPublishPort), Description: FlagPublishPortUsage},
 		{Text: command.FullFlagName(FlagTerminal), Description: FlagTerminalUsage},
 		{Text: command.FullFlagName(FlagRunAsTargetShell), Description: FlagRunAsTargetShellUsage},
 		{Text: command.FullFlagName(FlagListSessions), Description: FlagListSessionsUsage},
