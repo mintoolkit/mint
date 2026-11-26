@@ -37,7 +37,7 @@ func StartPortForwarder(targetIP string, portBindings map[dockerapi.Port][]docke
 	for cport, bindings := range portBindings {
 		proto := cport.Proto()
 		if proto != "" && proto != "tcp" {
-			_ = pf.Close()
+			pf.closeWithLog()
 			return nil, fmt.Errorf("unsupported port protocol %q for %s (only tcp is supported)", proto, cport)
 		}
 
@@ -60,7 +60,7 @@ func StartPortForwarder(targetIP string, portBindings map[dockerapi.Port][]docke
 
 			ln, err := net.Listen("tcp", net.JoinHostPort(hostIP, hostPort))
 			if err != nil {
-				_ = pf.Close()
+				pf.closeWithLog()
 				return nil, fmt.Errorf("listen %s:%s -> %s: %w", hostIP, hostPort, targetAddr, err)
 			}
 
@@ -105,6 +105,12 @@ func (pf *PortForwarder) Close() error {
 	}
 	pf.wg.Wait()
 	return firstErr
+}
+
+func (pf *PortForwarder) closeWithLog() {
+	if err := pf.Close(); err != nil {
+		log.WithError(err).Debug("debug.portforward: close error")
+	}
 }
 
 func (pf *PortForwarder) serve(ln net.Listener, targetAddr string) {
